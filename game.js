@@ -264,7 +264,7 @@ const FLAVORS = {
     color: "#ffb347",
     fireInterval: 0.2,
     damage: 1,
-    speedMult: 1.35,
+    speedMult: 1, // speed perk folded into the base speed (277)
     shots: 1,
   },
   savory: {
@@ -312,7 +312,9 @@ let settingsFx = null; // { key, at } — press feedback in the settings panel
 let resumeT = 0; // 3-2-1 countdown after closing settings mid-game
 
 function reset() {
-  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1, vx: 0, vy: 0 };
+  // Base speed = the old Sweet speed (205 × 1.35): the "jalebi feel" is now
+  // the default; flavors no longer buff movement, savory still trades a bit.
+  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 277, shield: 0, face: 1, vx: 0, vy: 0 };
   enemies = [];
   bullets = [];
   foods = [];
