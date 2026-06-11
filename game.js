@@ -16,15 +16,21 @@ let scale = 1, offX = 0, offY = 0;
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = window.innerWidth * dpr;
-  canvas.height = window.innerHeight * dpr;
-  canvas.style.width = window.innerWidth + "px";
-  canvas.style.height = window.innerHeight + "px";
+  // visualViewport is the truth on mobile — innerHeight lies when the
+  // browser URL bar expands/collapses, which pushed the arena off screen.
+  const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  canvas.width = vw * dpr;
+  canvas.height = vh * dpr;
+  canvas.style.width = vw + "px";
+  canvas.style.height = vh + "px";
   scale = Math.min(canvas.width / W, canvas.height / H);
   offX = (canvas.width - W * scale) / 2;
   offY = (canvas.height - H * scale) / 2;
 }
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
 resize();
 
 // ---------- Pre-rendered art (procedural, zero asset files) ----------
@@ -158,12 +164,12 @@ catch { discovered = new Set(); }
 let state = "menu"; // menu | playing | gameover
 let player, enemies, bullets, foods, particles, floaters, rings, drains;
 let flavor, flavorTimer, savoryPulse;
-let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer;
+let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let bestTime = 0;
 
 function reset() {
-  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 170, shield: 0 };
+  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0 };
   enemies = [];
   bullets = [];
   foods = [];
@@ -180,6 +186,7 @@ function reset() {
   waveTimer = 0;
   spawnTimer = 0;
   fireTimer = 0;
+  mixHintShown = false;
   hitFlash = 0;
   shake = 0;
   fusionFlash = 0;
@@ -231,8 +238,8 @@ function dist2(a, b) {
   const dx = a.x - b.x, dy = a.y - b.y;
   return dx * dx + dy * dy;
 }
-function announce(text, color) {
-  floaters.push({ text, color, x: W / 2, y: H * 0.35, life: 1.6, size: 34, vy: -20 });
+function announce(text, color, size = 34) {
+  floaters.push({ text, color, x: W / 2, y: H * 0.35, life: 1.6, size, vy: -20 });
 }
 function smallText(text, color, x, y) {
   floaters.push({ text, color, x, y, life: 0.9, size: 16, vy: -40 });
@@ -258,7 +265,7 @@ function spawnEnemy() {
   else { x = W - r; y = r + Math.random() * (H - 2 * r); }
 
   const hp = 1 + Math.floor(wave * 0.6);
-  const speed = 52 + wave * 6 + Math.random() * 20;
+  const speed = 60 + wave * 7 + Math.random() * 22;
   enemies.push({ x, y, r, hp, maxHp: hp, speed, wobble: Math.random() * Math.PI * 2, spawning: 0.7 });
 }
 
@@ -284,7 +291,16 @@ function eat(food) {
   smallText(food.type.name + "!", food.type.color, player.x, player.y - 26);
   burst(player.x, player.y, food.type.color, 10, 120);
 
-  if (fusion) fuse(prevFlavor, flavor);
+  if (fusion) {
+    fuse(prevFlavor, flavor);
+  } else if (prevFlavor === flavor && prevFraction > FUSION_THRESHOLD) {
+    // Same flavor at a fusion-ready meter: teach the mixing rule.
+    smallText("refreshed", "#9aa0b0", player.x, player.y - 44);
+    if (!mixHintShown) {
+      mixHintShown = true;
+      announce("mix a DIFFERENT flavor to cook a recipe!", "#ffb347", 17);
+    }
+  }
 }
 
 function fuse(a, b) {
@@ -402,9 +418,11 @@ function update(dt) {
   if (keys["arrowdown"] || keys["s"]) my += 1;
   // …or joystick.
   if (joy) {
+    const dpr = window.devicePixelRatio || 1;
+    const max = 48 * dpr; // full speed at ~48 CSS px of drag, on any screen density
     const len = Math.hypot(joy.dx, joy.dy);
-    if (len > 8) {
-      const c = Math.min(len, 60) / 60;
+    if (len > 6 * dpr) {
+      const c = Math.min(len, max) / max;
       mx = (joy.dx / len) * c;
       my = (joy.dy / len) * c;
     }
@@ -762,10 +780,10 @@ function draw() {
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(joy.ox, joy.oy, 60 * (window.devicePixelRatio || 1), 0, Math.PI * 2);
+    ctx.arc(joy.ox, joy.oy, 48 * (window.devicePixelRatio || 1), 0, Math.PI * 2);
     ctx.stroke();
     const len = Math.hypot(joy.dx, joy.dy) || 1;
-    const cap = Math.min(len, 60 * (window.devicePixelRatio || 1));
+    const cap = Math.min(len, 48 * (window.devicePixelRatio || 1));
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.beginPath();
     ctx.arc(joy.ox + (joy.dx / len) * cap, joy.oy + (joy.dy / len) * cap, 18, 0, Math.PI * 2);
@@ -836,6 +854,9 @@ function drawMenu() {
   ctx.font = "bold 15px sans-serif";
   ctx.fillText("You attack with whatever you last ate.", W / 2, H * 0.55);
   ctx.fillText("Flavor fades — keep eating.", W / 2, H * 0.585);
+  ctx.fillStyle = "#9aa0b0";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("Mix two different flavors while the bar is high → recipe.", W / 2, H * 0.625);
   ctx.fillStyle = "#e8e8f0";
   ctx.font = "bold 18px sans-serif";
   ctx.fillText("tap / space to start", W / 2, H * 0.68);
