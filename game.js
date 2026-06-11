@@ -272,7 +272,6 @@ let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
 let bestTime = 0;
 let settingsOpen = false;
-let settingRects = [];
 
 function reset() {
   player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1, vx: 0, vy: 0 };
@@ -339,6 +338,72 @@ function stickAnchor() {
   };
 }
 
+// Joystick art, pre-rendered per radius: dished base with direction
+// chevrons, and a domed knob.
+const joyArt = {};
+function joyBaseSprite(rDev) {
+  const key = "b" + Math.round(rDev);
+  if (!joyArt[key]) {
+    const r = Math.round(rDev), s = r * 2 + 8, c = s / 2;
+    joyArt[key] = makeSprite(s, s, (g) => {
+      const dish = g.createRadialGradient(c, c, r * 0.15, c, c, r);
+      dish.addColorStop(0, "rgba(255,255,255,0.03)");
+      dish.addColorStop(0.72, "rgba(255,255,255,0.06)");
+      dish.addColorStop(0.92, "rgba(255,255,255,0.14)");
+      dish.addColorStop(1, "rgba(255,255,255,0.03)");
+      g.fillStyle = dish;
+      g.beginPath();
+      g.arc(c, c, r, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "rgba(255,255,255,0.30)";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(c, c, r - 1, 0, Math.PI * 2);
+      g.stroke();
+      g.strokeStyle = "rgba(255,255,255,0.09)";
+      g.beginPath();
+      g.arc(c, c, r * 0.55, 0, Math.PI * 2);
+      g.stroke();
+      // Direction chevrons.
+      g.fillStyle = "rgba(255,255,255,0.32)";
+      for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2;
+        g.save();
+        g.translate(c + Math.cos(ang) * r * 0.8, c + Math.sin(ang) * r * 0.8);
+        g.rotate(ang);
+        g.beginPath();
+        g.moveTo(r * 0.1, 0);
+        g.lineTo(-r * 0.05, -r * 0.09);
+        g.lineTo(-r * 0.05, r * 0.09);
+        g.closePath();
+        g.fill();
+        g.restore();
+      }
+    });
+  }
+  return joyArt[key];
+}
+function joyKnobSprite(rDev) {
+  const key = "k" + Math.round(rDev);
+  if (!joyArt[key]) {
+    const r = Math.round(rDev), s = r * 2 + 6, c = s / 2;
+    joyArt[key] = makeSprite(s, s, (g) => {
+      const dome = g.createRadialGradient(c - r * 0.3, c - r * 0.35, r * 0.1, c, c, r);
+      dome.addColorStop(0, "rgba(255,255,255,0.55)");
+      dome.addColorStop(0.45, "rgba(255,255,255,0.28)");
+      dome.addColorStop(1, "rgba(255,255,255,0.10)");
+      g.fillStyle = dome;
+      g.beginPath();
+      g.arc(c, c, r, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "rgba(255,255,255,0.4)";
+      g.lineWidth = 1.5;
+      g.stroke();
+    });
+  }
+  return joyArt[key];
+}
+
 // ---------- Input ----------
 const keys = {};
 window.addEventListener("keydown", (e) => {
@@ -365,10 +430,14 @@ function toArena(p) {
 function uiPress(p) {
   const a = toArena(p);
   if (settingsOpen) {
-    for (const r of settingRects) {
+    for (const r of settingsLayout()) {
       if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
         if (r.key === "close") settingsOpen = false;
-        else cycleSetting(r.key);
+        else if (r.key === "reset") {
+          settings = { ...DEFAULT_SETTINGS };
+          saveSettings();
+          joy = null;
+        } else cycleSetting(r.key);
         return true;
       }
     }
@@ -1060,16 +1129,13 @@ function draw() {
   // Joystick.
   if (state === "playing" && !settingsOpen) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const flavorColor = FLAVORS[flavor].color;
     if (settings.stick === "fixed") {
-      // Anchored stick: always visible, dims when idle.
+      // Anchored stick: always visible, brightens when held.
       const an = stickAnchor();
-      ctx.fillStyle = "rgba(255,255,255,0.05)";
-      ctx.beginPath();
-      ctx.arc(an.x, an.y, an.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = joy ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      const base = joyBaseSprite(an.r);
+      ctx.globalAlpha = joy ? 0.95 : 0.5;
+      ctx.drawImage(base, an.x - base.width / 2, an.y - base.height / 2);
       const max = throwPx();
       let kx = an.x, ky = an.y;
       if (joy) {
@@ -1078,23 +1144,36 @@ function draw() {
         kx += (joy.dx / len) * (cap / max) * an.r * 0.55;
         ky += (joy.dy / len) * (cap / max) * an.r * 0.55;
       }
-      ctx.fillStyle = joy ? "rgba(255,255,255,0.42)" : "rgba(255,255,255,0.16)";
-      ctx.beginPath();
-      ctx.arc(kx, ky, an.r * 0.42, 0, Math.PI * 2);
-      ctx.fill();
+      const knob = joyKnobSprite(an.r * 0.42);
+      ctx.drawImage(knob, kx - knob.width / 2, ky - knob.height / 2);
+      if (joy) {
+        // Flavor-colored ring while steering.
+        ctx.strokeStyle = flavorColor;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(kx, ky, an.r * 0.42 + 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     } else if (joy) {
-      // Touch-anywhere indicator.
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(joy.ox, joy.oy, throwPx(), 0, Math.PI * 2);
-      ctx.stroke();
+      // Touch-anywhere indicator, same art family.
+      const vr = Math.max(throwPx(), 40 * DPR());
+      const base = joyBaseSprite(vr);
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(base, joy.ox - base.width / 2, joy.oy - base.height / 2);
       const len = Math.hypot(joy.dx, joy.dy) || 1;
       const cap = Math.min(len, throwPx());
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      const kx = joy.ox + (joy.dx / len) * (cap / throwPx()) * vr * 0.55;
+      const ky = joy.oy + (joy.dy / len) * (cap / throwPx()) * vr * 0.55;
+      const knob = joyKnobSprite(vr * 0.4);
+      ctx.drawImage(knob, kx - knob.width / 2, ky - knob.height / 2);
+      ctx.strokeStyle = flavorColor;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(joy.ox + (joy.dx / len) * cap, joy.oy + (joy.dy / len) * cap, 18, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(kx, ky, vr * 0.4 + 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -1260,10 +1339,26 @@ function drawGear() {
   ctx.restore();
 }
 
+// Single source of truth for panel geometry — used by both drawing and
+// tap hit-testing, so taps work even before the first panel frame renders.
+function settingsLayout() {
+  const cardX = 52, cardW = W - 104;
+  const rects = [];
+  let y = 236;
+  for (const key of Object.keys(OPTIONS)) {
+    rects.push({ x: cardX, y, w: cardW, h: 46, key });
+    y += 56;
+  }
+  rects.push({ x: cardX, y, w: cardW, h: 40, key: "reset" });
+  y += 50;
+  const bw = 170, bh = 50;
+  rects.push({ x: (W - bw) / 2, y: y + 18, w: bw, h: bh, key: "close" });
+  return rects;
+}
+
 function drawSettings() {
-  ctx.fillStyle = "rgba(10, 10, 16, 0.8)";
+  ctx.fillStyle = "rgba(10, 10, 16, 0.92)";
   ctx.fillRect(0, 0, W, H);
-  settingRects = [];
 
   ctx.textAlign = "center";
   ctx.font = "36px " + COMIC_FONT;
@@ -1277,54 +1372,80 @@ function drawSettings() {
   ctx.fillStyle = "#8d93a5";
   ctx.fillText("tap a row to change · applies instantly", W / 2, 198);
 
-  const cardX = 52, cardW = W - 104;
-  let y = 236;
-  for (const key of Object.keys(OPTIONS)) {
-    ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
-    ctx.fillRect(cardX, y, cardW, 46);
-    ctx.textAlign = "left";
-    ctx.font = "15px sans-serif";
-    ctx.fillStyle = "#e8e8f0";
-    ctx.fillText(SETTING_LABELS[key], cardX + 16, y + 29);
-    ctx.textAlign = "right";
-    ctx.font = "bold 15px sans-serif";
-    ctx.fillStyle = "#ffb347";
-    ctx.fillText(settings[key], cardX + cardW - 16, y + 29);
-    settingRects.push({ x: cardX, y, w: cardW, h: 46, key });
-    y += 56;
+  let doneBottom = 0;
+  for (const r of settingsLayout()) {
+    if (r.key === "reset") {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.textAlign = "center";
+      ctx.font = "13px sans-serif";
+      ctx.fillStyle = "#8d93a5";
+      ctx.fillText("↺  reset to defaults", W / 2, r.y + 25);
+    } else if (r.key === "close") {
+      ctx.fillStyle = "#ffb347";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.textAlign = "center";
+      ctx.font = "24px " + COMIC_FONT;
+      ctx.fillStyle = "#14141c";
+      ctx.fillText("DONE", W / 2, r.y + 34);
+      doneBottom = r.y + r.h;
+    } else {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.textAlign = "left";
+      ctx.font = "15px sans-serif";
+      ctx.fillStyle = "#e8e8f0";
+      ctx.fillText(SETTING_LABELS[r.key], r.x + 16, r.y + 29);
+      ctx.textAlign = "right";
+      ctx.font = "bold 15px sans-serif";
+      ctx.fillStyle = "#ffb347";
+      ctx.fillText(settings[r.key], r.x + r.w - 16, r.y + 29);
+    }
   }
 
-  const bw = 170, bh = 50, bx = (W - bw) / 2, by = y + 18;
-  ctx.fillStyle = "#ffb347";
-  ctx.fillRect(bx, by, bw, bh);
-  ctx.textAlign = "center";
-  ctx.font = "24px " + COMIC_FONT;
-  ctx.fillStyle = "#14141c";
-  ctx.fillText("DONE", W / 2, by + 34);
-  settingRects.push({ x: bx, y: by, w: bw, h: bh, key: "close" });
-
   if (state === "playing") {
+    ctx.textAlign = "center";
     ctx.font = "12px sans-serif";
     ctx.fillStyle = "#8d93a5";
-    ctx.fillText("game paused", W / 2, by + bh + 30);
+    ctx.fillText("game paused", W / 2, doneBottom + 30);
   }
 }
 
 function drawGameOver() {
-  ctx.fillStyle = "rgba(20, 20, 28, 0.8)";
+  ctx.fillStyle = "rgba(20, 20, 28, 0.82)";
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#e8e8f0";
+  const tnow = performance.now() / 1000;
+
+  // "FLAVORLESS" in the comic style, drained to grey — you got Bland-ed.
+  ctx.save();
+  ctx.translate(W / 2, H * 0.37);
+  ctx.rotate(-0.035);
   ctx.textAlign = "center";
-  ctx.font = "bold 34px sans-serif";
-  ctx.fillText("FLAVORLESS", W / 2, H * 0.38);
-  ctx.font = "16px sans-serif";
+  ctx.font = "52px " + COMIC_FONT;
+  ctx.lineJoin = "round";
+  const grad = ctx.createLinearGradient(0, -40, 0, 10);
+  grad.addColorStop(0, "#e8e8f0");
+  grad.addColorStop(0.6, "#9aa0b0");
+  grad.addColorStop(1, "#62687a");
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 8;
+  ctx.strokeText("FLAVORLESS", 0, 0);
+  ctx.fillStyle = grad;
+  ctx.fillText("FLAVORLESS", 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = "center";
+  ctx.font = "15px sans-serif";
   ctx.fillStyle = "#9aa0b0";
   ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  wave " + wave, W / 2, H * 0.45);
   if (bestTime > 0) ctx.fillText("best " + bestTime.toFixed(1) + "s", W / 2, H * 0.49);
   ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.525);
+
+  ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tnow * 3);
   ctx.fillStyle = "#ffb347";
-  ctx.font = "bold 18px sans-serif";
-  ctx.fillText("tap / space to retry", W / 2, H * 0.58);
+  ctx.font = "24px " + COMIC_FONT;
+  ctx.fillText("tap / space to retry", W / 2, H * 0.59);
+  ctx.globalAlpha = 1;
 }
 
 // ---------- Debug handle (greybox testing only) ----------
@@ -1341,6 +1462,7 @@ window.__mr = {
   get settings() { return settings; },
   get settingsOpen() { return settingsOpen; },
   get gapT() { return gapT; },
+  get shake() { return shake; },
   get layout() { return { offX, offY, scale, dpr: DPR() }; },
   // Deterministic step for testing (rAF pauses in background tabs).
   tick(dt) { if (state === "playing") update(dt); },
@@ -1351,7 +1473,14 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  if (state === "playing") update(dt);
+  if (state === "playing") {
+    update(dt);
+  } else {
+    // Effects must settle on menu/gameover screens too (no endless shake).
+    if (shake > 0) shake -= dt;
+    if (hitFlash > 0) hitFlash -= dt;
+    if (fusionFlash > 0) fusionFlash -= dt;
+  }
   draw();
   requestAnimationFrame(frame);
 }
