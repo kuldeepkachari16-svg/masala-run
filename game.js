@@ -354,11 +354,31 @@ function dist2(a, b) {
   const dx = a.x - b.x, dy = a.y - b.y;
   return dx * dx + dy * dy;
 }
+// Comic popup font (Bangers via Google Fonts, comic-style fallbacks offline).
+const COMIC_FONT = '"Bangers", "Comic Sans MS", "Chalkboard SE", "Marker Felt", sans-serif';
+if (document.fonts && document.fonts.load) document.fonts.load('20px "Bangers"');
+
+// New popups stay in the orbit of an earlier one but tuck in below it —
+// never overlapping.
+function placeFloater(x, y, size) {
+  let yy = y;
+  for (let guard = 0; guard < 10; guard++) {
+    let moved = false;
+    for (const f of floaters) {
+      if (Math.abs(f.x - x) < 80 && Math.abs(f.y - yy) < (f.size + size) * 0.62) {
+        yy = f.y + (f.size + size) * 0.66;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return yy;
+}
 function announce(text, color, size = 34) {
-  floaters.push({ text, color, x: W / 2, y: H * 0.35, life: 1.6, size, vy: -20 });
+  floaters.push({ text, color, x: W / 2, y: placeFloater(W / 2, H * 0.35, size), life: 1.6, size, vy: -20 });
 }
 function smallText(text, color, x, y) {
-  floaters.push({ text, color, x, y, life: 0.9, size: 16, vy: -40 });
+  floaters.push({ text, color, x, y: placeFloater(x, y, 16), life: 0.9, size: 16, vy: -40 });
 }
 function burst(x, y, color, n, speed) {
   for (let i = 0; i < n; i++) {
@@ -885,12 +905,16 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Floating text.
+  // Floating text: comic font with a dark outline for readability.
   for (const fl of floaters) {
     ctx.globalAlpha = Math.min(1, fl.life * 2);
-    ctx.fillStyle = fl.color;
-    ctx.font = "bold " + fl.size + "px sans-serif";
+    ctx.font = fl.size + "px " + COMIC_FONT;
     ctx.textAlign = "center";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(16, 16, 24, 0.85)";
+    ctx.lineWidth = Math.max(3, fl.size * 0.16);
+    ctx.strokeText(fl.text, fl.x, fl.y);
+    ctx.fillStyle = fl.color;
     ctx.fillText(fl.text, fl.x, fl.y);
   }
   ctx.globalAlpha = 1;
