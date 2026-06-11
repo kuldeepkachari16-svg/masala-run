@@ -272,6 +272,7 @@ let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
 let bestTime = 0;
 let settingsOpen = false;
+let settingsFx = null; // { key, at } — press feedback in the settings panel
 
 function reset() {
   player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1, vx: 0, vy: 0 };
@@ -432,6 +433,8 @@ function uiPress(p) {
   if (settingsOpen) {
     for (const r of settingsLayout()) {
       if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
+        settingsFx = { key: r.key, at: performance.now() };
+        if (navigator.vibrate) navigator.vibrate(r.key === "reset" ? 20 : 8);
         if (r.key === "close") settingsOpen = false;
         else if (r.key === "reset") {
           settings = { ...DEFAULT_SETTINGS };
@@ -1372,15 +1375,21 @@ function drawSettings() {
   ctx.fillStyle = "#8d93a5";
   ctx.fillText("tap a row to change · applies instantly", W / 2, 198);
 
+  // Press feedback: flash strength 1→0 over 0.3s after the last tap.
+  const fxAge = settingsFx ? (performance.now() - settingsFx.at) / 1000 : 99;
+  const fx = (key) => (settingsFx && settingsFx.key === key && fxAge < 0.3 ? 1 - fxAge / 0.3 : 0);
+
   let doneBottom = 0;
   for (const r of settingsLayout()) {
+    const f = fx(r.key);
     if (r.key === "reset") {
-      ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+      const justReset = settingsFx && settingsFx.key === "reset" && fxAge < 1.2;
+      ctx.fillStyle = "rgba(255, 255, 255, " + (0.03 + 0.12 * f) + ")";
       ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.textAlign = "center";
       ctx.font = "13px sans-serif";
-      ctx.fillStyle = "#8d93a5";
-      ctx.fillText("↺  reset to defaults", W / 2, r.y + 25);
+      ctx.fillStyle = justReset ? "#7ddf8a" : "#8d93a5";
+      ctx.fillText(justReset ? "✓  defaults restored" : "↺  reset to defaults", W / 2, r.y + 25);
     } else if (r.key === "close") {
       ctx.fillStyle = "#ffb347";
       ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -1390,16 +1399,26 @@ function drawSettings() {
       ctx.fillText("DONE", W / 2, r.y + 34);
       doneBottom = r.y + r.h;
     } else {
-      ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+      ctx.fillStyle = "rgba(255, 255, 255, " + (0.06 + 0.12 * f) + ")";
       ctx.fillRect(r.x, r.y, r.w, r.h);
+      if (f > 0) {
+        ctx.strokeStyle = "rgba(255, 179, 71, " + f + ")";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      }
       ctx.textAlign = "left";
       ctx.font = "15px sans-serif";
       ctx.fillStyle = "#e8e8f0";
       ctx.fillText(SETTING_LABELS[r.key], r.x + 16, r.y + 29);
+      // Value pops slightly on change, then settles.
       ctx.textAlign = "right";
-      ctx.font = "bold 15px sans-serif";
+      ctx.font = "bold " + Math.round(15 + 5 * f) + "px sans-serif";
       ctx.fillStyle = "#ffb347";
       ctx.fillText(settings[r.key], r.x + r.w - 16, r.y + 29);
+      if (f > 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, " + f * 0.7 + ")";
+        ctx.fillText(settings[r.key], r.x + r.w - 16, r.y + 29);
+      }
     }
   }
 
@@ -1409,6 +1428,44 @@ function drawSettings() {
     ctx.fillStyle = "#8d93a5";
     ctx.fillText("game paused", W / 2, doneBottom + 30);
   }
+
+  drawSettingsStickPreview(fx);
+}
+
+// Live joystick preview inside the panel: side/size/mode changes are
+// visible immediately, no need to close settings to check.
+function drawSettingsStickPreview(fx) {
+  const stickFx = Math.max(fx("stick"), fx("side"), fx("size"), fx("reset"));
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // stick lives in device px, like in-game
+  if (settings.stick === "fixed") {
+    const an = stickAnchor();
+    const base = joyBaseSprite(an.r);
+    ctx.globalAlpha = 0.55 + 0.4 * stickFx;
+    ctx.drawImage(base, an.x - base.width / 2, an.y - base.height / 2);
+    const knob = joyKnobSprite(an.r * 0.42);
+    ctx.drawImage(knob, an.x - knob.width / 2, an.y - knob.height / 2);
+    if (stickFx > 0) {
+      ctx.strokeStyle = "rgba(255, 179, 71, " + stickFx + ")";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(an.x, an.y, an.r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = "#8d93a5";
+    ctx.font = Math.round(11 * DPR()) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("preview", an.x, an.y + an.r + 18 * DPR());
+  } else {
+    ctx.globalAlpha = 0.6 + 0.4 * stickFx;
+    ctx.fillStyle = stickFx > 0 ? "#ffb347" : "#8d93a5";
+    ctx.font = Math.round(12 * DPR()) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("no fixed stick — drag anywhere to steer", canvas.width / 2, canvas.height - 40 * DPR());
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 function drawGameOver() {
