@@ -11,7 +11,8 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 ## v0 greybox — what's in
 
 - Fixed on-screen joystick bottom-left (default) or touch-anywhere mode + WASD/arrows; auto-attack at nearest enemy
-- Settings (gear icon, persisted): joystick mode/side/size, sensitivity, smoothing; opening pauses the game
+- Portrait (480×800) **and landscape** (800×480) — arena re-orients on rotation, live entities clamp back in bounds
+- Settings (gear icon, persisted): joystick mode/side/size, sensitivity, smoothing; opening pauses the game; every tap gives press/value feedback + live stick preview; closing mid-run shows a 3-2-1 countdown before action resumes
 - 3s breather between waves (no spawns, "wave cleared!" banner)
 - The Bland: grey blobs, scaling waves every 20s; spawn ON the arena edge with a 0.7s emerge telegraph (no off-screen entries, no insta-hits)
 - 3 flavors: **Spicy** (chilli — 3-shot spread, 2× damage) · **Sweet** (jalebi — rapid fire + move speed) · **Savory** (vada pav — one-hit shield + knockback pulse every 2.2s, slower attack)

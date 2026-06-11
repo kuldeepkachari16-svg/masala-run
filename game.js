@@ -1,6 +1,6 @@
 // Masala Run — v0 greybox prototype
 // One rule to know: you attack with whatever you last ate, and flavor fades.
-// Vanilla Canvas, no dependencies. Portrait mobile-first, works with keyboard too.
+// Vanilla Canvas, no dependencies. Mobile-first, portrait or landscape, keyboard too.
 
 (() => {
 "use strict";
@@ -11,10 +11,12 @@ const canvas = document.getElementById("game");
 // (notably on Android Chrome). Safe: every frame starts with a full clear.
 const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
 
-// Logical playfield (portrait). Rendered letterboxed/scaled to the window.
-const W = 480;
-const H = 800;
+// Logical playfield: 480×800 portrait or 800×480 landscape, picked from the
+// viewport orientation. Rendered letterboxed/scaled to the window.
+let W = 480;
+let H = 800;
 let scale = 1, offX = 0, offY = 0;
+let bgCanvas = null, vignette = null; // rebuilt on orientation change
 
 // Cap render resolution at 2x — 3x phone DPR costs frames, not visible clarity.
 const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -29,6 +31,13 @@ function resize() {
   canvas.height = vh * dpr;
   canvas.style.width = vw + "px";
   canvas.style.height = vh + "px";
+  const pw = W;
+  W = vw > vh ? 800 : 480;
+  H = vw > vh ? 480 : 800;
+  if (!bgCanvas || W !== pw) {
+    buildBackdrop();
+    if (W !== pw) clampToArena(); // mid-game rotation: keep everything in bounds
+  }
   scale = Math.min(canvas.width / W, canvas.height / H);
   offX = (canvas.width - W * scale) / 2;
   offY = (canvas.height - H * scale) / 2;
@@ -36,7 +45,6 @@ function resize() {
 window.addEventListener("resize", resize);
 window.addEventListener("orientationchange", resize);
 if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
-resize();
 
 // ---------- Pre-rendered art (procedural, zero asset files) ----------
 function makeSprite(w, h, drawFn) {
@@ -81,23 +89,23 @@ const auraSprite = makeSprite(128, 128, (g, w, h) => {
   g.fillRect(0, 0, w, h);
 });
 
-// Night street backdrop, drawn once.
-const bgCanvas = makeSprite(W, H, (g) => {
-  const base = g.createLinearGradient(0, 0, 0, H);
+// Night street, drawn in portrait space (w = short side, h = long side).
+function drawStreet(g, w, h) {
+  const base = g.createLinearGradient(0, 0, 0, h);
   base.addColorStop(0, "#191923");
   base.addColorStop(1, "#14141d");
   g.fillStyle = base;
-  g.fillRect(0, 0, W, H);
+  g.fillRect(0, 0, w, h);
   // Footpaths + curbs.
   g.fillStyle = "#1f1f2b";
-  g.fillRect(0, 0, 42, H);
-  g.fillRect(W - 42, 0, 42, H);
+  g.fillRect(0, 0, 42, h);
+  g.fillRect(w - 42, 0, 42, h);
   g.fillStyle = "#262634";
-  g.fillRect(40, 0, 3, H);
-  g.fillRect(W - 43, 0, 3, H);
+  g.fillRect(40, 0, 3, h);
+  g.fillRect(w - 43, 0, 3, h);
   // Centre lane dashes.
   g.fillStyle = "#23232f";
-  for (let y = 20; y < H; y += 64) g.fillRect(W / 2 - 3, y, 6, 34);
+  for (let y = 20; y < h; y += 64) g.fillRect(w / 2 - 3, y, 6, 34);
   // Warm streetlight pools.
   const lamps = [[90, 130], [400, 300], [120, 520], [380, 680], [240, 60]];
   for (const [lx, ly] of lamps) {
@@ -118,22 +126,47 @@ const bgCanvas = makeSprite(W, H, (g) => {
   };
   stall(2, 170);
   stall(2, 600);
-  stall(W - 36, 330);
-  stall(W - 36, 720);
+  stall(w - 36, 330);
+  stall(w - 36, 720);
   g.fillStyle = "#242433";
   g.fillRect(4, 420, 18, 18);
-  g.fillRect(W - 24, 80, 18, 18);
+  g.fillRect(w - 24, 80, 18, 18);
   g.fillStyle = "rgba(255, 255, 255, 0.05)";
-  for (let i = 0; i < 6; i++) g.fillRect(58 + i * 64, H - 90, 36, 44);
-});
+  for (let i = 0; i < 6; i++) g.fillRect(58 + i * 64, h - 90, 36, 44);
+}
 
-const vignette = makeSprite(W, H, (g) => {
-  const grad = g.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
-  grad.addColorStop(0, "rgba(0,0,0,0)");
-  grad.addColorStop(1, "rgba(0,0,0,0.4)");
-  g.fillStyle = grad;
-  g.fillRect(0, 0, W, H);
-});
+// Backdrop + vignette at the current arena size. In landscape the portrait
+// street is rotated 90° — footpaths land on the top/bottom edges.
+function buildBackdrop() {
+  bgCanvas = makeSprite(W, H, (g) => {
+    if (W > H) {
+      g.translate(W, 0);
+      g.rotate(Math.PI / 2);
+    }
+    drawStreet(g, Math.min(W, H), Math.max(W, H));
+  });
+  vignette = makeSprite(W, H, (g) => {
+    const grad = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.72);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0.4)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, W, H);
+  });
+}
+
+// After an orientation swap the arena bounds change — pull anything live
+// back inside so nothing is stranded in the letterbox.
+function clampToArena() {
+  if (!player) return;
+  const cl = (o) => {
+    const r = o.r || 14;
+    o.x = Math.max(r, Math.min(W - r, o.x));
+    o.y = Math.max(r, Math.min(H - r, o.y));
+  };
+  cl(player);
+  for (const e of enemies) cl(e);
+  for (const f of foods) cl(f);
+}
 
 // Drawn food sprites — emoji fonts differ per OS; these are consistent.
 const FOOD_SPRITES = {
@@ -273,6 +306,7 @@ let gapT; // breather countdown between waves
 let bestTime = 0;
 let settingsOpen = false;
 let settingsFx = null; // { key, at } — press feedback in the settings panel
+let resumeT = 0; // 3-2-1 countdown after closing settings mid-game
 
 function reset() {
   player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1, vx: 0, vy: 0 };
@@ -299,6 +333,7 @@ function reset() {
   shake = 0;
   fusionFlash = 0;
   gapT = 0;
+  resumeT = 0;
   announce("WAVE 1", "#ffffff");
 }
 
@@ -325,8 +360,8 @@ function cycleSetting(key) {
   saveSettings();
 }
 const STICK_SIZES = { small: 44, medium: 56, large: 68 }; // CSS px base radius
-const SENS_THROW = { low: 40, medium: 30, high: 22 };     // CSS px drag for full speed
-const SMOOTH_K = { low: 36, normal: 24 };                  // velocity smoothing rate
+const SENS_THROW = { low: 34, medium: 25, high: 18 };     // CSS px drag for full speed
+const SMOOTH_K = { low: 52, normal: 30 };                  // velocity smoothing rate
 function throwPx() { return SENS_THROW[settings.sens] * DPR(); }
 function stickAnchor() {
   const dpr = DPR();
@@ -409,7 +444,7 @@ function joyKnobSprite(rDev) {
 const keys = {};
 window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
-  if (e.key === "Escape" && settingsOpen) { settingsOpen = false; return; }
+  if (e.key === "Escape" && settingsOpen) { closeSettings(); return; }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
 });
 window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
@@ -427,6 +462,12 @@ function toArena(p) {
   return { x: (p.x - offX) / scale, y: (p.y - offY) / scale };
 }
 
+// Closing settings mid-run gives a 3s countdown before action resumes.
+function closeSettings() {
+  settingsOpen = false;
+  if (state === "playing") resumeT = 3;
+}
+
 // Taps on UI (gear icon, settings panel). Returns true if consumed.
 function uiPress(p) {
   const a = toArena(p);
@@ -435,7 +476,7 @@ function uiPress(p) {
       if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
         settingsFx = { key: r.key, at: performance.now() };
         if (navigator.vibrate) navigator.vibrate(r.key === "reset" ? 20 : 8);
-        if (r.key === "close") settingsOpen = false;
+        if (r.key === "close") closeSettings();
         else if (r.key === "reset") {
           settings = { ...DEFAULT_SETTINGS };
           saveSettings();
@@ -706,6 +747,14 @@ function killEnemy(j) {
 // ---------- Update ----------
 function update(dt) {
   if (settingsOpen) return; // settings panel pauses the game
+  if (resumeT > 0) {
+    // Post-pause countdown: world frozen, leftover effects still settle.
+    resumeT -= dt;
+    if (shake > 0) shake -= dt;
+    if (hitFlash > 0) hitFlash -= dt;
+    if (resumeT <= 0) announce("go!", "#7ddf8a", 26);
+    return;
+  }
   // Hit-stop: a few frozen frames on big moments.
   if (hitStop > 0) { hitStop -= dt; return; }
   elapsed += dt;
@@ -755,7 +804,7 @@ function update(dt) {
   if (joy) {
     const max = throwPx();
     const len = Math.hypot(joy.dx, joy.dy);
-    if (len > 4 * DPR()) {
+    if (len > 3 * DPR()) {
       const c = Math.min(len, max) / max;
       mx = (joy.dx / len) * c;
       my = (joy.dy / len) * c;
@@ -1180,6 +1229,26 @@ function draw() {
     }
   }
 
+  // Resume countdown: 3-2-1 pop, then "go!".
+  if (state === "playing" && !settingsOpen && resumeT > 0) {
+    ctx.setTransform(scale, 0, 0, scale, offX, offY);
+    ctx.fillStyle = "rgba(10, 10, 16, 0.45)";
+    ctx.fillRect(0, 0, W, H);
+    const n = Math.ceil(resumeT);
+    const frac = resumeT - Math.floor(resumeT); // pops at each new digit
+    ctx.textAlign = "center";
+    ctx.lineJoin = "round";
+    ctx.font = Math.round(64 + 26 * frac) + "px " + COMIC_FONT;
+    ctx.strokeStyle = "#14141c";
+    ctx.lineWidth = 8;
+    ctx.strokeText(n, W / 2, H * 0.42);
+    ctx.fillStyle = "#ffb347";
+    ctx.fillText(n, W / 2, H * 0.42);
+    ctx.font = "20px " + COMIC_FONT;
+    ctx.fillStyle = "#e8e8f0";
+    ctx.fillText("get ready!", W / 2, H * 0.42 + 44);
+  }
+
   if (settingsOpen) {
     ctx.setTransform(scale, 0, 0, scale, offX, offY);
     drawSettings();
@@ -1345,17 +1414,19 @@ function drawGear() {
 // Single source of truth for panel geometry — used by both drawing and
 // tap hit-testing, so taps work even before the first panel frame renders.
 function settingsLayout() {
-  const cardX = 52, cardW = W - 104;
+  const compact = H < 600; // landscape: tighter rows so the panel fits
+  const cardW = Math.min(W - 104, 430), cardX = (W - cardW) / 2;
+  const rowH = compact ? 38 : 46, step = compact ? 46 : 56;
   const rects = [];
-  let y = 236;
+  let y = compact ? 108 : 236;
   for (const key of Object.keys(OPTIONS)) {
-    rects.push({ x: cardX, y, w: cardW, h: 46, key });
-    y += 56;
+    rects.push({ x: cardX, y, w: cardW, h: rowH, key });
+    y += step;
   }
-  rects.push({ x: cardX, y, w: cardW, h: 40, key: "reset" });
-  y += 50;
-  const bw = 170, bh = 50;
-  rects.push({ x: (W - bw) / 2, y: y + 18, w: bw, h: bh, key: "close" });
+  rects.push({ x: cardX, y, w: cardW, h: compact ? 32 : 40, key: "reset" });
+  y += compact ? 40 : 50;
+  const bw = 170, bh = compact ? 42 : 50;
+  rects.push({ x: (W - bw) / 2, y: y + (compact ? 4 : 18), w: bw, h: bh, key: "close" });
   return rects;
 }
 
@@ -1363,17 +1434,18 @@ function drawSettings() {
   ctx.fillStyle = "rgba(10, 10, 16, 0.92)";
   ctx.fillRect(0, 0, W, H);
 
+  const titleY = H < 600 ? 62 : 170;
   ctx.textAlign = "center";
   ctx.font = "36px " + COMIC_FONT;
   ctx.lineJoin = "round";
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 6;
-  ctx.strokeText("SETTINGS", W / 2, 170);
+  ctx.strokeText("SETTINGS", W / 2, titleY);
   ctx.fillStyle = "#ffb347";
-  ctx.fillText("SETTINGS", W / 2, 170);
+  ctx.fillText("SETTINGS", W / 2, titleY);
   ctx.font = "12px sans-serif";
   ctx.fillStyle = "#8d93a5";
-  ctx.fillText("tap a row to change · applies instantly", W / 2, 198);
+  ctx.fillText("tap a row to change · applies instantly", W / 2, titleY + 28);
 
   // Press feedback: flash strength 1→0 over 0.3s after the last tap.
   const fxAge = settingsFx ? (performance.now() - settingsFx.at) / 1000 : 99;
@@ -1389,14 +1461,14 @@ function drawSettings() {
       ctx.textAlign = "center";
       ctx.font = "13px sans-serif";
       ctx.fillStyle = justReset ? "#7ddf8a" : "#8d93a5";
-      ctx.fillText(justReset ? "✓  defaults restored" : "↺  reset to defaults", W / 2, r.y + 25);
+      ctx.fillText(justReset ? "✓  defaults restored" : "↺  reset to defaults", W / 2, r.y + r.h / 2 + 5);
     } else if (r.key === "close") {
       ctx.fillStyle = "#ffb347";
       ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.textAlign = "center";
       ctx.font = "24px " + COMIC_FONT;
       ctx.fillStyle = "#14141c";
-      ctx.fillText("DONE", W / 2, r.y + 34);
+      ctx.fillText("DONE", W / 2, r.y + r.h / 2 + 9);
       doneBottom = r.y + r.h;
     } else {
       ctx.fillStyle = "rgba(255, 255, 255, " + (0.06 + 0.12 * f) + ")";
@@ -1409,15 +1481,16 @@ function drawSettings() {
       ctx.textAlign = "left";
       ctx.font = "15px sans-serif";
       ctx.fillStyle = "#e8e8f0";
-      ctx.fillText(SETTING_LABELS[r.key], r.x + 16, r.y + 29);
+      const ty = r.y + r.h / 2 + 5.5;
+      ctx.fillText(SETTING_LABELS[r.key], r.x + 16, ty);
       // Value pops slightly on change, then settles.
       ctx.textAlign = "right";
       ctx.font = "bold " + Math.round(15 + 5 * f) + "px sans-serif";
       ctx.fillStyle = "#ffb347";
-      ctx.fillText(settings[r.key], r.x + r.w - 16, r.y + 29);
+      ctx.fillText(settings[r.key], r.x + r.w - 16, ty);
       if (f > 0) {
         ctx.fillStyle = "rgba(255, 255, 255, " + f * 0.7 + ")";
-        ctx.fillText(settings[r.key], r.x + r.w - 16, r.y + 29);
+        ctx.fillText(settings[r.key], r.x + r.w - 16, ty);
       }
     }
   }
@@ -1426,7 +1499,7 @@ function drawSettings() {
     ctx.textAlign = "center";
     ctx.font = "12px sans-serif";
     ctx.fillStyle = "#8d93a5";
-    ctx.fillText("game paused", W / 2, doneBottom + 30);
+    ctx.fillText("game paused", W / 2, Math.min(doneBottom + 24, H - 8));
   }
 
   drawSettingsStickPreview(fx);
@@ -1521,11 +1594,16 @@ window.__mr = {
   get gapT() { return gapT; },
   get shake() { return shake; },
   get layout() { return { offX, offY, scale, dpr: DPR() }; },
+  get dims() { return { W, H }; },
+  get resumeT() { return resumeT; },
   // Deterministic step for testing (rAF pauses in background tabs).
   tick(dt) { if (state === "playing") update(dt); },
 };
 
 // ---------- Main loop ----------
+// First sizing happens here, after all state exists (clampToArena touches
+// player/enemies/foods, which would be TDZ errors at the top of the file).
+resize();
 let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
