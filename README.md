@@ -38,7 +38,10 @@ No build step, no dependencies — `index.html` + `game.js` only.
 
 Stand-still PLAIN dies ~28s in wave 2; same scenario with spicy uptime survives wave 2 at full hearts. Food is the lifeline, not a bonus. Knobs: PLAIN fire 0.95s · spawn `max(0.2, 0.9 − wave·0.12)` · enemy hp `1 + floor(wave·0.6)` · speed `52 + wave·6` · drop rate 30%.
 
+## Art
+
+Procedural, zero asset files: pre-rendered offscreen canvases (night-street backdrop, glow sprites, auras, vignette) + emoji as food art. The Bland desaturate the street where they walk (drain patches). All glows are cached sprites — no per-frame shadowBlur, mobile-safe.
+
 ## Next (in order)
 
-1. Art pass: free asset packs (Kenney et al.), color-drain visual for the Bland
-2. Deploy free (GitHub Pages / Cloudflare Pages)
+1. Deploy free (GitHub Pages / Cloudflare Pages)

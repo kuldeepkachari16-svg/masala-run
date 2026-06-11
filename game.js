@@ -27,6 +27,75 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
+// ---------- Pre-rendered art (procedural, zero asset files) ----------
+function makeSprite(w, h, drawFn) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  drawFn(c.getContext("2d"), w, h);
+  return c;
+}
+
+// Soft glow blobs, cached per color — used for bullets and food halos.
+const glowCache = {};
+function glowSprite(color) {
+  if (!glowCache[color]) {
+    glowCache[color] = makeSprite(48, 48, (g, w, h) => {
+      const grad = g.createRadialGradient(w / 2, h / 2, 1, w / 2, h / 2, w / 2);
+      grad.addColorStop(0, "#ffffff");
+      grad.addColorStop(0.3, color);
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, w, h);
+    });
+  }
+  return glowCache[color];
+}
+
+// Grey aura under each Bland — they dim the world around them.
+const auraSprite = makeSprite(128, 128, (g, w, h) => {
+  const grad = g.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w / 2);
+  grad.addColorStop(0, "rgba(110, 114, 128, 0.20)");
+  grad.addColorStop(1, "rgba(110, 114, 128, 0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+});
+
+// Night street backdrop, drawn once.
+const bgCanvas = makeSprite(W, H, (g) => {
+  const base = g.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, "#191923");
+  base.addColorStop(1, "#14141d");
+  g.fillStyle = base;
+  g.fillRect(0, 0, W, H);
+  // Footpaths + curbs.
+  g.fillStyle = "#1f1f2b";
+  g.fillRect(0, 0, 42, H);
+  g.fillRect(W - 42, 0, 42, H);
+  g.fillStyle = "#262634";
+  g.fillRect(40, 0, 3, H);
+  g.fillRect(W - 43, 0, 3, H);
+  // Centre lane dashes.
+  g.fillStyle = "#23232f";
+  for (let y = 20; y < H; y += 64) g.fillRect(W / 2 - 3, y, 6, 34);
+  // Warm streetlight pools.
+  const lamps = [[90, 130], [400, 300], [120, 520], [380, 680], [240, 60]];
+  for (const [lx, ly] of lamps) {
+    const lg = g.createRadialGradient(lx, ly, 5, lx, ly, 150);
+    lg.addColorStop(0, "rgba(255, 178, 92, 0.07)");
+    lg.addColorStop(1, "rgba(255, 178, 92, 0)");
+    g.fillStyle = lg;
+    g.fillRect(lx - 150, ly - 150, 300, 300);
+  }
+});
+
+const vignette = makeSprite(W, H, (g) => {
+  const grad = g.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.75);
+  grad.addColorStop(0, "rgba(0,0,0,0)");
+  grad.addColorStop(1, "rgba(0,0,0,0.4)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, W, H);
+});
+
 // ---------- Flavor definitions ----------
 const FLAVORS = {
   none: {
@@ -87,7 +156,7 @@ catch { discovered = new Set(); }
 
 // ---------- Game state ----------
 let state = "menu"; // menu | playing | gameover
-let player, enemies, bullets, foods, particles, floaters, rings;
+let player, enemies, bullets, foods, particles, floaters, rings, drains;
 let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer;
 let hitFlash, shake, fusionFlash;
@@ -101,6 +170,7 @@ function reset() {
   particles = [];
   floaters = [];
   rings = [];
+  drains = [];
   flavor = "none";
   flavorTimer = 0;
   savoryPulse = 0;
@@ -341,6 +411,7 @@ function update(dt) {
   }
   const ml = Math.hypot(mx, my);
   if (ml > 1) { mx /= ml; my /= ml; }
+  player.moving = ml > 0.01;
   const spd = player.speed * FLAVORS[flavor].speedMult;
   player.x = Math.max(player.r, Math.min(W - player.r, player.x + mx * spd * dt));
   player.y = Math.max(player.r, Math.min(H - player.r, player.y + my * spd * dt));
@@ -413,6 +484,14 @@ function update(dt) {
     e.y += Math.sin(a) * e.speed * dt;
     if (e.flash > 0) e.flash -= dt;
 
+    // They drain the street's color where they walk.
+    e.drainT = (e.drainT || 0) - dt;
+    if (e.drainT <= 0) {
+      e.drainT = 0.5 + Math.random() * 0.4;
+      drains.push({ x: e.x, y: e.y, r: e.r * 1.7, life: 3 });
+      if (drains.length > 90) drains.shift();
+    }
+
     const rr = e.r + player.r;
     if (player.iframes <= 0 && dist2(e, player) < rr * rr) {
       if (player.shield > 0) {
@@ -470,6 +549,10 @@ function update(dt) {
     rg.r += (rg.maxR - 20) * (dt / 0.35);
     if (rg.life <= 0) rings.splice(i, 1);
   }
+  for (let i = drains.length - 1; i >= 0; i--) {
+    drains[i].life -= dt;
+    if (drains[i].life <= 0) drains.splice(i, 1);
+  }
 
   if (hitFlash > 0) hitFlash -= dt;
   if (fusionFlash > 0) fusionFlash -= dt;
@@ -489,17 +572,8 @@ function draw() {
   }
   ctx.setTransform(scale, 0, 0, scale, offX + sx, offY + sy);
 
-  // Arena.
-  ctx.fillStyle = "#1d1d28";
-  ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#2c2c3c";
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= W; x += 48) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y <= H; y += 48) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
+  // Arena: pre-rendered night street.
+  ctx.drawImage(bgCanvas, 0, 0);
 
   if (state === "menu") {
     drawMenu();
@@ -512,26 +586,34 @@ function draw() {
   ctx.rect(0, 0, W, H);
   ctx.clip();
 
-  // Foods.
+  const now = performance.now() / 1000;
+
+  // Drained patches where the Bland have walked.
+  for (const d of drains) {
+    ctx.globalAlpha = Math.min(1, d.life / 3) * 0.14;
+    ctx.fillStyle = "#8a8e9c";
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Foods: bobbing emoji on a pulsing glow.
   for (const fd of foods) {
     const blink = fd.life < 2 && Math.floor(fd.life * 6) % 2 === 0;
     if (blink) continue;
-    ctx.fillStyle = fd.type.color;
-    ctx.beginPath();
-    ctx.arc(fd.x, fd.y, fd.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#14141c";
-    ctx.font = "bold 10px sans-serif";
+    const bob = Math.sin(now * 4 + fd.x) * 3;
+    ctx.globalAlpha = 0.8 + Math.sin(now * 6 + fd.y) * 0.2;
+    ctx.drawImage(glowSprite(fd.type.color), fd.x - 24, fd.y + bob - 24, 48, 48);
+    ctx.globalAlpha = 1;
+    ctx.font = "16px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(FOOD_EMOJI[fd.type.flavor] || "?", fd.x, fd.y + 3);
+    ctx.fillText(FOOD_EMOJI[fd.type.flavor] || "?", fd.x, fd.y + bob + 6);
   }
 
-  // Bullets.
+  // Bullets: glow sprites.
   for (const b of bullets) {
-    ctx.fillStyle = b.color;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(glowSprite(b.color), b.x - b.r * 2.5, b.y - b.r * 2.5, b.r * 5, b.r * 5);
   }
 
   // Enemies — the Bland: grey, desaturated blobs.
@@ -553,16 +635,25 @@ function draw() {
       continue;
     }
     const squish = 1 + Math.sin(e.wobble) * 0.08;
+    ctx.drawImage(auraSprite, e.x - e.r * 3, e.y - e.r * 3, e.r * 6, e.r * 6);
     ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#6e7280";
     ctx.beginPath();
     ctx.ellipse(e.x, e.y, e.r * squish, e.r / squish, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Eyes.
+    ctx.strokeStyle = "rgba(20, 20, 28, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Eyes + frown.
     ctx.fillStyle = "#14141c";
     ctx.beginPath();
     ctx.arc(e.x - 4, e.y - 2, 2, 0, Math.PI * 2);
     ctx.arc(e.x + 4, e.y - 2, 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "#14141c";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y + 7, 3.5, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.stroke();
     if (e.hp < e.maxHp) {
       ctx.fillStyle = "#3a3a48";
       ctx.fillRect(e.x - 12, e.y - e.r - 8, 24, 3);
@@ -575,20 +666,45 @@ function draw() {
   const f = FLAVORS[flavor];
   const blinking = player.iframes > 0 && Math.floor(player.iframes * 10) % 2 === 0;
   if (!blinking) {
+    const bob = player.moving ? Math.sin(now * 14) * 2 : Math.sin(now * 3) * 1;
+    const py = player.y + bob;
+    // Flavor glow underfoot.
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(glowSprite(f.color), player.x - 30, py - 30, 60, 60);
+    ctx.globalAlpha = 1;
+    // Body.
     ctx.fillStyle = f.color;
     ctx.beginPath();
-    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    ctx.arc(player.x, py, player.r, 0, Math.PI * 2);
     ctx.fill();
+    // Lighter belly.
+    ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+    ctx.beginPath();
+    ctx.arc(player.x, py + 5, player.r * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    // Courier cap.
+    ctx.fillStyle = "rgba(20, 20, 28, 0.55)";
+    ctx.beginPath();
+    ctx.arc(player.x, py - 2, player.r, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(player.x - player.r, py - 4, player.r * 2, 3);
+    // Eyes.
     ctx.fillStyle = "#14141c";
     ctx.beginPath();
-    ctx.arc(player.x - 4, player.y - 3, 2.4, 0, Math.PI * 2);
-    ctx.arc(player.x + 4, player.y - 3, 2.4, 0, Math.PI * 2);
+    ctx.arc(player.x - 4, py + 3, 2.4, 0, Math.PI * 2);
+    ctx.arc(player.x + 4, py + 3, 2.4, 0, Math.PI * 2);
     ctx.fill();
+    // Outline.
+    ctx.strokeStyle = "rgba(20, 20, 28, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(player.x, py, player.r, 0, Math.PI * 2);
+    ctx.stroke();
     if (player.shield > 0) {
       ctx.strokeStyle = FLAVORS.savory.color;
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(player.x, player.y, player.r + 6, 0, Math.PI * 2);
+      ctx.arc(player.x, py, player.r + 6, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
@@ -623,6 +739,7 @@ function draw() {
     ctx.fillText(fl.text, fl.x, fl.y);
   }
   ctx.globalAlpha = 1;
+  ctx.drawImage(vignette, 0, 0);
   ctx.restore(); // end arena clip
 
   drawHUD();
@@ -713,10 +830,12 @@ function drawMenu() {
   ctx.fillStyle = "#9aa0b0";
   ctx.fillText("The Bland are eating the city's flavor.", W / 2, H * 0.40);
   ctx.fillText("Eat faster.", W / 2, H * 0.435);
+  ctx.font = "26px sans-serif";
+  ctx.fillText("🌶  🍯  🍔", W / 2, H * 0.485);
   ctx.fillStyle = "#ffb347";
   ctx.font = "bold 15px sans-serif";
-  ctx.fillText("You attack with whatever you last ate.", W / 2, H * 0.53);
-  ctx.fillText("Flavor fades — keep eating.", W / 2, H * 0.565);
+  ctx.fillText("You attack with whatever you last ate.", W / 2, H * 0.55);
+  ctx.fillText("Flavor fades — keep eating.", W / 2, H * 0.585);
   ctx.fillStyle = "#e8e8f0";
   ctx.font = "bold 18px sans-serif";
   ctx.fillText("tap / space to start", W / 2, H * 0.68);
