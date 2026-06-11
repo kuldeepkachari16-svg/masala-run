@@ -7,7 +7,9 @@
 
 // ---------- Canvas & scaling ----------
 const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+// alpha:false + desynchronized: opaque canvas, lower input-to-photon latency
+// (notably on Android Chrome). Safe: every frame starts with a full clear.
+const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
 
 // Logical playfield (portrait). Rendered letterboxed/scaled to the window.
 const W = 480;
@@ -59,6 +61,16 @@ function glowSprite(color) {
   }
   return glowCache[color];
 }
+
+// Soft grey patch left where the Bland walk (cheaper than per-frame arcs).
+const drainSprite = makeSprite(64, 64, (g, w, h) => {
+  const grad = g.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w / 2);
+  grad.addColorStop(0, "rgba(138, 142, 156, 1)");
+  grad.addColorStop(0.7, "rgba(138, 142, 156, 0.8)");
+  grad.addColorStop(1, "rgba(138, 142, 156, 0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+});
 
 // Grey aura under each Bland — they dim the world around them.
 const auraSprite = makeSprite(128, 128, (g, w, h) => {
@@ -260,7 +272,7 @@ let hitFlash, shake, fusionFlash;
 let bestTime = 0;
 
 function reset() {
-  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1 };
+  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1, vx: 0, vy: 0 };
   enemies = [];
   bullets = [];
   foods = [];
@@ -576,8 +588,13 @@ function update(dt) {
   if (mx > 0.1) player.face = 1;
   else if (mx < -0.1) player.face = -1;
   const spd = player.speed * FLAVORS[flavor].speedMult;
-  player.x = Math.max(player.r, Math.min(W - player.r, player.x + mx * spd * dt));
-  player.y = Math.max(player.r, Math.min(H - player.r, player.y + my * spd * dt));
+  // Exponential velocity smoothing: irons out touch-sampling jitter and
+  // gives starts/stops a frame or two of ease without feeling laggy.
+  const smooth = 1 - Math.exp(-dt * 24);
+  player.vx += (mx * spd - player.vx) * smooth;
+  player.vy += (my * spd - player.vy) * smooth;
+  player.x = Math.max(player.r, Math.min(W - player.r, player.x + player.vx * dt));
+  player.y = Math.max(player.r, Math.min(H - player.r, player.y + player.vy * dt));
   if (player.iframes > 0) player.iframes -= dt;
 
   shoot(dt);
@@ -749,10 +766,7 @@ function draw() {
   // Drained patches where the Bland have walked.
   for (const d of drains) {
     ctx.globalAlpha = Math.min(1, d.life / 3) * 0.14;
-    ctx.fillStyle = "#8a8e9c";
-    ctx.beginPath();
-    ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(drainSprite, d.x - d.r, d.y - d.r, d.r * 2, d.r * 2);
   }
   ctx.globalAlpha = 1;
 
@@ -1000,11 +1014,61 @@ function drawHUD() {
   ctx.fillText(f.label, W / 2, by - 6);
 }
 
+// Ambient menu sparks: fixed seeds, animated purely from the clock.
+const MENU_SPARKS = Array.from({ length: 14 }, (_, i) => ({
+  x: 30 + ((i * 137) % (W - 60)),
+  y0: (i * 211) % H,
+  spd: 14 + (i % 5) * 7,
+  color: ["#ff5a3c", "#ffb347", "#3ecf8e"][i % 3],
+  size: 10 + (i % 4) * 5,
+}));
+
 function drawMenu() {
-  ctx.fillStyle = "#e8e8f0";
+  const tnow = performance.now() / 1000;
+
+  // Rising spice sparks.
+  for (const s of MENU_SPARKS) {
+    const sy = (((s.y0 - tnow * s.spd) % H) + H) % H;
+    ctx.globalAlpha = 0.22 + 0.16 * Math.sin(tnow * 2 + s.x);
+    ctx.drawImage(glowSprite(s.color), s.x - s.size, sy - s.size, s.size * 2, s.size * 2);
+  }
+  ctx.globalAlpha = 1;
+
+  // Title: comic letters on a warm glow, bobbing in a wave.
+  ctx.globalAlpha = 0.45;
+  ctx.drawImage(glowSprite("#ff8c3c"), W / 2 - 150, H * 0.32 - 160, 300, 300);
+  ctx.globalAlpha = 1;
+  ctx.save();
+  ctx.translate(W / 2, H * 0.32);
+  ctx.rotate(-0.045);
+  const title = "MASALA RUN";
+  ctx.font = "64px " + COMIC_FONT;
+  ctx.textAlign = "left";
+  ctx.lineJoin = "round";
+  const widths = [];
+  let total = 0;
+  for (const ch of title) {
+    const w2 = ctx.measureText(ch).width;
+    widths.push(w2);
+    total += w2;
+  }
+  const grad = ctx.createLinearGradient(0, -46, 0, 12);
+  grad.addColorStop(0, "#ffd24a");
+  grad.addColorStop(0.55, "#ff8c3c");
+  grad.addColorStop(1, "#ff5a3c");
+  let cx = -total / 2;
+  for (let i = 0; i < title.length; i++) {
+    const yo = Math.sin(tnow * 2.2 + i * 0.7) * 4;
+    ctx.strokeStyle = "#14141c";
+    ctx.lineWidth = 8;
+    ctx.strokeText(title[i], cx, yo);
+    ctx.fillStyle = i < 6 ? grad : "#e8e8f0"; // MASALA warm, RUN cream
+    ctx.fillText(title[i], cx, yo);
+    cx += widths[i];
+  }
+  ctx.restore();
+
   ctx.textAlign = "center";
-  ctx.font = "bold 40px sans-serif";
-  ctx.fillText("MASALA RUN", W / 2, H * 0.32);
   ctx.font = "16px sans-serif";
   ctx.fillStyle = "#9aa0b0";
   ctx.fillText("The Bland are eating the city's flavor.", W / 2, H * 0.40);
@@ -1019,9 +1083,11 @@ function drawMenu() {
   ctx.fillStyle = "#9aa0b0";
   ctx.font = "13px sans-serif";
   ctx.fillText("Mix two different flavors while the bar is high → recipe.", W / 2, H * 0.625);
+  ctx.globalAlpha = 0.7 + 0.3 * Math.sin(performance.now() / 1000 * 3);
   ctx.fillStyle = "#e8e8f0";
-  ctx.font = "bold 18px sans-serif";
+  ctx.font = "22px " + COMIC_FONT;
   ctx.fillText("tap / space to start", W / 2, H * 0.68);
+  ctx.globalAlpha = 1;
   ctx.fillStyle = "#5a5f70";
   ctx.font = "12px sans-serif";
   ctx.fillText("move: drag or WASD · attacks are automatic", W / 2, H * 0.73);
