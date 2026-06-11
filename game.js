@@ -14,8 +14,11 @@ const W = 480;
 const H = 800;
 let scale = 1, offX = 0, offY = 0;
 
+// Cap render resolution at 2x — 3x phone DPR costs frames, not visible clarity.
+const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
+
 function resize() {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = DPR();
   // visualViewport is the truth on mobile — innerHeight lies when the
   // browser URL bar expands/collapses, which pushed the arena off screen.
   const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
@@ -201,29 +204,52 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 
-// Virtual joystick: touch anywhere, drag to move.
-let joy = null; // {ox, oy, dx, dy} in screen px
+// Virtual joystick: touch anywhere, drag to move. The origin FOLLOWS the
+// thumb once the stick is at full throw, so reversing direction responds
+// immediately instead of after dragging back through dead travel.
+let joy = null; // {id, ox, oy, dx, dy} in canvas px
+const JOY_MAX = 36; // CSS px of drag for full speed
 function toLocal(t) {
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = DPR();
   return { x: t.clientX * dpr, y: t.clientY * dpr };
 }
 canvas.addEventListener("touchstart", (e) => {
   e.preventDefault();
   if (state !== "playing") { start(); return; }
-  const p = toLocal(e.changedTouches[0]);
-  joy = { ox: p.x, oy: p.y, dx: 0, dy: 0 };
+  if (joy) return; // first finger owns the stick
+  const t = e.changedTouches[0];
+  const p = toLocal(t);
+  joy = { id: t.identifier, ox: p.x, oy: p.y, dx: 0, dy: 0 };
 }, { passive: false });
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   if (!joy) return;
-  const p = toLocal(e.changedTouches[0]);
-  joy.dx = p.x - joy.ox;
-  joy.dy = p.y - joy.oy;
+  for (const t of e.changedTouches) {
+    if (t.identifier !== joy.id) continue;
+    const p = toLocal(t);
+    joy.dx = p.x - joy.ox;
+    joy.dy = p.y - joy.oy;
+    const max = JOY_MAX * DPR();
+    const len = Math.hypot(joy.dx, joy.dy);
+    if (len > max) {
+      // Drag origin along behind the thumb.
+      const k = (len - max) / len;
+      joy.ox += joy.dx * k;
+      joy.oy += joy.dy * k;
+      joy.dx *= max / len;
+      joy.dy *= max / len;
+    }
+  }
 }, { passive: false });
-canvas.addEventListener("touchend", (e) => {
+const endTouch = (e) => {
   e.preventDefault();
-  joy = null;
-}, { passive: false });
+  if (!joy) return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joy.id) joy = null;
+  }
+};
+canvas.addEventListener("touchend", endTouch, { passive: false });
+canvas.addEventListener("touchcancel", endTouch, { passive: false });
 canvas.addEventListener("mousedown", () => {
   if (state !== "playing") start();
 });
@@ -418,10 +444,9 @@ function update(dt) {
   if (keys["arrowdown"] || keys["s"]) my += 1;
   // …or joystick.
   if (joy) {
-    const dpr = window.devicePixelRatio || 1;
-    const max = 48 * dpr; // full speed at ~48 CSS px of drag, on any screen density
+    const max = JOY_MAX * DPR();
     const len = Math.hypot(joy.dx, joy.dy);
-    if (len > 6 * dpr) {
+    if (len > 4 * DPR()) {
       const c = Math.min(len, max) / max;
       mx = (joy.dx / len) * c;
       my = (joy.dy / len) * c;
@@ -780,10 +805,10 @@ function draw() {
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(joy.ox, joy.oy, 48 * (window.devicePixelRatio || 1), 0, Math.PI * 2);
+    ctx.arc(joy.ox, joy.oy, JOY_MAX * DPR(), 0, Math.PI * 2);
     ctx.stroke();
     const len = Math.hypot(joy.dx, joy.dy) || 1;
-    const cap = Math.min(len, 48 * (window.devicePixelRatio || 1));
+    const cap = Math.min(len, JOY_MAX * DPR());
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.beginPath();
     ctx.arc(joy.ox + (joy.dx / len) * cap, joy.oy + (joy.dy / len) * cap, 18, 0, Math.PI * 2);
