@@ -2,6 +2,8 @@
 
 #project/masala-run
 
+**Play it:** https://kuldeepkachari16-svg.github.io/masala-run/
+
 A mobile-first survival action game. The Bland are eating the city's flavor — fight back with street food.
 
 **The one rule:** you attack with whatever you last ate, and flavor fades — so keep eating.
@@ -42,6 +44,8 @@ Stand-still PLAIN dies ~28s in wave 2; same scenario with spicy uptime survives 
 
 Procedural, zero asset files: pre-rendered offscreen canvases (night-street backdrop, glow sprites, auras, vignette) + emoji as food art. The Bland desaturate the street where they walk (drain patches). All glows are cached sprites — no per-frame shadowBlur, mobile-safe.
 
-## Next (in order)
+## Next — v0.5 "feels like a game"
 
-1. Deploy free (GitHub Pages / Cloudflare Pages)
+1. Sound (procedural Web Audio — eat, fusion, hit, kill)
+2. Wave-5 mini-boss + a second enemy type (fast swarmer)
+3. PWA manifest + icon (installable, offline)
