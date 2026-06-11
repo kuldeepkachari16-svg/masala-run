@@ -269,7 +269,10 @@ let hitStop;
 let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
+let gapT; // breather countdown between waves
 let bestTime = 0;
+let settingsOpen = false;
+let settingRects = [];
 
 function reset() {
   player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1, vx: 0, vy: 0 };
@@ -295,33 +298,118 @@ function reset() {
   hitFlash = 0;
   shake = 0;
   fusionFlash = 0;
+  gapT = 0;
   announce("WAVE 1", "#ffffff");
+}
+
+// ---------- Settings ----------
+const SETTINGS_KEY = "mr_settings";
+const OPTIONS = {
+  stick: ["fixed", "anywhere"],
+  side: ["left", "right"],
+  size: ["small", "medium", "large"],
+  sens: ["low", "medium", "high"],
+  smooth: ["off", "low", "normal"],
+};
+const SETTING_LABELS = { stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing" };
+const DEFAULT_SETTINGS = { stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low" };
+let settings = { ...DEFAULT_SETTINGS };
+try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch {}
+function saveSettings() {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+}
+function cycleSetting(key) {
+  const opts = OPTIONS[key];
+  settings[key] = opts[(opts.indexOf(settings[key]) + 1) % opts.length];
+  joy = null;
+  saveSettings();
+}
+const STICK_SIZES = { small: 44, medium: 56, large: 68 }; // CSS px base radius
+const SENS_THROW = { low: 40, medium: 30, high: 22 };     // CSS px drag for full speed
+const SMOOTH_K = { low: 36, normal: 24 };                  // velocity smoothing rate
+function throwPx() { return SENS_THROW[settings.sens] * DPR(); }
+function stickAnchor() {
+  const dpr = DPR();
+  const r = STICK_SIZES[settings.size] * dpr;
+  const m = 26 * dpr;
+  return {
+    x: settings.side === "left" ? m + r : canvas.width - m - r,
+    y: canvas.height - m - r - 14 * dpr,
+    r,
+  };
 }
 
 // ---------- Input ----------
 const keys = {};
 window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
+  if (e.key === "Escape" && settingsOpen) { settingsOpen = false; return; }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
 });
 window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 
-// Virtual joystick: touch anywhere, drag to move. The origin FOLLOWS the
-// thumb once the stick is at full throw, so reversing direction responds
-// immediately instead of after dragging back through dead travel.
-let joy = null; // {id, ox, oy, dx, dy} in canvas px
-const JOY_MAX = 36; // CSS px of drag for full speed
+// Virtual joystick, two modes:
+// - "fixed" (default): a visible stick anchored bottom-left/right; only
+//   touches near it move the player, so the screen stays readable.
+// - "anywhere": touch any point; origin follows the thumb at full throw.
+let joy = null; // {id, fixed?, ox?, oy?, dx, dy} in canvas px
 function toLocal(t) {
   const dpr = DPR();
   return { x: t.clientX * dpr, y: t.clientY * dpr };
 }
+function toArena(p) {
+  return { x: (p.x - offX) / scale, y: (p.y - offY) / scale };
+}
+
+// Taps on UI (gear icon, settings panel). Returns true if consumed.
+function uiPress(p) {
+  const a = toArena(p);
+  if (settingsOpen) {
+    for (const r of settingRects) {
+      if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
+        if (r.key === "close") settingsOpen = false;
+        else cycleSetting(r.key);
+        return true;
+      }
+    }
+    return true; // modal: swallow taps outside rows
+  }
+  if (Math.hypot(a.x - (W - 26), a.y - 30) < 26) {
+    settingsOpen = true;
+    joy = null;
+    return true;
+  }
+  return false;
+}
+
+function setFixedDeflection(p) {
+  const an = stickAnchor();
+  joy.dx = p.x - an.x;
+  joy.dy = p.y - an.y;
+  const max = throwPx();
+  const len = Math.hypot(joy.dx, joy.dy);
+  if (len > max) {
+    joy.dx *= max / len;
+    joy.dy *= max / len;
+  }
+}
+
 canvas.addEventListener("touchstart", (e) => {
   e.preventDefault();
-  if (state !== "playing") { start(); return; }
-  if (joy) return; // first finger owns the stick
   const t = e.changedTouches[0];
   const p = toLocal(t);
-  joy = { id: t.identifier, ox: p.x, oy: p.y, dx: 0, dy: 0 };
+  if (uiPress(p)) return;
+  if (state !== "playing") { start(); return; }
+  if (joy) return; // first finger owns the stick
+  if (settings.stick === "fixed") {
+    const an = stickAnchor();
+    if (Math.hypot(p.x - an.x, p.y - an.y) <= an.r * 1.7) {
+      joy = { id: t.identifier, fixed: true, dx: 0, dy: 0 };
+      setFixedDeflection(p);
+    }
+  } else {
+    joy = { id: t.identifier, ox: p.x, oy: p.y, dx: 0, dy: 0 };
+  }
 }, { passive: false });
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
@@ -329,17 +417,21 @@ canvas.addEventListener("touchmove", (e) => {
   for (const t of e.changedTouches) {
     if (t.identifier !== joy.id) continue;
     const p = toLocal(t);
-    joy.dx = p.x - joy.ox;
-    joy.dy = p.y - joy.oy;
-    const max = JOY_MAX * DPR();
-    const len = Math.hypot(joy.dx, joy.dy);
-    if (len > max) {
-      // Drag origin along behind the thumb.
-      const k = (len - max) / len;
-      joy.ox += joy.dx * k;
-      joy.oy += joy.dy * k;
-      joy.dx *= max / len;
-      joy.dy *= max / len;
+    if (joy.fixed) {
+      setFixedDeflection(p);
+    } else {
+      joy.dx = p.x - joy.ox;
+      joy.dy = p.y - joy.oy;
+      const max = throwPx();
+      const len = Math.hypot(joy.dx, joy.dy);
+      if (len > max) {
+        // Drag origin along behind the thumb.
+        const k = (len - max) / len;
+        joy.ox += joy.dx * k;
+        joy.oy += joy.dy * k;
+        joy.dx *= max / len;
+        joy.dy *= max / len;
+      }
     }
   }
 }, { passive: false });
@@ -352,7 +444,9 @@ const endTouch = (e) => {
 };
 canvas.addEventListener("touchend", endTouch, { passive: false });
 canvas.addEventListener("touchcancel", endTouch, { passive: false });
-canvas.addEventListener("mousedown", () => {
+canvas.addEventListener("mousedown", (e) => {
+  const dpr = DPR();
+  if (uiPress({ x: e.clientX * dpr, y: e.clientY * dpr })) return;
   if (state !== "playing") start();
 });
 
@@ -539,21 +633,34 @@ function killEnemy(j) {
 
 // ---------- Update ----------
 function update(dt) {
+  if (settingsOpen) return; // settings panel pauses the game
   // Hit-stop: a few frozen frames on big moments.
   if (hitStop > 0) { hitStop -= dt; return; }
   elapsed += dt;
-  waveTimer += dt;
-  if (waveTimer > 20) {
-    waveTimer = 0;
-    wave++;
-    announce("WAVE " + wave, "#ffffff");
+
+  // Waves, with a 3s breather between them.
+  if (gapT > 0) {
+    gapT -= dt;
+    if (gapT <= 0) {
+      wave++;
+      waveTimer = 0;
+      announce("WAVE " + wave, "#ffffff");
+    }
+  } else {
+    waveTimer += dt;
+    if (waveTimer > 20) {
+      gapT = 3;
+      announce("wave cleared!", "#9aa0b0", 22);
+    }
   }
 
-  // Spawning accelerates with waves.
-  spawnTimer -= dt;
-  if (spawnTimer <= 0) {
-    spawnTimer = Math.max(0.2, 0.9 - wave * 0.12);
-    spawnEnemy();
+  // Spawning accelerates with waves (paused during the breather).
+  if (gapT <= 0) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnTimer = Math.max(0.2, 0.9 - wave * 0.12);
+      spawnEnemy();
+    }
   }
 
   // Flavor decay.
@@ -574,7 +681,7 @@ function update(dt) {
   if (keys["arrowdown"] || keys["s"]) my += 1;
   // …or joystick.
   if (joy) {
-    const max = JOY_MAX * DPR();
+    const max = throwPx();
     const len = Math.hypot(joy.dx, joy.dy);
     if (len > 4 * DPR()) {
       const c = Math.min(len, max) / max;
@@ -589,8 +696,8 @@ function update(dt) {
   else if (mx < -0.1) player.face = -1;
   const spd = player.speed * FLAVORS[flavor].speedMult;
   // Exponential velocity smoothing: irons out touch-sampling jitter and
-  // gives starts/stops a frame or two of ease without feeling laggy.
-  const smooth = 1 - Math.exp(-dt * 24);
+  // gives starts/stops a frame or two of ease. User-tunable; "off" = raw.
+  const smooth = settings.smooth === "off" ? 1 : 1 - Math.exp(-dt * SMOOTH_K[settings.smooth]);
   player.vx += (mx * spd - player.vx) * smooth;
   player.vy += (my * spd - player.vy) * smooth;
   player.x = Math.max(player.r, Math.min(W - player.r, player.x + player.vx * dt));
@@ -752,6 +859,7 @@ function draw() {
 
   if (state === "menu") {
     drawMenu();
+    if (settingsOpen) drawSettings();
     return;
   }
 
@@ -949,20 +1057,50 @@ function draw() {
 
   if (state === "gameover") drawGameOver();
 
-  // Joystick indicator.
-  if (joy && state === "playing") {
+  // Joystick.
+  if (state === "playing" && !settingsOpen) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.strokeStyle = "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(joy.ox, joy.oy, JOY_MAX * DPR(), 0, Math.PI * 2);
-    ctx.stroke();
-    const len = Math.hypot(joy.dx, joy.dy) || 1;
-    const cap = Math.min(len, JOY_MAX * DPR());
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.beginPath();
-    ctx.arc(joy.ox + (joy.dx / len) * cap, joy.oy + (joy.dy / len) * cap, 18, 0, Math.PI * 2);
-    ctx.fill();
+    if (settings.stick === "fixed") {
+      // Anchored stick: always visible, dims when idle.
+      const an = stickAnchor();
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      ctx.beginPath();
+      ctx.arc(an.x, an.y, an.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = joy ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      const max = throwPx();
+      let kx = an.x, ky = an.y;
+      if (joy) {
+        const len = Math.hypot(joy.dx, joy.dy) || 1;
+        const cap = Math.min(len, max);
+        kx += (joy.dx / len) * (cap / max) * an.r * 0.55;
+        ky += (joy.dy / len) * (cap / max) * an.r * 0.55;
+      }
+      ctx.fillStyle = joy ? "rgba(255,255,255,0.42)" : "rgba(255,255,255,0.16)";
+      ctx.beginPath();
+      ctx.arc(kx, ky, an.r * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (joy) {
+      // Touch-anywhere indicator.
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(joy.ox, joy.oy, throwPx(), 0, Math.PI * 2);
+      ctx.stroke();
+      const len = Math.hypot(joy.dx, joy.dy) || 1;
+      const cap = Math.min(len, throwPx());
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      ctx.arc(joy.ox + (joy.dx / len) * cap, joy.oy + (joy.dy / len) * cap, 18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (settingsOpen) {
+    ctx.setTransform(scale, 0, 0, scale, offX, offY);
+    drawSettings();
   }
 }
 
@@ -990,7 +1128,8 @@ function drawHUD() {
   ctx.fillText(elapsed.toFixed(0) + "s", W / 2, 28);
   ctx.textAlign = "right";
   ctx.font = "13px sans-serif";
-  ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 16, 28);
+  ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 52, 28);
+  drawGear();
 
   // Flavor meter.
   const f = FLAVORS[flavor];
@@ -1094,6 +1233,81 @@ function drawMenu() {
   ctx.fillStyle = "#8d93a5";
   ctx.font = "bold 13px sans-serif";
   ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.80);
+  drawGear();
+}
+
+function drawGear() {
+  const gx = W - 26, gy = 30;
+  ctx.save();
+  ctx.translate(gx, gy);
+  ctx.fillStyle = "rgba(20, 20, 28, 0.45)";
+  ctx.strokeStyle = "rgba(232, 232, 240, 0.65)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 10, Math.sin(a) * 10);
+    ctx.lineTo(Math.cos(a) * 15, Math.sin(a) * 15);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSettings() {
+  ctx.fillStyle = "rgba(10, 10, 16, 0.8)";
+  ctx.fillRect(0, 0, W, H);
+  settingRects = [];
+
+  ctx.textAlign = "center";
+  ctx.font = "36px " + COMIC_FONT;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 6;
+  ctx.strokeText("SETTINGS", W / 2, 170);
+  ctx.fillStyle = "#ffb347";
+  ctx.fillText("SETTINGS", W / 2, 170);
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = "#8d93a5";
+  ctx.fillText("tap a row to change · applies instantly", W / 2, 198);
+
+  const cardX = 52, cardW = W - 104;
+  let y = 236;
+  for (const key of Object.keys(OPTIONS)) {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+    ctx.fillRect(cardX, y, cardW, 46);
+    ctx.textAlign = "left";
+    ctx.font = "15px sans-serif";
+    ctx.fillStyle = "#e8e8f0";
+    ctx.fillText(SETTING_LABELS[key], cardX + 16, y + 29);
+    ctx.textAlign = "right";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillStyle = "#ffb347";
+    ctx.fillText(settings[key], cardX + cardW - 16, y + 29);
+    settingRects.push({ x: cardX, y, w: cardW, h: 46, key });
+    y += 56;
+  }
+
+  const bw = 170, bh = 50, bx = (W - bw) / 2, by = y + 18;
+  ctx.fillStyle = "#ffb347";
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.textAlign = "center";
+  ctx.font = "24px " + COMIC_FONT;
+  ctx.fillStyle = "#14141c";
+  ctx.fillText("DONE", W / 2, by + 34);
+  settingRects.push({ x: bx, y: by, w: bw, h: bh, key: "close" });
+
+  if (state === "playing") {
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#8d93a5";
+    ctx.fillText("game paused", W / 2, by + bh + 30);
+  }
 }
 
 function drawGameOver() {
@@ -1124,6 +1338,10 @@ window.__mr = {
   get kills() { return kills; },
   get wave() { return wave; },
   get recipes() { return [...discovered]; },
+  get settings() { return settings; },
+  get settingsOpen() { return settingsOpen; },
+  get gapT() { return gapT; },
+  get layout() { return { offX, offY, scale, dpr: DPR() }; },
   // Deterministic step for testing (rAF pauses in background tabs).
   tick(dt) { if (state === "playing") update(dt); },
 };
