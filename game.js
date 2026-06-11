@@ -95,6 +95,24 @@ const bgCanvas = makeSprite(W, H, (g) => {
     g.fillStyle = lg;
     g.fillRect(lx - 150, ly - 150, 300, 300);
   }
+  // Street props: stall silhouettes with awnings, crates, a crosswalk.
+  const stall = (sx, sy) => {
+    g.fillStyle = "#20202e";
+    g.fillRect(sx, sy + 10, 34, 44);
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle = i % 2 ? "#3a2e36" : "#2e2e42";
+      g.fillRect(sx - 2 + i * 7.6, sy, 7.6, 12);
+    }
+  };
+  stall(2, 170);
+  stall(2, 600);
+  stall(W - 36, 330);
+  stall(W - 36, 720);
+  g.fillStyle = "#242433";
+  g.fillRect(4, 420, 18, 18);
+  g.fillRect(W - 24, 80, 18, 18);
+  g.fillStyle = "rgba(255, 255, 255, 0.05)";
+  for (let i = 0; i < 6; i++) g.fillRect(58 + i * 64, H - 90, 36, 44);
 });
 
 const vignette = makeSprite(W, H, (g) => {
@@ -104,6 +122,76 @@ const vignette = makeSprite(W, H, (g) => {
   g.fillStyle = grad;
   g.fillRect(0, 0, W, H);
 });
+
+// Drawn food sprites — emoji fonts differ per OS; these are consistent.
+const FOOD_SPRITES = {
+  spicy: makeSprite(40, 40, (g) => {
+    g.translate(20, 22);
+    g.rotate(-0.5);
+    g.fillStyle = "#ff5a3c";
+    g.beginPath();
+    g.ellipse(0, 0, 12, 6.5, 0, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = "rgba(20,20,28,0.5)";
+    g.lineWidth = 1.5;
+    g.stroke();
+    g.fillStyle = "rgba(255,255,255,0.3)";
+    g.beginPath();
+    g.ellipse(-3, -2.5, 5, 1.8, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#3ecf8e";
+    g.beginPath();
+    g.arc(12, -3, 3.5, 0, Math.PI * 2);
+    g.fill();
+  }),
+  sweet: makeSprite(40, 40, (g) => {
+    g.translate(20, 20);
+    g.strokeStyle = "#ffb347";
+    g.lineWidth = 4.5;
+    g.lineCap = "round";
+    g.beginPath();
+    for (let t = 0; t < Math.PI * 5.5; t += 0.2) {
+      const r = 1.5 + t * 0.8;
+      const x = Math.cos(t) * r, y = Math.sin(t) * r * 0.95;
+      t === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+    }
+    g.stroke();
+    g.strokeStyle = "rgba(200, 120, 30, 0.7)";
+    g.lineWidth = 1.6;
+    g.stroke();
+  }),
+  savory: makeSprite(40, 40, (g) => {
+    g.fillStyle = "#e8b86d";
+    g.beginPath();
+    g.arc(20, 18, 12, Math.PI, 0);
+    g.fill();
+    g.fillStyle = "rgba(255,255,255,0.25)";
+    g.beginPath();
+    g.ellipse(16, 11, 4, 2, -0.4, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#8a5a2e";
+    g.beginPath();
+    g.ellipse(20, 20.5, 11, 4, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#3ecf8e";
+    g.beginPath();
+    g.ellipse(20, 18.5, 10, 2, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#e8b86d";
+    g.beginPath();
+    g.moveTo(8, 23);
+    g.lineTo(32, 23);
+    g.quadraticCurveTo(32, 29, 26, 29);
+    g.lineTo(14, 29);
+    g.quadraticCurveTo(8, 29, 8, 23);
+    g.fill();
+    g.strokeStyle = "rgba(20,20,28,0.4)";
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.arc(20, 18, 12, Math.PI, 0);
+    g.stroke();
+  }),
+};
 
 // ---------- Flavor definitions ----------
 const FLAVORS = {
@@ -148,7 +236,6 @@ const FOOD_TYPES = [
   { flavor: "sweet", name: "Jalebi", color: "#ffb347" },
   { flavor: "savory", name: "Vada Pav", color: "#3ecf8e" },
 ];
-const FOOD_EMOJI = { spicy: "🌶", sweet: "🍯", savory: "🍔" };
 const SAVORY_PULSE_INTERVAL = 2.2;
 const SAVORY_PULSE_RADIUS = 130;
 
@@ -165,14 +252,15 @@ catch { discovered = new Set(); }
 
 // ---------- Game state ----------
 let state = "menu"; // menu | playing | gameover
-let player, enemies, bullets, foods, particles, floaters, rings, drains;
+let player, enemies, bullets, foods, particles, floaters, rings, drains, dying;
+let hitStop;
 let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let bestTime = 0;
 
 function reset() {
-  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0 };
+  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 205, shield: 0, face: 1 };
   enemies = [];
   bullets = [];
   foods = [];
@@ -180,6 +268,8 @@ function reset() {
   floaters = [];
   rings = [];
   drains = [];
+  dying = [];
+  hitStop = 0;
   flavor = "none";
   flavorTimer = 0;
   savoryPulse = 0;
@@ -335,6 +425,7 @@ function fuse(a, b) {
   if (!recipe) return;
   fusionFlash = 0.25;
   shake = 0.3;
+  hitStop = 0.09;
 
   if (!discovered.has(key)) {
     discovered.add(key);
@@ -363,12 +454,7 @@ function fuse(a, b) {
         e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 150));
         e.hp -= 2;
         e.flash = 0.08;
-        if (e.hp <= 0) {
-          kills++;
-          burst(e.x, e.y, "#8d93a5", 8, 90);
-          dropFood(e.x, e.y);
-          enemies.splice(j, 1);
-        }
+        if (e.hp <= 0) killEnemy(j);
       }
     }
   } else if (key === "savory+sweet") {
@@ -409,8 +495,20 @@ function shoot(dt) {
   }
 }
 
+// Shared kill path: score, burst, corpse dissolve, drop, remove.
+function killEnemy(j) {
+  const e = enemies[j];
+  kills++;
+  burst(e.x, e.y, "#8d93a5", 8, 90);
+  dying.push({ x: e.x, y: e.y, r: e.r, life: 0.22 });
+  dropFood(e.x, e.y);
+  enemies.splice(j, 1);
+}
+
 // ---------- Update ----------
 function update(dt) {
+  // Hit-stop: a few frozen frames on big moments.
+  if (hitStop > 0) { hitStop -= dt; return; }
   elapsed += dt;
   waveTimer += dt;
   if (waveTimer > 20) {
@@ -455,6 +553,8 @@ function update(dt) {
   const ml = Math.hypot(mx, my);
   if (ml > 1) { mx /= ml; my /= ml; }
   player.moving = ml > 0.01;
+  if (mx > 0.1) player.face = 1;
+  else if (mx < -0.1) player.face = -1;
   const spd = player.speed * FLAVORS[flavor].speedMult;
   player.x = Math.max(player.r, Math.min(W - player.r, player.x + mx * spd * dt));
   player.y = Math.max(player.r, Math.min(H - player.r, player.y + my * spd * dt));
@@ -478,12 +578,7 @@ function update(dt) {
           e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 80));
           e.hp -= 1;
           e.flash = 0.08;
-          if (e.hp <= 0) {
-            kills++;
-            burst(e.x, e.y, "#8d93a5", 8, 90);
-            dropFood(e.x, e.y);
-            enemies.splice(j, 1);
-          }
+          if (e.hp <= 0) killEnemy(j);
         }
       }
     }
@@ -507,12 +602,7 @@ function update(dt) {
         e.hp -= b.damage;
         e.flash = 0.08;
         bullets.splice(i, 1);
-        if (e.hp <= 0) {
-          kills++;
-          burst(e.x, e.y, "#8d93a5", 8, 90);
-          dropFood(e.x, e.y);
-          enemies.splice(j, 1);
-        }
+        if (e.hp <= 0) killEnemy(j);
         break;
       }
     }
@@ -549,6 +639,7 @@ function update(dt) {
         player.iframes = 1.2;
         hitFlash = 0.25;
         shake = 0.25;
+        hitStop = 0.05;
         burst(player.x, player.y, "#ff5a3c", 12, 140);
         if (player.hp <= 0) {
           state = "gameover";
@@ -595,6 +686,10 @@ function update(dt) {
   for (let i = drains.length - 1; i >= 0; i--) {
     drains[i].life -= dt;
     if (drains[i].life <= 0) drains.splice(i, 1);
+  }
+  for (let i = dying.length - 1; i >= 0; i--) {
+    dying[i].life -= dt;
+    if (dying[i].life <= 0) dying.splice(i, 1);
   }
 
   if (hitFlash > 0) hitFlash -= dt;
@@ -649,15 +744,24 @@ function draw() {
     ctx.globalAlpha = 0.8 + Math.sin(now * 6 + fd.y) * 0.2;
     ctx.drawImage(glowSprite(fd.type.color), fd.x - 24, fd.y + bob - 24, 48, 48);
     ctx.globalAlpha = 1;
-    ctx.font = "16px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(FOOD_EMOJI[fd.type.flavor] || "?", fd.x, fd.y + bob + 6);
+    ctx.drawImage(FOOD_SPRITES[fd.type.flavor], fd.x - 20, fd.y + bob - 20);
   }
 
   // Bullets: glow sprites.
   for (const b of bullets) {
     ctx.drawImage(glowSprite(b.color), b.x - b.r * 2.5, b.y - b.r * 2.5, b.r * 5, b.r * 5);
   }
+
+  // Dissolving corpses: flatten and fade.
+  for (const d of dying) {
+    const p2 = Math.max(0, d.life / 0.22);
+    ctx.globalAlpha = p2 * 0.8;
+    ctx.fillStyle = "#6e7280";
+    ctx.beginPath();
+    ctx.ellipse(d.x, d.y + (1 - p2) * 4, d.r * (1 + (1 - p2) * 0.7), Math.max(0.5, d.r * p2), 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
   // Enemies — the Bland: grey, desaturated blobs.
   for (const e of enemies) {
@@ -677,11 +781,18 @@ function draw() {
       ctx.globalAlpha = 1;
       continue;
     }
-    const squish = 1 + Math.sin(e.wobble) * 0.08;
     ctx.drawImage(auraSprite, e.x - e.r * 3, e.y - e.r * 3, e.r * 6, e.r * 6);
+    // Organic blob: 12-point outline with 3 travelling wobble lobes.
     ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#6e7280";
     ctx.beginPath();
-    ctx.ellipse(e.x, e.y, e.r * squish, e.r / squish, 0, 0, Math.PI * 2);
+    for (let i = 0; i < 12; i++) {
+      const ang = (i / 12) * Math.PI * 2;
+      const wob = 1 + Math.sin(e.wobble * 1.6 + i * (Math.PI / 2)) * 0.1;
+      const px = e.x + Math.cos(ang) * e.r * wob;
+      const py = e.y + Math.sin(ang) * e.r * wob * 0.94;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = "rgba(20, 20, 28, 0.6)";
     ctx.lineWidth = 2;
@@ -731,11 +842,12 @@ function draw() {
     ctx.arc(player.x, py - 2, player.r, Math.PI, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(player.x - player.r, py - 4, player.r * 2, 3);
-    // Eyes.
+    // Eyes lean into the movement direction.
+    const fx = player.face * 1.6;
     ctx.fillStyle = "#14141c";
     ctx.beginPath();
-    ctx.arc(player.x - 4, py + 3, 2.4, 0, Math.PI * 2);
-    ctx.arc(player.x + 4, py + 3, 2.4, 0, Math.PI * 2);
+    ctx.arc(player.x - 4 + fx, py + 3, 2.4, 0, Math.PI * 2);
+    ctx.arc(player.x + 4 + fx, py + 3, 2.4, 0, Math.PI * 2);
     ctx.fill();
     // Outline.
     ctx.strokeStyle = "rgba(20, 20, 28, 0.6)";
@@ -873,8 +985,9 @@ function drawMenu() {
   ctx.fillStyle = "#9aa0b0";
   ctx.fillText("The Bland are eating the city's flavor.", W / 2, H * 0.40);
   ctx.fillText("Eat faster.", W / 2, H * 0.435);
-  ctx.font = "26px sans-serif";
-  ctx.fillText("🌶  🍯  🍔", W / 2, H * 0.485);
+  ctx.drawImage(FOOD_SPRITES.spicy, W / 2 - 64, H * 0.455);
+  ctx.drawImage(FOOD_SPRITES.sweet, W / 2 - 20, H * 0.455);
+  ctx.drawImage(FOOD_SPRITES.savory, W / 2 + 24, H * 0.455);
   ctx.fillStyle = "#ffb347";
   ctx.font = "bold 15px sans-serif";
   ctx.fillText("You attack with whatever you last ate.", W / 2, H * 0.55);
