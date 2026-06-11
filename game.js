@@ -13,6 +13,8 @@ const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
 
 // Logical playfield: 480×800 portrait or 800×480 landscape, picked from the
 // viewport orientation. Rendered letterboxed/scaled to the window.
+// Landscape is parked for now (didn't feel right) — flip to re-enable.
+const LANDSCAPE_ENABLED = false;
 let W = 480;
 let H = 800;
 let scale = 1, offX = 0, offY = 0;
@@ -32,8 +34,9 @@ function resize() {
   canvas.style.width = vw + "px";
   canvas.style.height = vh + "px";
   const pw = W;
-  W = vw > vh ? 800 : 480;
-  H = vw > vh ? 480 : 800;
+  const landscape = LANDSCAPE_ENABLED && vw > vh;
+  W = landscape ? 800 : 480;
+  H = landscape ? 480 : 800;
   if (!bgCanvas || W !== pw) {
     buildBackdrop();
     if (W !== pw) clampToArena(); // mid-game rotation: keep everything in bounds
