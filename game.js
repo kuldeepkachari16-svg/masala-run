@@ -23,6 +23,9 @@ let bgCanvas = null, vignette = null; // rebuilt on orientation change
 // Cap render resolution at 2x — 3x phone DPR costs frames, not visible clarity.
 const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
 
+// Temporary: live FPS readout for diagnosing movement feel on real devices.
+const SHOW_FPS = true;
+
 function resize() {
   const dpr = DPR();
   // visualViewport is the truth on mobile — innerHeight lies when the
@@ -314,7 +317,8 @@ let resumeT = 0; // 3-2-1 countdown after closing settings mid-game
 function reset() {
   // Base speed = the old Sweet speed (205 × 1.35): the "jalebi feel" is now
   // the default; flavors no longer buff movement, savory still trades a bit.
-  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 277, shield: 0, face: 1, vx: 0, vy: 0 };
+  // imx/imy = smoothed INPUT direction (filtered stick), not velocity.
+  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 277, shield: 0, face: 1, vx: 0, vy: 0, imx: 0, imy: 0 };
   enemies = [];
   bullets = [];
   foods = [];
@@ -821,11 +825,14 @@ function update(dt) {
   if (mx > 0.1) player.face = 1;
   else if (mx < -0.1) player.face = -1;
   const spd = player.speed * FLAVORS[flavor].speedMult;
-  // Exponential velocity smoothing: irons out touch-sampling jitter and
-  // gives starts/stops a frame or two of ease. User-tunable; "off" = raw.
-  const smooth = settings.smooth === "off" ? 1 : 1 - Math.exp(-dt * SMOOTH_K[settings.smooth]);
-  player.vx += (mx * spd - player.vx) * smooth;
-  player.vy += (my * spd - player.vy) * smooth;
+  // Smooth the INPUT direction (0..1 vector), not the velocity. Filtering
+  // the small normalized stick vector kills touch jitter with far less
+  // perceived lag than ramping the full velocity each flick. "off" = raw.
+  const k = settings.smooth === "off" ? 1 : 1 - Math.exp(-dt * SMOOTH_K[settings.smooth]);
+  player.imx += (mx - player.imx) * k;
+  player.imy += (my - player.imy) * k;
+  player.vx = player.imx * spd;
+  player.vy = player.imy * spd;
   player.x = Math.max(player.r, Math.min(W - player.r, player.x + player.vx * dt));
   player.y = Math.max(player.r, Math.min(H - player.r, player.y + player.vy * dt));
   if (player.iframes > 0) player.iframes -= dt;
@@ -1286,6 +1293,13 @@ function drawHUD() {
   ctx.font = "13px sans-serif";
   ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 52, 28);
   drawGear();
+  // Temporary feel-debug readout (remove once movement is dialed in).
+  if (SHOW_FPS) {
+    ctx.textAlign = "left";
+    ctx.font = "11px monospace";
+    ctx.fillStyle = "rgba(141, 147, 165, 0.7)";
+    ctx.fillText(Math.round(fpsEMA) + " fps", 18, 48);
+  }
 
   // Flavor meter.
   const f = FLAVORS[flavor];
@@ -1610,9 +1624,17 @@ window.__mr = {
 // player/enemies/foods, which would be TDZ errors at the top of the file).
 resize();
 let last = performance.now();
+let smoothDt = 1 / 60; // low-passed dt — rAF intervals jitter frame-to-frame
+let fpsEMA = 60;
 function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.05);
+  let raw = (now - last) / 1000;
   last = now;
+  if (raw > 0.0001) fpsEMA += (1 / raw - fpsEMA) * 0.08;
+  if (raw > 0.05) raw = 0.05; // hitch guard (GC pause, tab restore)
+  // Low-pass the frame delta so rAF jitter doesn't ride straight into
+  // position (x += v·dt). Robust across 60/90/120Hz, no beat-frequency.
+  smoothDt += (raw - smoothDt) * 0.2;
+  const dt = smoothDt;
   if (state === "playing") {
     update(dt);
   } else {
