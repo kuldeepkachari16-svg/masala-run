@@ -15,6 +15,9 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 - Settings (gear icon, persisted): joystick mode/side/size, sensitivity, smoothing; opening pauses the game; every tap gives press/value feedback + live stick preview; closing mid-run shows a 3-2-1 countdown before action resumes
 - 3s breather between waves (no spawns, "wave cleared!" banner)
 - The Bland: grey blobs, scaling waves every 20s; spawn ON the arena edge with a 0.7s emerge telegraph (no off-screen entries, no insta-hits)
+- **Swarmers** (wave 3+): small spiky wisps — 1 hp, ~2.5× faster, zig-zag approach, spawn in packs of 2-3. Share of spawns grows per wave (`CONFIG.swarmerShare`)
+- **Scaling cap:** enemy stats and spawn rate stop growing at wave 5 (`CONFIG.scalingCapWave`) — later waves get harder via enemy mix, not bullet sponges
+- **All difficulty/pacing knobs live in `CONFIG`** (top of game.js); live-tunable on a device via `__mr.config`
 - 3 flavors: **Spicy** (chilli — 3-shot spread, 2× damage) · **Sweet** (jalebi — rapid fire) · **Savory** (vada pav — one-hit shield + knockback pulse every 2.2s, slower attack, slightly slower move)
 - Move speed: base 277 px/s for all flavors (the old Sweet speed is now the default; savory 0.95×)
 - Flavor meter: 15s decay, revert to weak PLAIN attack at zero
@@ -43,7 +46,7 @@ No build step, no dependencies — `index.html` + `game.js` only.
 
 ## Balance (tuned + verified 2026-06-11)
 
-Stand-still PLAIN dies ~28s in wave 2; same scenario with spicy uptime survives wave 2 at full hearts. Food is the lifeline, not a bonus. Knobs: PLAIN fire 0.95s · spawn `max(0.2, 0.9 − wave·0.12)` · enemy hp `1 + floor(wave·0.6)` · speed `52 + wave·6` · drop rate 30%.
+Stand-still PLAIN dies in wave 2 (~30-45s, drop-luck variance); fed players survive the same pressure. Food is the lifeline, not a bonus. All knobs in `CONFIG`: wave/breather length, spawn curve + floor, per-type enemy stats (hp/speed/telegraph/drop), swarmer pack size + share table, scaling cap. Bland hp caps at 4 (wave 5).
 
 ## Art
 
@@ -52,5 +55,5 @@ Procedural, zero asset files: pre-rendered offscreen canvases (night-street back
 ## Next — v0.5 "feels like a game"
 
 1. ~~Sound (procedural Web Audio)~~ ✅ done
-2. Wave-5 mini-boss + a second enemy type (fast swarmer)
+2. Wave-5 mini-boss (+ boon pick) — swarmer ✅ done
 3. ~~PWA manifest + icon (installable, offline)~~ ✅ done — Add to Home Screen on a phone; offline after first load; Bangers self-hosted

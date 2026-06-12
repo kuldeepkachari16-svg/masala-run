@@ -291,6 +291,40 @@ const FOOD_TYPES = [
 const SAVORY_PULSE_INTERVAL = 2.2;
 const SAVORY_PULSE_RADIUS = 130;
 
+// ---------- Tuning config (internal) ----------
+// Every difficulty/pacing knob lives here — tweak without touching logic.
+// Live-tunable on a device via __mr.config (e.g. __mr.config.waveLength = 15).
+const CONFIG = {
+  waveLength: 20,      // seconds per wave
+  breather: 3,         // pause between waves
+  scalingCapWave: 5,   // enemy stats & spawn rate stop growing here —
+                       // later waves get harder via enemy MIX, not stat sponges
+  spawnBase: 0.9,      // spawn interval curve: base - wave*perWave, floored
+  spawnPerWave: 0.12,
+  spawnFloor: 0.2,
+  foodLife: 8,
+  enemies: {
+    bland: {
+      rMin: 13, rMax: 17,
+      hpBase: 1, hpPerWave: 0.6,
+      spdBase: 60, spdPerWave: 7, spdRand: 22,
+      telegraph: 0.7,
+      drop: 0.3,
+    },
+    swarmer: {
+      rMin: 8, rMax: 10,
+      hpBase: 1, hpPerWave: 0,          // always 1 hp — threat is speed + numbers
+      spdBase: 150, spdPerWave: 6, spdRand: 30,
+      telegraph: 0.45,
+      drop: 0.12,                        // they come in packs; keep food economy stable
+      packMin: 2, packMax: 3,
+      weave: 0.45,                       // darting zig-zag amplitude (radians)
+    },
+  },
+  // Chance a spawn event is a swarmer pack, indexed by wave (last repeats).
+  swarmerShare: [0, 0, 0.2, 0.3, 0.3, 0.35, 0.4, 0.45],
+};
+
 // Fusion recipes: eat a DIFFERENT flavor while the meter is above the tick.
 const RECIPES = {
   "spicy+sweet": { name: "Chilli Glaze" },
@@ -744,26 +778,55 @@ function burst(x, y, color, n, speed) {
 }
 
 // ---------- Spawning ----------
-function spawnEnemy() {
-  // Spawn ON the arena edge (never in the letterbox) with a short telegraph
-  // before activating, so an emerging enemy can't insta-hit the player.
-  const side = Math.floor(Math.random() * 4);
-  const r = 13 + Math.random() * 4;
-  let x, y;
-  if (side === 0) { x = r + Math.random() * (W - 2 * r); y = r; }
-  else if (side === 1) { x = r + Math.random() * (W - 2 * r); y = H - r; }
-  else if (side === 2) { x = r; y = r + Math.random() * (H - 2 * r); }
-  else { x = W - r; y = r + Math.random() * (H - 2 * r); }
+// Stats freeze at scalingCapWave — late waves escalate via mix, not sponges.
+function effWave() { return Math.min(wave, CONFIG.scalingCapWave); }
 
-  const hp = 1 + Math.floor(wave * 0.6);
-  const speed = 60 + wave * 7 + Math.random() * 22;
-  enemies.push({ x, y, r, hp, maxHp: hp, speed, wobble: Math.random() * Math.PI * 2, spawning: 0.7 });
+function spawnPoint(r) {
+  // ON the arena edge (never in the letterbox).
+  const side = Math.floor(Math.random() * 4);
+  if (side === 0) return { x: r + Math.random() * (W - 2 * r), y: r };
+  if (side === 1) return { x: r + Math.random() * (W - 2 * r), y: H - r };
+  if (side === 2) return { x: r, y: r + Math.random() * (H - 2 * r) };
+  return { x: W - r, y: r + Math.random() * (H - 2 * r) };
 }
 
-function dropFood(x, y) {
-  if (Math.random() > 0.3) return;
+function makeEnemy(type, x, y) {
+  const c = CONFIG.enemies[type];
+  const w = effWave();
+  const r = c.rMin + Math.random() * (c.rMax - c.rMin);
+  const hp = c.hpBase + Math.floor(w * c.hpPerWave);
+  return {
+    type, x, y, r, hp, maxHp: hp,
+    speed: c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand,
+    wobble: Math.random() * Math.PI * 2,
+    spawning: c.telegraph, spawnDur: c.telegraph,
+  };
+}
+
+// One spawn EVENT: a lone bland, or a swarmer pack (same edge point, jittered).
+function spawnEnemy() {
+  const share = CONFIG.swarmerShare[Math.min(wave - 1, CONFIG.swarmerShare.length - 1)];
+  if (Math.random() < share) {
+    const c = CONFIG.enemies.swarmer;
+    const n = c.packMin + Math.floor(Math.random() * (c.packMax - c.packMin + 1));
+    const p = spawnPoint(c.rMax);
+    for (let i = 0; i < n; i++) {
+      const e = makeEnemy("swarmer",
+        Math.max(c.rMax, Math.min(W - c.rMax, p.x + (Math.random() - 0.5) * 52)),
+        Math.max(c.rMax, Math.min(H - c.rMax, p.y + (Math.random() - 0.5) * 52)));
+      enemies.push(e);
+    }
+  } else {
+    const p = spawnPoint(CONFIG.enemies.bland.rMax);
+    enemies.push(makeEnemy("bland", p.x, p.y));
+  }
+}
+
+function dropFood(x, y, type) {
+  const rate = (CONFIG.enemies[type] || CONFIG.enemies.bland).drop;
+  if (Math.random() > rate) return;
   const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
-  foods.push({ x, y, r: 11, type: t, life: 8 });
+  foods.push({ x, y, r: 11, type: t, life: CONFIG.foodLife });
 }
 
 // ---------- Eating ----------
@@ -880,7 +943,7 @@ function killEnemy(j) {
   sfx.kill();
   burst(e.x, e.y, "#8d93a5", 8, 90);
   dying.push({ x: e.x, y: e.y, r: e.r, life: 0.22 });
-  dropFood(e.x, e.y);
+  dropFood(e.x, e.y, e.type);
   enemies.splice(j, 1);
 }
 
@@ -899,7 +962,7 @@ function update(dt) {
   if (hitStop > 0) { hitStop -= dt; return; }
   elapsed += dt;
 
-  // Waves, with a 3s breather between them.
+  // Waves, with a breather between them.
   if (gapT > 0) {
     gapT -= dt;
     if (gapT <= 0) {
@@ -910,17 +973,17 @@ function update(dt) {
     }
   } else {
     waveTimer += dt;
-    if (waveTimer > 20) {
-      gapT = 3;
+    if (waveTimer > CONFIG.waveLength) {
+      gapT = CONFIG.breather;
       announce("wave cleared!", "#9aa0b0", 22);
     }
   }
 
-  // Spawning accelerates with waves (paused during the breather).
+  // Spawning accelerates with waves until the cap (paused during breather).
   if (gapT <= 0) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      spawnTimer = Math.max(0.2, 0.9 - wave * 0.12);
+      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave);
       spawnEnemy();
     }
   }
@@ -1020,8 +1083,10 @@ function update(dt) {
   // Enemies chase player (once fully emerged).
   for (const e of enemies) {
     if (e.spawning > 0) { e.spawning -= dt; continue; }
-    const a = Math.atan2(player.y - e.y, player.x - e.x);
+    let a = Math.atan2(player.y - e.y, player.x - e.x);
     e.wobble += dt * 6;
+    // Swarmers dart in a zig-zag instead of beelining.
+    if (e.type === "swarmer") a += Math.sin(e.wobble * 2.2) * CONFIG.enemies.swarmer.weave;
     e.x += Math.cos(a) * e.speed * dt;
     e.y += Math.sin(a) * e.speed * dt;
     if (e.flash > 0) e.flash -= dt;
@@ -1178,7 +1243,7 @@ function draw() {
   for (const e of enemies) {
     if (e.spawning > 0) {
       // Emerging telegraph: a closing ring + materializing blob.
-      const p = 1 - e.spawning / 0.7;
+      const p = 1 - e.spawning / e.spawnDur;
       ctx.strokeStyle = "rgba(140, 146, 165, " + (0.3 + p * 0.5) + ")";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1193,6 +1258,29 @@ function draw() {
       continue;
     }
     ctx.drawImage(auraSprite, e.x - e.r * 3, e.y - e.r * 3, e.r * 6, e.r * 6);
+    if (e.type === "swarmer") {
+      // Swarmer: small spiky wisp — angular 7-point shape, beady eyes.
+      ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#7e8294";
+      ctx.beginPath();
+      for (let i = 0; i < 7; i++) {
+        const ang = (i / 7) * Math.PI * 2 + e.wobble * 0.5;
+        const spike = 1 + Math.sin(e.wobble * 3 + i * 2.7) * 0.28;
+        const px = e.x + Math.cos(ang) * e.r * spike;
+        const py = e.y + Math.sin(ang) * e.r * spike;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(20, 20, 28, 0.6)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = "#14141c";
+      ctx.beginPath();
+      ctx.arc(e.x - 2.5, e.y - 1, 1.4, 0, Math.PI * 2);
+      ctx.arc(e.x + 2.5, e.y - 1, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      continue; // 1 hp — no health bar
+    }
     // Organic blob: 12-point outline with 3 travelling wobble lobes.
     ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#6e7280";
     ctx.beginPath();
@@ -1806,6 +1894,7 @@ window.__mr = {
   get layout() { return { offX, offY, scale, dpr: DPR() }; },
   get dims() { return { W, H }; },
   get resumeT() { return resumeT; },
+  get config() { return CONFIG; }, // live-tunable: __mr.config.waveLength = 15
   // Deterministic step for testing (rAF pauses in background tabs).
   tick(dt) { if (state === "playing") update(dt); },
 };
