@@ -23,8 +23,6 @@ let bgCanvas = null, vignette = null; // rebuilt on orientation change
 // Cap render resolution at 2x — 3x phone DPR costs frames, not visible clarity.
 const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
 
-// Temporary: live FPS readout for diagnosing movement feel on real devices.
-const SHOW_FPS = true;
 
 function resize() {
   const dpr = DPR();
@@ -357,9 +355,10 @@ const OPTIONS = {
   size: ["small", "medium", "large"],
   sens: ["low", "medium", "high"],
   smooth: ["off", "low", "normal"],
+  fps: ["off", "on"],
 };
-const SETTING_LABELS = { stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing" };
-const DEFAULT_SETTINGS = { stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low" };
+const SETTING_LABELS = { stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", fps: "show fps" };
+const DEFAULT_SETTINGS = { stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low", fps: "off" };
 let settings = { ...DEFAULT_SETTINGS };
 try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch {}
 function saveSettings() {
@@ -1431,7 +1430,7 @@ function drawHUD() {
   ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 92, 28);
   drawGear();
   // Temporary feel-debug readout (remove once movement is dialed in).
-  if (SHOW_FPS) {
+  if (settings.fps === "on") {
     ctx.textAlign = "left";
     ctx.font = "11px monospace";
     ctx.fillStyle = "rgba(141, 147, 165, 0.7)";
