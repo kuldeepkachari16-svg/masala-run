@@ -11,7 +11,7 @@ GitHub + Pages deploy, mobile viewport/joystick/speed fixes.
 1. ~~Procedural sound (eat/fusion/hit/kill/death) + mute button~~ ✅ 2026-06-12
 2. Wave-5 mini-boss — runs get a milestone, not just death
 3. Second enemy type (fast swarmer) — forces flavor switching
-4. PWA manifest + icon — home-screen install, offline play
+4. ~~PWA manifest + icon — home-screen install, offline play~~ ✅ 2026-06-12
 5. Playtest round 1: 3–5 friends. Questions: figured out eat-to-attack
    unaided? found a recipe unaided? when did retrying stop, and why?
 

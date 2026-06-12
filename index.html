@@ -4,10 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Masala Run (v0 greybox)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#14141c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
+  @font-face {
+    font-family: "Bangers";
+    src: url("fonts/bangers.woff2") format("woff2");
+    font-display: swap;
+  }
   html, body {
     margin: 0;
     padding: 0;
@@ -30,5 +37,10 @@
 <body>
 <canvas id="game"></canvas>
 <script src="game.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+  }
+</script>
 </body>
 </html>

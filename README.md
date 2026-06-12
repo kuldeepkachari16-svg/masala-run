@@ -53,4 +53,4 @@ Procedural, zero asset files: pre-rendered offscreen canvases (night-street back
 
 1. ~~Sound (procedural Web Audio)~~ ✅ done
 2. Wave-5 mini-boss + a second enemy type (fast swarmer)
-3. PWA manifest + icon (installable, offline)
+3. ~~PWA manifest + icon (installable, offline)~~ ✅ done — Add to Home Screen on a phone; offline after first load; Bangers self-hosted
