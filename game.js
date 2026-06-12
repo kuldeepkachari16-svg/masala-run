@@ -539,6 +539,7 @@ window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
   ensureAudio(); // any key is a gesture — unlock audio
   if (e.key === "Escape" && settingsOpen) { closeSettings(); return; }
+  if (e.key === "Escape" && state === "gameover") { state = "menu"; return; }
   if (e.key === "m" || e.key === "M") { setMuted(!muted); sfx.ui(); return; }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
 });
@@ -617,6 +618,7 @@ canvas.addEventListener("touchstart", (e) => {
   const t = e.changedTouches[0];
   const p = toLocal(t);
   if (uiPress(p)) return;
+  if (state === "gameover") { gameOverPress(p); return; }
   if (state !== "playing") { start(); return; }
   if (joy) return; // first finger owns the stick
   if (settings.stick === "fixed") {
@@ -665,9 +667,34 @@ canvas.addEventListener("touchcancel", endTouch, { passive: false });
 canvas.addEventListener("mousedown", (e) => {
   ensureAudio();
   const dpr = DPR();
-  if (uiPress({ x: e.clientX * dpr, y: e.clientY * dpr })) return;
+  const p = { x: e.clientX * dpr, y: e.clientY * dpr };
+  if (uiPress(p)) return;
+  if (state === "gameover") { gameOverPress(p); return; }
   if (state !== "playing") start();
 });
+
+// End-screen buttons. Specific hit-zones only — taps elsewhere do nothing,
+// so the player can system-swipe to close the app without an accidental retry.
+function gameOverLayout() {
+  const bw = 150, bh = 56, gap = 16, y = H * 0.585;
+  const x0 = (W - (bw * 2 + gap)) / 2;
+  return [
+    { x: x0, y, w: bw, h: bh, key: "replay" },
+    { x: x0 + bw + gap, y, w: bw, h: bh, key: "menu" },
+  ];
+}
+function gameOverPress(p) {
+  const a = toArena(p);
+  for (const r of gameOverLayout()) {
+    if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
+      sfx.ui();
+      if (navigator.vibrate) navigator.vibrate(8);
+      if (r.key === "replay") start();
+      else state = "menu";
+      return;
+    }
+  }
+}
 
 function start() {
   reset();
@@ -1735,11 +1762,28 @@ function drawGameOver() {
   if (bestTime > 0) ctx.fillText("best " + bestTime.toFixed(1) + "s", W / 2, H * 0.49);
   ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.525);
 
-  ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tnow * 3);
-  ctx.fillStyle = "#ffb347";
-  ctx.font = "24px " + COMIC_FONT;
-  ctx.fillText("tap / space to retry", W / 2, H * 0.59);
-  ctx.globalAlpha = 1;
+  // REPLAY (primary) + MENU (secondary) — specific tap targets.
+  ctx.lineJoin = "round";
+  for (const r of gameOverLayout()) {
+    const primary = r.key === "replay";
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    if (primary) {
+      // Gentle pulse to pull the eye to the default action.
+      ctx.globalAlpha = 0.88 + 0.12 * Math.sin(tnow * 3);
+      ctx.fillStyle = "#ffb347";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#14141c";
+    } else {
+      ctx.strokeStyle = "rgba(154, 160, 176, 0.7)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = "#cfd3de";
+    }
+    ctx.font = "26px " + COMIC_FONT;
+    ctx.textAlign = "center";
+    ctx.fillText(primary ? "REPLAY" : "MENU", cx, cy + 9);
+  }
 }
 
 // ---------- Debug handle (greybox testing only) ----------
