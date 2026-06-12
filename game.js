@@ -449,11 +449,97 @@ function joyKnobSprite(rDev) {
   return joyArt[key];
 }
 
+// ---------- Sound (procedural Web Audio, zero asset files) ----------
+// Context is created lazily on the first user gesture — mobile browsers
+// refuse to start audio before one anyway.
+let audioCtx = null, masterGain = null, noiseBuf = null;
+let muted = false;
+try { muted = localStorage.getItem("mr_muted") === "1"; } catch {}
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = muted ? 0 : 0.5;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function setMuted(m) {
+  muted = m;
+  try { localStorage.setItem("mr_muted", m ? "1" : "0"); } catch {}
+  if (masterGain) masterGain.gain.value = m ? 0 : 0.5;
+}
+
+// One enveloped oscillator. freq2 = pitch slide target over the duration.
+function tone({ freq = 440, freq2, type = "sine", dur = 0.1, vol = 0.3, when = 0 }) {
+  if (muted || !ensureAudio()) return;
+  const t0 = audioCtx.currentTime + when;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t0);
+  if (freq2) o.frequency.exponentialRampToValueAtTime(freq2, t0 + dur);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g);
+  g.connect(masterGain);
+  o.start(t0);
+  o.stop(t0 + dur + 0.03);
+}
+
+// Filtered noise burst — thuds and pops.
+function noiseHit({ dur = 0.1, vol = 0.3, cutoff = 800, when = 0 }) {
+  if (muted || !ensureAudio()) return;
+  if (!noiseBuf) {
+    noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.25, audioCtx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const t0 = audioCtx.currentTime + when;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = audioCtx.createBiquadFilter();
+  f.type = "lowpass";
+  f.frequency.value = cutoff;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(f);
+  f.connect(g);
+  g.connect(masterGain);
+  src.start(t0);
+  src.stop(t0 + dur + 0.03);
+}
+
+const FLAVOR_PITCH = { spicy: 660, sweet: 880, savory: 440, none: 520 };
+const sfx = {
+  eat(fl) { const p = FLAVOR_PITCH[fl] || 520; tone({ freq: p, freq2: p * 1.5, type: "square", dur: 0.12, vol: 0.22 }); },
+  fusion() {
+    tone({ freq: 392, freq2: 784, type: "sawtooth", dur: 0.18, vol: 0.28 });
+    tone({ freq: 587, freq2: 1175, type: "square", dur: 0.22, vol: 0.2, when: 0.09 });
+  },
+  shoot() { tone({ freq: 1100, freq2: 650, type: "triangle", dur: 0.04, vol: 0.05 }); },
+  hit() { noiseHit({ dur: 0.18, vol: 0.45, cutoff: 300 }); tone({ freq: 110, freq2: 55, dur: 0.2, vol: 0.45 }); },
+  shield() { tone({ freq: 1318, freq2: 880, type: "triangle", dur: 0.12, vol: 0.2 }); },
+  kill() { noiseHit({ dur: 0.06, vol: 0.16, cutoff: 1400 }); tone({ freq: 330, freq2: 660, type: "triangle", dur: 0.07, vol: 0.1 }); },
+  wave() { tone({ freq: 523, dur: 0.1, vol: 0.18 }); tone({ freq: 784, dur: 0.15, vol: 0.18, when: 0.1 }); },
+  go() { tone({ freq: 659, freq2: 988, type: "square", dur: 0.12, vol: 0.18 }); },
+  death() { tone({ freq: 220, freq2: 55, type: "sawtooth", dur: 0.7, vol: 0.32 }); noiseHit({ dur: 0.5, vol: 0.22, cutoff: 200 }); },
+  ui() { tone({ freq: 880, dur: 0.045, vol: 0.09, type: "triangle" }); },
+};
+
 // ---------- Input ----------
 const keys = {};
 window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
+  ensureAudio(); // any key is a gesture — unlock audio
   if (e.key === "Escape" && settingsOpen) { closeSettings(); return; }
+  if (e.key === "m" || e.key === "M") { setMuted(!muted); sfx.ui(); return; }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
 });
 window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
@@ -485,6 +571,7 @@ function uiPress(p) {
       if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
         settingsFx = { key: r.key, at: performance.now() };
         if (navigator.vibrate) navigator.vibrate(r.key === "reset" ? 20 : 8);
+        sfx.ui();
         if (r.key === "close") closeSettings();
         else if (r.key === "reset") {
           settings = { ...DEFAULT_SETTINGS };
@@ -499,6 +586,14 @@ function uiPress(p) {
   if (Math.hypot(a.x - (W - 26), a.y - 30) < 26) {
     settingsOpen = true;
     joy = null;
+    sfx.ui();
+    return true;
+  }
+  // Mute toggle (speaker icon left of the gear).
+  if (Math.hypot(a.x - (W - 66), a.y - 30) < 18) {
+    setMuted(!muted);
+    sfx.ui(); // silent when muting (gain already 0), blips when unmuting
+    if (navigator.vibrate) navigator.vibrate(8);
     return true;
   }
   return false;
@@ -518,6 +613,7 @@ function setFixedDeflection(p) {
 
 canvas.addEventListener("touchstart", (e) => {
   e.preventDefault();
+  ensureAudio(); // first touch unlocks audio on mobile
   const t = e.changedTouches[0];
   const p = toLocal(t);
   if (uiPress(p)) return;
@@ -567,6 +663,7 @@ const endTouch = (e) => {
 canvas.addEventListener("touchend", endTouch, { passive: false });
 canvas.addEventListener("touchcancel", endTouch, { passive: false });
 canvas.addEventListener("mousedown", (e) => {
+  ensureAudio();
   const dpr = DPR();
   if (uiPress({ x: e.clientX * dpr, y: e.clientY * dpr })) return;
   if (state !== "playing") start();
@@ -575,6 +672,7 @@ canvas.addEventListener("mousedown", (e) => {
 function start() {
   reset();
   state = "playing";
+  sfx.wave(); // run-start chime (matches the WAVE 1 announce in reset)
 }
 
 // ---------- Helpers ----------
@@ -654,6 +752,7 @@ function eat(food) {
   }
   smallText(food.type.name + "!", food.type.color, player.x, player.y - 26);
   burst(player.x, player.y, food.type.color, 10, 120);
+  sfx.eat(flavor);
 
   if (fusion) {
     fuse(prevFlavor, flavor);
@@ -674,6 +773,7 @@ function fuse(a, b) {
   fusionFlash = 0.25;
   shake = 0.3;
   hitStop = 0.09;
+  sfx.fusion();
 
   if (!discovered.has(key)) {
     discovered.add(key);
@@ -734,6 +834,7 @@ function shoot(dt) {
   const target = nearestEnemy();
   if (!target) return;
   fireTimer = f.fireInterval;
+  sfx.shoot(); // once per volley, not per pellet
 
   const base = Math.atan2(target.y - player.y, target.x - player.x);
   const spread = 0.22;
@@ -747,6 +848,7 @@ function shoot(dt) {
 function killEnemy(j) {
   const e = enemies[j];
   kills++;
+  sfx.kill();
   burst(e.x, e.y, "#8d93a5", 8, 90);
   dying.push({ x: e.x, y: e.y, r: e.r, life: 0.22 });
   dropFood(e.x, e.y);
@@ -761,7 +863,7 @@ function update(dt) {
     resumeT -= dt;
     if (shake > 0) shake -= dt;
     if (hitFlash > 0) hitFlash -= dt;
-    if (resumeT <= 0) announce("go!", "#7ddf8a", 26);
+    if (resumeT <= 0) { announce("go!", "#7ddf8a", 26); sfx.go(); }
     return;
   }
   // Hit-stop: a few frozen frames on big moments.
@@ -775,6 +877,7 @@ function update(dt) {
       wave++;
       waveTimer = 0;
       announce("WAVE " + wave, "#ffffff");
+      sfx.wave();
     }
   } else {
     waveTimer += dt;
@@ -911,6 +1014,7 @@ function update(dt) {
         rings.push({ x: player.x, y: player.y, r: 18, maxR: 60, life: 0.3, color: FLAVORS.savory.color });
         burst(player.x, player.y, FLAVORS.savory.color, 10, 120);
         smallText("shield!", FLAVORS.savory.color, player.x, player.y - 26);
+        sfx.shield();
       } else {
         player.hp--;
         player.iframes = 1.2;
@@ -921,6 +1025,9 @@ function update(dt) {
         if (player.hp <= 0) {
           state = "gameover";
           bestTime = Math.max(bestTime, elapsed);
+          sfx.death();
+        } else {
+          sfx.hit();
         }
       }
     }
@@ -1291,7 +1398,7 @@ function drawHUD() {
   ctx.fillText(elapsed.toFixed(0) + "s", W / 2, 28);
   ctx.textAlign = "right";
   ctx.font = "13px sans-serif";
-  ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 52, 28);
+  ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 92, 28);
   drawGear();
   // Temporary feel-debug readout (remove once movement is dialed in).
   if (SHOW_FPS) {
@@ -1427,6 +1534,44 @@ function drawGear() {
   ctx.beginPath();
   ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.restore();
+  drawMute();
+}
+
+function drawMute() {
+  ctx.save();
+  ctx.translate(W - 66, 30);
+  ctx.fillStyle = "rgba(20, 20, 28, 0.45)";
+  ctx.beginPath();
+  ctx.arc(0, 0, 13, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(232, 232, 240, 0.65)";
+  ctx.fillStyle = "rgba(232, 232, 240, 0.65)";
+  ctx.lineWidth = 2;
+  // Speaker body + cone.
+  ctx.beginPath();
+  ctx.moveTo(-7, -2.5);
+  ctx.lineTo(-3, -2.5);
+  ctx.lineTo(1.5, -6.5);
+  ctx.lineTo(1.5, 6.5);
+  ctx.lineTo(-3, 2.5);
+  ctx.lineTo(-7, 2.5);
+  ctx.closePath();
+  ctx.fill();
+  if (muted) {
+    ctx.strokeStyle = "rgba(255, 90, 110, 0.9)";
+    ctx.beginPath();
+    ctx.moveTo(-8, 8);
+    ctx.lineTo(8, -8);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(2.5, 0, 5, -0.9, 0.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(2.5, 0, 8.5, -0.8, 0.8);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 

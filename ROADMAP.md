@@ -8,7 +8,7 @@ recipe book, balance tuning (food = lifeline), procedural art pass,
 GitHub + Pages deploy, mobile viewport/joystick/speed fixes.
 
 ## Phase 1 — v0.5 "feels like a game"
-1. Procedural sound (eat/fusion/hit/kill/death) + mute button
+1. ~~Procedural sound (eat/fusion/hit/kill/death) + mute button~~ ✅ 2026-06-12
 2. Wave-5 mini-boss — runs get a milestone, not just death
 3. Second enemy type (fast swarmer) — forces flavor switching
 4. PWA manifest + icon — home-screen install, offline play

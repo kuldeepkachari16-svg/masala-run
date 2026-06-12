@@ -23,6 +23,7 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
   - **Tadka Blast** (spicy+savory) — huge knockback shockwave
   - **Maska Mend** (sweet+savory) — +1 heart & fresh shield (only healing in the game)
 - 3 hearts, i-frames on hit, food despawns after 8s
+- Procedural Web Audio SFX (zero asset files): eat (pitched per flavor), fusion sting, shoot tick, hit thud, shield clink, kill pop, wave chime, death womp, UI blips. Mute: speaker icon next to the gear (persisted) or `M` key
 
 ## Run it
 
@@ -50,6 +51,6 @@ Procedural, zero asset files: pre-rendered offscreen canvases (night-street back
 
 ## Next — v0.5 "feels like a game"
 
-1. Sound (procedural Web Audio — eat, fusion, hit, kill)
+1. ~~Sound (procedural Web Audio)~~ ✅ done
 2. Wave-5 mini-boss + a second enemy type (fast swarmer)
 3. PWA manifest + icon (installable, offline)
