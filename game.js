@@ -36,13 +36,16 @@ function resize() {
   canvas.height = vh * dpr;
   canvas.style.width = vw + "px";
   canvas.style.height = vh + "px";
-  const pw = W;
+  const pw = W, ph = H;
   const landscape = LANDSCAPE_ENABLED && vw > vh;
+  // Design width is fixed; height matches the device aspect so the arena
+  // fills the screen edge-to-edge (no letterbox bars). Clamped to a sane
+  // range so very tall/short windows don't make the playfield absurd.
   W = landscape ? 800 : 480;
-  H = landscape ? 480 : 800;
-  if (!bgCanvas || W !== pw) {
+  H = landscape ? 480 : Math.round(Math.max(760, Math.min(1180, W * vh / vw)));
+  if (!bgCanvas || W !== pw || H !== ph) {
     buildBackdrop();
-    if (W !== pw) clampToArena(); // mid-game rotation: keep everything in bounds
+    if ((W !== pw || H !== ph) && player) clampToArena(); // keep entities in bounds
   }
   scale = Math.min(canvas.width / W, canvas.height / H);
   offX = (canvas.width - W * scale) / 2;
