@@ -323,6 +323,26 @@ const CONFIG = {
   },
   // Chance a spawn event is a swarmer pack, indexed by wave (last repeats).
   swarmerShare: [0, 0, 0.2, 0.3, 0.3, 0.35, 0.4, 0.45],
+  // Mini-boss: arrives alone on its wave; regular spawns + wave timer pause.
+  boss: {
+    wave: 5,
+    hp: 55, r: 32, speed: 44,
+    telegraph: 1.4,      // emerge time (big, dramatic)
+    chargeEvery: 4.2,    // s between charge attacks
+    chargeWindup: 0.85,  // frozen, shaking telegraph before the dash
+    chargeSpeed: 430, chargeDur: 0.5,
+    recover: 1.1,        // slow, vulnerable window after a charge
+    foodEvery: 5,        // guaranteed food drop cadence during the fight
+    deathDrops: 2,       // guaranteed food on kill
+  },
+  // Boss-kill boons: pick 1 of 3 (drawn from this pool). Small on purpose.
+  boons: [
+    { id: "shots", name: "DOUBLE TADKA", desc: "+1 shot every volley" },
+    { id: "heart", name: "GHEE ARMOR", desc: "+1 heart (now and max)" },
+    { id: "drain", name: "CHAAT TIMING", desc: "flavor fades 20% slower" },
+    { id: "speed", name: "MASALA LEGS", desc: "+10% move speed" },
+    { id: "fire", name: "QUICK FRY", desc: "attack 12% faster" },
+  ],
 };
 
 // Fusion recipes: eat a DIFFERENT flavor while the meter is above the tick.
@@ -344,6 +364,9 @@ let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
+let bossFight, bossFoodT; // mini-boss wave: spawns + wave timer pause
+let boonChoices = null;   // [3 boon defs] while the pick screen is open
+let boons, mods;          // picked boon ids + derived multipliers
 let bestTime = 0;
 let settingsOpen = false;
 let settingsFx = null; // { key, at } — press feedback in the settings panel
@@ -353,7 +376,7 @@ function reset() {
   // Base speed = the old Sweet speed (205 × 1.35): the "jalebi feel" is now
   // the default; flavors no longer buff movement, savory still trades a bit.
   // imx/imy = smoothed INPUT direction (filtered stick), not velocity.
-  player = { x: W / 2, y: H / 2, r: 14, hp: 3, iframes: 0, speed: 277, shield: 0, face: 1, vx: 0, vy: 0, imx: 0, imy: 0 };
+  player = { x: W / 2, y: H / 2, r: 14, hp: 3, maxHp: 3, iframes: 0, speed: 277, shield: 0, face: 1, vx: 0, vy: 0, imx: 0, imy: 0 };
   enemies = [];
   bullets = [];
   foods = [];
@@ -378,6 +401,11 @@ function reset() {
   fusionFlash = 0;
   gapT = 0;
   resumeT = 0;
+  bossFight = false;
+  bossFoodT = 0;
+  boonChoices = null;
+  boons = [];
+  mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
   announce("WAVE 1", "#ffffff");
 }
 
@@ -566,6 +594,13 @@ const sfx = {
   wave() { tone({ freq: 523, dur: 0.1, vol: 0.18 }); tone({ freq: 784, dur: 0.15, vol: 0.18, when: 0.1 }); },
   go() { tone({ freq: 659, freq2: 988, type: "square", dur: 0.12, vol: 0.18 }); },
   death() { tone({ freq: 220, freq2: 55, type: "sawtooth", dur: 0.7, vol: 0.32 }); noiseHit({ dur: 0.5, vol: 0.22, cutoff: 200 }); },
+  bossWindup() { tone({ freq: 160, freq2: 420, type: "sawtooth", dur: 0.7, vol: 0.22 }); },
+  bossDown() {
+    noiseHit({ dur: 0.4, vol: 0.5, cutoff: 500 });
+    tone({ freq: 392, dur: 0.12, vol: 0.24, when: 0.05 });
+    tone({ freq: 587, dur: 0.12, vol: 0.24, when: 0.18 });
+    tone({ freq: 784, dur: 0.22, vol: 0.24, when: 0.31 });
+  },
   ui() { tone({ freq: 880, dur: 0.045, vol: 0.09, type: "triangle" }); },
 };
 
@@ -576,6 +611,7 @@ window.addEventListener("keydown", (e) => {
   ensureAudio(); // any key is a gesture — unlock audio
   if (e.key === "Escape" && settingsOpen) { closeSettings(); return; }
   if (e.key === "Escape" && state === "gameover") { state = "menu"; return; }
+  if (boonChoices && (e.key === "1" || e.key === "2" || e.key === "3")) { pickBoon(+e.key - 1); return; }
   if (e.key === "m" || e.key === "M") { setMuted(!muted); sfx.ui(); return; }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
 });
@@ -600,9 +636,27 @@ function closeSettings() {
   if (state === "playing") resumeT = 3;
 }
 
+function pickBoon(i) {
+  applyBoon(boonChoices[i]);
+  boonChoices = null;
+  gapT = CONFIG.breather; // breather, then the next wave announce
+  sfx.ui();
+  if (navigator.vibrate) navigator.vibrate(10);
+}
+
 // Taps on UI (gear icon, settings panel). Returns true if consumed.
 function uiPress(p) {
   const a = toArena(p);
+  if (boonChoices) {
+    // Boon pick is modal: only the three cards respond.
+    for (const r of boonLayout()) {
+      if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
+        pickBoon(r.i);
+        break;
+      }
+    }
+    return true;
+  }
   if (settingsOpen) {
     for (const r of settingsLayout()) {
       if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
@@ -822,6 +876,79 @@ function spawnEnemy() {
   }
 }
 
+// The wave-5 mini-boss: the Blandfather. Arrives alone, stalks, then
+// telegraphs a charge; the recovery after each charge is the weak window.
+function startBossFight() {
+  bossFight = true;
+  bossFoodT = CONFIG.boss.foodEvery;
+  const c = CONFIG.boss;
+  enemies.push({
+    type: "boss", boss: true,
+    x: W / 2, y: c.r, r: c.r,
+    hp: c.hp, maxHp: c.hp, speed: c.speed,
+    wobble: Math.random() * Math.PI * 2,
+    spawning: c.telegraph, spawnDur: c.telegraph,
+    bossState: "stalk", stateT: 0, chargeT: c.chargeEvery,
+    cvx: 0, cvy: 0,
+  });
+  announce("THE BLANDFATHER", "#e8e8f0");
+  sfx.fusion();
+  shake = 0.25;
+}
+
+// Boss brain: stalk → windup (frozen telegraph) → charge → recover (weak
+// window, barely moves) → stalk. Walls end a charge early.
+function updateBoss(e, dt) {
+  const c = CONFIG.boss;
+  if (e.bossState === "stalk") {
+    const a = Math.atan2(player.y - e.y, player.x - e.x);
+    e.x += Math.cos(a) * e.speed * dt;
+    e.y += Math.sin(a) * e.speed * dt;
+    e.chargeT -= dt;
+    if (e.chargeT <= 0) {
+      e.bossState = "windup";
+      e.stateT = c.chargeWindup;
+      sfx.bossWindup();
+    }
+  } else if (e.bossState === "windup") {
+    e.stateT -= dt;
+    if (e.stateT <= 0) {
+      const a = Math.atan2(player.y - e.y, player.x - e.x);
+      e.cvx = Math.cos(a) * c.chargeSpeed;
+      e.cvy = Math.sin(a) * c.chargeSpeed;
+      e.bossState = "charge";
+      e.stateT = c.chargeDur;
+    }
+  } else if (e.bossState === "charge") {
+    e.stateT -= dt;
+    e.x += e.cvx * dt;
+    e.y += e.cvy * dt;
+    if (e.x <= e.r || e.x >= W - e.r || e.y <= e.r || e.y >= H - e.r || e.stateT <= 0) {
+      e.bossState = "recover";
+      e.stateT = c.recover;
+      shake = Math.max(shake, 0.18);
+    }
+  } else { // recover
+    e.stateT -= dt;
+    const a = Math.atan2(player.y - e.y, player.x - e.x);
+    e.x += Math.cos(a) * e.speed * 0.3 * dt;
+    e.y += Math.sin(a) * e.speed * 0.3 * dt;
+    if (e.stateT <= 0) { e.bossState = "stalk"; e.chargeT = c.chargeEvery; }
+  }
+  e.x = Math.max(e.r, Math.min(W - e.r, e.x));
+  e.y = Math.max(e.r, Math.min(H - e.r, e.y));
+}
+
+function applyBoon(b) {
+  boons.push(b.id);
+  if (b.id === "shots") mods.shots += 1;
+  else if (b.id === "heart") { player.maxHp += 1; player.hp += 1; }
+  else if (b.id === "drain") mods.drain *= 0.8;
+  else if (b.id === "speed") mods.speed *= 1.1;
+  else if (b.id === "fire") mods.fire *= 0.88;
+  announce(b.name + "!", "#ffb347", 26);
+}
+
 function dropFood(x, y, type) {
   const rate = (CONFIG.enemies[type] || CONFIG.enemies.bland).drop;
   if (Math.random() > rate) return;
@@ -890,8 +1017,10 @@ function fuse(a, b) {
       const dx = e.x - player.x, dy = e.y - player.y;
       const d = Math.hypot(dx, dy) || 1;
       if (d < 220) {
-        e.x = Math.max(e.r, Math.min(W - e.r, e.x + (dx / d) * 150));
-        e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 150));
+        if (!e.boss) { // bosses take the damage but hold their ground
+          e.x = Math.max(e.r, Math.min(W - e.r, e.x + (dx / d) * 150));
+          e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 150));
+        }
         e.hp -= 2;
         e.flash = 0.08;
         if (e.hp <= 0) killEnemy(j);
@@ -899,7 +1028,7 @@ function fuse(a, b) {
     }
   } else if (key === "savory+sweet") {
     // Maska Mend: the only healing in the game.
-    if (player.hp < 3) {
+    if (player.hp < player.maxHp) {
       player.hp++;
       smallText("+1 ♥", "#ff5a6e", player.x, player.y - 44);
     }
@@ -925,13 +1054,14 @@ function shoot(dt) {
   if (fireTimer > 0) return;
   const target = nearestEnemy();
   if (!target) return;
-  fireTimer = f.fireInterval;
+  fireTimer = f.fireInterval * mods.fire;
   sfx.shoot(); // once per volley, not per pellet
 
   const base = Math.atan2(target.y - player.y, target.x - player.x);
   const spread = 0.22;
-  for (let i = 0; i < f.shots; i++) {
-    const a = base + (i - (f.shots - 1) / 2) * spread;
+  const shots = f.shots + mods.shots;
+  for (let i = 0; i < shots; i++) {
+    const a = base + (i - (shots - 1) / 2) * spread;
     bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, r: 4, damage: f.damage, color: f.color, life: 1.5 });
   }
 }
@@ -940,6 +1070,24 @@ function shoot(dt) {
 function killEnemy(j) {
   const e = enemies[j];
   kills++;
+  if (e.boss) {
+    bossFight = false;
+    enemies.splice(j, 1);
+    burst(e.x, e.y, "#8d93a5", 26, 170);
+    dying.push({ x: e.x, y: e.y, r: e.r, life: 0.4 });
+    for (let i = 0; i < CONFIG.boss.deathDrops; i++) {
+      const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+      foods.push({ x: e.x + (i - (CONFIG.boss.deathDrops - 1) / 2) * 34, y: e.y, r: 11, type: t, life: CONFIG.foodLife });
+    }
+    shake = 0.45;
+    hitStop = 0.12;
+    fusionFlash = 0.2;
+    sfx.bossDown();
+    // Reward: pick 1 of 3 boons (game pauses on the pick screen).
+    const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
+    boonChoices = pool.slice(0, 3);
+    return;
+  }
   sfx.kill();
   burst(e.x, e.y, "#8d93a5", 8, 90);
   dying.push({ x: e.x, y: e.y, r: e.r, life: 0.22 });
@@ -950,6 +1098,7 @@ function killEnemy(j) {
 // ---------- Update ----------
 function update(dt) {
   if (settingsOpen) return; // settings panel pauses the game
+  if (boonChoices) return;  // boon pick screen pauses the game
   if (resumeT > 0) {
     // Post-pause countdown: world frozen, leftover effects still settle.
     resumeT -= dt;
@@ -968,10 +1117,10 @@ function update(dt) {
     if (gapT <= 0) {
       wave++;
       waveTimer = 0;
-      announce("WAVE " + wave, "#ffffff");
-      sfx.wave();
+      if (wave === CONFIG.boss.wave) startBossFight();
+      else { announce("WAVE " + wave, "#ffffff"); sfx.wave(); }
     }
-  } else {
+  } else if (!bossFight) {
     waveTimer += dt;
     if (waveTimer > CONFIG.waveLength) {
       gapT = CONFIG.breather;
@@ -979,8 +1128,9 @@ function update(dt) {
     }
   }
 
-  // Spawning accelerates with waves until the cap (paused during breather).
-  if (gapT <= 0) {
+  // Spawning accelerates with waves until the cap.
+  // Paused during the breather AND the boss fight (the boss comes alone).
+  if (gapT <= 0 && !bossFight) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
       spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave);
@@ -988,9 +1138,23 @@ function update(dt) {
     }
   }
 
-  // Flavor decay.
+  // Boss fight: guaranteed food cadence — the eat-loop must never starve.
+  if (bossFight) {
+    bossFoodT -= dt;
+    if (bossFoodT <= 0) {
+      bossFoodT = CONFIG.boss.foodEvery;
+      const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+      foods.push({
+        x: 60 + Math.random() * (W - 120),
+        y: H * 0.3 + Math.random() * H * 0.4,
+        r: 11, type: t, life: CONFIG.foodLife,
+      });
+    }
+  }
+
+  // Flavor decay (chaat-timing boon slows it).
   if (flavor !== "none") {
-    flavorTimer -= dt;
+    flavorTimer -= dt * mods.drain;
     if (flavorTimer <= 0) {
       flavor = "none";
       flavorTimer = 0;
@@ -1019,7 +1183,7 @@ function update(dt) {
   player.moving = ml > 0.01;
   if (mx > 0.1) player.face = 1;
   else if (mx < -0.1) player.face = -1;
-  const spd = player.speed * FLAVORS[flavor].speedMult;
+  const spd = player.speed * FLAVORS[flavor].speedMult * mods.speed;
   // Smooth the INPUT direction (0..1 vector), not the velocity. Filtering
   // the small normalized stick vector kills touch jitter with far less
   // perceived lag than ramping the full velocity each flick. "off" = raw.
@@ -1046,8 +1210,10 @@ function update(dt) {
         const dx = e.x - player.x, dy = e.y - player.y;
         const d = Math.hypot(dx, dy) || 1;
         if (d < SAVORY_PULSE_RADIUS) {
-          e.x = Math.max(e.r, Math.min(W - e.r, e.x + (dx / d) * 80));
-          e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 80));
+          if (!e.boss) {
+            e.x = Math.max(e.r, Math.min(W - e.r, e.x + (dx / d) * 80));
+            e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 80));
+          }
           e.hp -= 1;
           e.flash = 0.08;
           if (e.hp <= 0) killEnemy(j);
@@ -1083,13 +1249,17 @@ function update(dt) {
   // Enemies chase player (once fully emerged).
   for (const e of enemies) {
     if (e.spawning > 0) { e.spawning -= dt; continue; }
-    let a = Math.atan2(player.y - e.y, player.x - e.x);
     e.wobble += dt * 6;
-    // Swarmers dart in a zig-zag instead of beelining.
-    if (e.type === "swarmer") a += Math.sin(e.wobble * 2.2) * CONFIG.enemies.swarmer.weave;
-    e.x += Math.cos(a) * e.speed * dt;
-    e.y += Math.sin(a) * e.speed * dt;
     if (e.flash > 0) e.flash -= dt;
+    if (e.boss) {
+      updateBoss(e, dt);
+    } else {
+      let a = Math.atan2(player.y - e.y, player.x - e.x);
+      // Swarmers dart in a zig-zag instead of beelining.
+      if (e.type === "swarmer") a += Math.sin(e.wobble * 2.2) * CONFIG.enemies.swarmer.weave;
+      e.x += Math.cos(a) * e.speed * dt;
+      e.y += Math.sin(a) * e.speed * dt;
+    }
 
     // They drain the street's color where they walk.
     e.drainT = (e.drainT || 0) - dt;
@@ -1258,6 +1428,10 @@ function draw() {
       continue;
     }
     ctx.drawImage(auraSprite, e.x - e.r * 3, e.y - e.r * 3, e.r * 6, e.r * 6);
+    if (e.boss) {
+      drawBoss(e);
+      continue;
+    }
     if (e.type === "swarmer") {
       // Swarmer: small spiky wisp — angular 7-point shape, beady eyes.
       ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#7e8294";
@@ -1485,6 +1659,11 @@ function draw() {
     ctx.fillText("get ready!", W / 2, H * 0.42 + 44);
   }
 
+  if (boonChoices) {
+    ctx.setTransform(scale, 0, 0, scale, offX, offY);
+    drawBoonPick();
+  }
+
   if (settingsOpen) {
     ctx.setTransform(scale, 0, 0, scale, offX, offY);
     drawSettings();
@@ -1492,8 +1671,8 @@ function draw() {
 }
 
 function drawHUD() {
-  // Hearts.
-  for (let i = 0; i < 3; i++) {
+  // Hearts (ghee-armor boon can raise the max).
+  for (let i = 0; i < player.maxHp; i++) {
     ctx.fillStyle = i < player.hp ? "#ff5a6e" : "#3a3a48";
     const hx = 18 + i * 26, hy = 22;
     ctx.beginPath();
@@ -1517,6 +1696,22 @@ function drawHUD() {
   ctx.font = "13px sans-serif";
   ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 92, 28);
   drawGear();
+
+  // Boss HP bar (during the fight, once he has emerged).
+  if (bossFight) {
+    const boss = enemies.find((e) => e.boss);
+    if (boss && boss.spawning <= 0) {
+      const bw2 = 210, bx2 = (W - bw2) / 2, by2 = 44;
+      ctx.fillStyle = "#2c2c3c";
+      ctx.fillRect(bx2, by2, bw2, 8);
+      ctx.fillStyle = "#8d93a5";
+      ctx.fillRect(bx2, by2, bw2 * (boss.hp / boss.maxHp), 8);
+      ctx.font = "11px " + COMIC_FONT;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#9aa0b0";
+      ctx.fillText("THE BLANDFATHER", W / 2, by2 + 20);
+    }
+  }
   // Temporary feel-debug readout (remove once movement is dialed in).
   if (settings.fps === "on") {
     ctx.textAlign = "left";
@@ -1822,6 +2017,101 @@ function drawSettingsStickPreview(fx) {
   ctx.restore();
 }
 
+// The Blandfather: a big bland with a crown. Vibrates during the charge
+// windup (the tell); orange outline during recovery (the weak window).
+function drawBoss(e) {
+  const windup = e.bossState === "windup";
+  const jx = windup ? (Math.random() - 0.5) * 5 : 0;
+  const jy = windup ? (Math.random() - 0.5) * 5 : 0;
+  const x = e.x + jx, y = e.y + jy;
+  ctx.fillStyle = e.flash > 0 ? "#ffffff" : windup ? "#8a8ea0" : "#5a5e6c";
+  ctx.beginPath();
+  for (let i = 0; i < 14; i++) {
+    const ang = (i / 14) * Math.PI * 2;
+    const wob = 1 + Math.sin(e.wobble * 1.2 + i * 1.8) * 0.07;
+    const px = x + Math.cos(ang) * e.r * wob;
+    const py = y + Math.sin(ang) * e.r * wob * 0.95;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = e.bossState === "recover" ? "rgba(255, 179, 71, 0.9)" : "rgba(20, 20, 28, 0.7)";
+  ctx.lineWidth = e.bossState === "recover" ? 4 : 3;
+  ctx.stroke();
+  // Crown — three dull grey points.
+  ctx.fillStyle = "#8d93a5";
+  ctx.beginPath();
+  ctx.moveTo(x - 16, y - e.r + 4);
+  ctx.lineTo(x - 12, y - e.r - 12);
+  ctx.lineTo(x - 6, y - e.r + 1);
+  ctx.lineTo(x, y - e.r - 15);
+  ctx.lineTo(x + 6, y - e.r + 1);
+  ctx.lineTo(x + 12, y - e.r - 12);
+  ctx.lineTo(x + 16, y - e.r + 4);
+  ctx.closePath();
+  ctx.fill();
+  // Angry face: brows, eyes, wide frown.
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 13, y - 10);
+  ctx.lineTo(x - 4, y - 5);
+  ctx.moveTo(x + 13, y - 10);
+  ctx.lineTo(x + 4, y - 5);
+  ctx.stroke();
+  ctx.fillStyle = "#14141c";
+  ctx.beginPath();
+  ctx.arc(x - 8, y - 1, 3, 0, Math.PI * 2);
+  ctx.arc(x + 8, y - 1, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(x, y + 15, 7, Math.PI * 1.1, Math.PI * 1.9);
+  ctx.stroke();
+}
+
+// Boon pick screen — shared geometry for draw + tap hit-testing.
+function boonLayout() {
+  const cw = Math.min(W - 90, 360), x = (W - cw) / 2;
+  const h = 84, gap = 14;
+  const y0 = H * 0.3;
+  return boonChoices.map((b, i) => ({ x, y: y0 + i * (h + gap), w: cw, h, i }));
+}
+
+function drawBoonPick() {
+  ctx.fillStyle = "rgba(10, 10, 16, 0.85)";
+  ctx.fillRect(0, 0, W, H);
+  const tnow = performance.now() / 1000;
+
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  ctx.font = "34px " + COMIC_FONT;
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 6;
+  ctx.strokeText("BOSS DOWN!", W / 2, H * 0.3 - 64);
+  ctx.fillStyle = "#7ddf8a";
+  ctx.fillText("BOSS DOWN!", W / 2, H * 0.3 - 64);
+  ctx.font = "16px " + COMIC_FONT;
+  ctx.fillStyle = "#e8e8f0";
+  ctx.fillText("pick a boon — it lasts the whole run", W / 2, H * 0.3 - 30);
+
+  for (const r of boonLayout()) {
+    const b = boonChoices[r.i];
+    ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = "rgba(255, 179, 71, " + (0.55 + 0.3 * Math.sin(tnow * 3 + r.i)) + ")";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+    ctx.textAlign = "center";
+    ctx.font = "22px " + COMIC_FONT;
+    ctx.fillStyle = "#ffb347";
+    ctx.fillText(b.name, W / 2, r.y + 36);
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "#cfd3de";
+    ctx.fillText(b.desc, W / 2, r.y + 60);
+  }
+}
+
 function drawGameOver() {
   ctx.fillStyle = "rgba(20, 20, 28, 0.82)";
   ctx.fillRect(0, 0, W, H);
@@ -1895,6 +2185,10 @@ window.__mr = {
   get dims() { return { W, H }; },
   get resumeT() { return resumeT; },
   get config() { return CONFIG; }, // live-tunable: __mr.config.waveLength = 15
+  get bossFight() { return bossFight; },
+  get boonChoices() { return boonChoices; },
+  get boons() { return boons; },
+  get mods() { return mods; },
   // Deterministic step for testing (rAF pauses in background tabs).
   tick(dt) { if (state === "playing") update(dt); },
 };

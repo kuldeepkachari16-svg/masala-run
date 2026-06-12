@@ -17,6 +17,7 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 - The Bland: grey blobs, scaling waves every 20s; spawn ON the arena edge with a 0.7s emerge telegraph (no off-screen entries, no insta-hits)
 - **Swarmers** (wave 3+): small spiky wisps — 1 hp, ~2.5× faster, zig-zag approach, spawn in packs of 2-3. Share of spawns grows per wave (`CONFIG.swarmerShare`)
 - **Scaling cap:** enemy stats and spawn rate stop growing at wave 5 (`CONFIG.scalingCapWave`) — later waves get harder via enemy mix, not bullet sponges
+- **Wave-5 mini-boss — THE BLANDFATHER:** arrives alone (spawns + wave timer pause), stalk → telegraphed charge → recovery weak window (orange outline). Immune to knockback, guaranteed food during the fight, boss HP bar. Kill → **pick 1 of 3 boons** (run-long buffs: +1 shot, +1 heart, slower flavor drain, +10% speed, faster attack)
 - **All difficulty/pacing knobs live in `CONFIG`** (top of game.js); live-tunable on a device via `__mr.config`
 - 3 flavors: **Spicy** (chilli — 3-shot spread, 2× damage) · **Sweet** (jalebi — rapid fire) · **Savory** (vada pav — one-hit shield + knockback pulse every 2.2s, slower attack, slightly slower move)
 - Move speed: base 277 px/s for all flavors (the old Sweet speed is now the default; savory 0.95×)
@@ -55,5 +56,5 @@ Procedural, zero asset files: pre-rendered offscreen canvases (night-street back
 ## Next — v0.5 "feels like a game"
 
 1. ~~Sound (procedural Web Audio)~~ ✅ done
-2. Wave-5 mini-boss (+ boon pick) — swarmer ✅ done
+2. ~~Wave-5 mini-boss + boon pick~~ ✅ done — swarmer ✅ done
 3. ~~PWA manifest + icon (installable, offline)~~ ✅ done — Add to Home Screen on a phone; offline after first load; Bangers self-hosted

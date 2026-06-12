@@ -9,7 +9,7 @@ GitHub + Pages deploy, mobile viewport/joystick/speed fixes.
 
 ## Phase 1 — v0.5 "feels like a game"
 1. ~~Procedural sound (eat/fusion/hit/kill/death) + mute button~~ ✅ 2026-06-12
-2. Wave-5 mini-boss — runs get a milestone, not just death
+2. ~~Wave-5 mini-boss — runs get a milestone, not just death~~ ✅ 2026-06-12 (THE BLANDFATHER + 1-of-3 boon pick)
 3. ~~Second enemy type (fast swarmer) — forces flavor switching~~ ✅ 2026-06-12 (+ CONFIG block: all tuning centralized, scaling capped at wave 5)
 4. ~~PWA manifest + icon — home-screen install, offline play~~ ✅ 2026-06-12
 5. Playtest round 1: 3–5 friends. Questions: figured out eat-to-attack
