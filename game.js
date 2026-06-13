@@ -1238,14 +1238,20 @@ function killEnemy(j) {
 function rushReady() { return rushCharge >= CONFIG.powers.rush.eats; }
 function slamReady() { return slamCharge >= CONFIG.powers.slam.kills; }
 function chargeRush() {
-  if (rushReady()) return; // already full, awaiting trigger
+  if (rushReady()) return; // already full, awaiting trigger (extra eats wasted)
   rushCharge++;
-  if (rushReady() && settings.power === "auto") triggerRush();
 }
 function chargeSlam() {
   if (slamReady()) return;
   slamCharge++;
-  if (slamReady() && settings.power === "auto") triggerSlam();
+}
+// Auto mode: fire a ready power, but only when nothing is mid-effect — so a
+// second full power WAITS and auto-casts once the first finishes (staggered).
+function autoPowers() {
+  if (settings.power !== "auto") return;
+  if (rushActive > 0 || slowmoT > 0) return; // busy — let it wait
+  if (rushReady()) triggerRush();
+  else if (slamReady()) triggerSlam();
 }
 function triggerRush() {
   if (!rushReady() || rushActive > 0) return;
@@ -1291,6 +1297,7 @@ function update(dt) {
   // Thali Slam slow-mo: scale the whole sim, decay on real time.
   if (slowmoT > 0) { slowmoT -= dt; dt *= CONFIG.powers.slam.slowmo; }
   if (rushActive > 0) rushActive -= dt;
+  autoPowers();
   elapsed += dt;
 
   // Waves, with a breather between them.
@@ -1433,9 +1440,11 @@ function update(dt) {
     if (e.spawning > 0) { e.spawning -= dt; continue; }
     e.wobble += dt * 6;
     if (e.flash > 0) e.flash -= dt;
-    // MASALA RUSH freezes the Bland in place (they still take damage).
+    // MASALA RUSH freezes regular Bland in place (they still take damage).
+    // Bosses resist crowd-control: they're SLOWED, not frozen.
     if (rushActive > 0) {
-      // jitter only — they're stuck, twitching
+      if (e.boss) updateBoss(e, dt * 0.4); // slowed, keeps fighting
+      // regular enemies: stuck, jitter only
     } else if (e.boss) {
       updateBoss(e, dt);
     } else {

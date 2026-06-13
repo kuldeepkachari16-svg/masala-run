@@ -20,6 +20,8 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
   - **MASALA RUSH** (❄) — charges on ~10 *eats* (easier): freezes all Blands in place 6s + flavor won't fade + speed up
   - **THALI SLAM** (✦) — charges on ~28 *kills* (harder): slow-mo + fires all 3 flavors in a screen-clearing burst
   - Thresholds/effects in `CONFIG.powers`; desktop keys Q (rush) / E (slam)
+  - **vs bosses:** bosses resist the freeze — Rush *slows* them to 40% (self-buffs still apply); Slam's burst damages them normally
+  - **auto mode** fires powers staggered: if two are ready, one fires and the other waits, auto-casting once the first's effect ends
 - 3s breather between waves (no spawns, "wave cleared!" banner)
 - The Bland: grey blobs, scaling waves every 20s; spawn ON the arena edge with a 0.7s emerge telegraph (no off-screen entries, no insta-hits)
 - **Swarmers** (wave 3+): small spiky wisps — 1 hp, ~2.5× faster, zig-zag approach, spawn in packs of 2-3. Share of spawns grows per wave (`CONFIG.swarmerShare`)
