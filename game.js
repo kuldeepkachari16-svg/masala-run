@@ -806,6 +806,7 @@ function uiPress(p) {
   }
   if (settingsOpen) {
     for (const r of settingsLayout()) {
+      if (r.header) continue; // section labels aren't tappable
       if (a.x >= r.x && a.x <= r.x + r.w && a.y >= r.y && a.y <= r.y + r.h) {
         settingsFx = { key: r.key, at: performance.now() };
         if (navigator.vibrate) navigator.vibrate(r.key === "reset" ? 20 : 8);
@@ -2108,20 +2109,32 @@ function drawMute() {
 
 // Single source of truth for panel geometry — used by both drawing and
 // tap hit-testing, so taps work even before the first panel frame renders.
+// Settings grouped into labeled sections (industry-standard layout).
+const SETTING_GROUPS = [
+  { title: "Gameplay", keys: ["difficulty", "power"] },
+  { title: "Controls", keys: ["stick", "side", "size", "sens", "smooth"] },
+  { title: "Audio", keys: ["music"] },
+  { title: "Display", keys: ["fps"] },
+];
+
 function settingsLayout() {
-  const compact = H < 600; // landscape: tighter rows so the panel fits
-  const cardW = Math.min(W - 104, 430), cardX = (W - cardW) / 2;
-  const rowH = compact ? 38 : 40, step = compact ? 46 : 46;
+  const cardW = Math.min(W - 90, 420), cardX = (W - cardW) / 2;
+  const rowH = 30, step = 35, headH = 22;
   const rects = [];
-  let y = compact ? 108 : 210;
-  for (const key of Object.keys(OPTIONS)) {
-    rects.push({ x: cardX, y, w: cardW, h: rowH, key });
-    y += step;
+  let y = 190;
+  for (const g of SETTING_GROUPS) {
+    rects.push({ x: cardX, y, w: cardW, h: headH, header: true, title: g.title });
+    y += headH + 3;
+    for (const key of g.keys) {
+      rects.push({ x: cardX, y, w: cardW, h: rowH, key });
+      y += step;
+    }
+    y += 4; // gap between groups
   }
-  rects.push({ x: cardX, y, w: cardW, h: compact ? 32 : 34, key: "reset" });
-  y += compact ? 40 : 42;
-  const bw = 170, bh = compact ? 42 : 46;
-  rects.push({ x: (W - bw) / 2, y: y + (compact ? 4 : 10), w: bw, h: bh, key: "close" });
+  rects.push({ x: cardX, y, w: cardW, h: 30, key: "reset" });
+  y += 36;
+  const bw = 170, bh = 44;
+  rects.push({ x: (W - bw) / 2, y, w: bw, h: bh, key: "close" });
   return rects;
 }
 
@@ -2129,7 +2142,7 @@ function drawSettings() {
   ctx.fillStyle = "rgba(10, 10, 16, 0.92)";
   ctx.fillRect(0, 0, W, H);
 
-  const titleY = H < 600 ? 62 : 170;
+  const titleY = 150;
   ctx.textAlign = "center";
   ctx.font = "36px " + COMIC_FONT;
   ctx.lineJoin = "round";
@@ -2148,6 +2161,22 @@ function drawSettings() {
 
   let doneBottom = 0;
   for (const r of settingsLayout()) {
+    if (r.header) {
+      // Section label + a thin divider trailing it.
+      ctx.textAlign = "left";
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillStyle = "#6b7080";
+      const label = r.title.toUpperCase();
+      ctx.fillText(label, r.x + 2, r.y + r.h - 4);
+      const tw = ctx.measureText(label).width;
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(r.x + tw + 12, r.y + r.h - 8);
+      ctx.lineTo(r.x + r.w, r.y + r.h - 8);
+      ctx.stroke();
+      continue;
+    }
     const f = fx(r.key);
     if (r.key === "reset") {
       const justReset = settingsFx && settingsFx.key === "reset" && fxAge < 1.2;
