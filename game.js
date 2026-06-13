@@ -497,40 +497,56 @@ function drawPowerButtons() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const tnow = performance.now() / 1000;
   const defs = [
-    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄", active: rushActive > 0 },
-    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦", active: false },
+    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄",
+      active: rushActive > 0, activeFrac: rushActive > 0 ? rushActive / CONFIG.powers.rush.dur : 0 },
+    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦",
+      active: false, activeFrac: 0 },
   ];
   const btns = powerButtons();
   for (const b of btns) {
     const d = defs.find((x) => x.key === b.key);
+    ctx.textAlign = "center";
+    ctx.font = Math.round(b.r * 0.9) + "px sans-serif";
+
+    if (d.active) {
+      // ACTIVE/running: filled tint + DEPLETING timer arc. Reads as "ON",
+      // never as "ready" — this is the state that used to confuse.
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = d.color;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = "rgba(20,20,28,0.8)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * d.activeFrac);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#14141c";
+      ctx.fillText(d.glyph, b.x, b.y + b.r * 0.32);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+
     const pulse = d.ready ? 0.75 + 0.25 * Math.sin(tnow * 5) : 1;
     // Base disc.
-    ctx.globalAlpha = d.ready ? 0.92 : 0.45;
+    ctx.globalAlpha = d.ready ? 0.92 : 0.4;
     ctx.fillStyle = "rgba(20, 20, 28, 0.6)";
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
-    // Charge arc.
-    ctx.strokeStyle = d.ready ? d.color : "rgba(232, 232, 240, 0.45)";
+    // Charge arc (fills as it charges).
+    ctx.strokeStyle = d.ready ? d.color : "rgba(232, 232, 240, 0.4)";
     ctx.lineWidth = 4;
-    ctx.globalAlpha = (d.ready ? pulse : 0.7);
+    ctx.globalAlpha = d.ready ? pulse : 0.7;
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * d.frac);
     ctx.stroke();
     // Glyph.
-    ctx.globalAlpha = d.ready ? pulse : 0.6;
+    ctx.globalAlpha = d.ready ? pulse : 0.55;
     ctx.fillStyle = d.ready ? d.color : "rgba(232, 232, 240, 0.7)";
-    ctx.font = Math.round(b.r * 0.9) + "px sans-serif";
-    ctx.textAlign = "center";
     ctx.fillText(d.glyph, b.x, b.y + b.r * 0.32);
-    if (d.active) {
-      ctx.strokeStyle = d.color;
-      ctx.globalAlpha = 0.9;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r + 4, 0, Math.PI * 2);
-      ctx.stroke();
-    }
     ctx.globalAlpha = 1;
   }
 }
