@@ -27,7 +27,9 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 - The Bland: grey blobs, scaling waves every 20s; spawn ON the arena edge with a 0.7s emerge telegraph (no off-screen entries, no insta-hits)
 - **Swarmers** (wave 3+): small spiky wisps — 1 hp, ~2.5× faster, zig-zag approach, spawn in packs of 2-3. Share of spawns grows per wave (`CONFIG.swarmerShare`)
 - **Scaling cap:** enemy stats and spawn rate stop growing at wave 5 (`CONFIG.scalingCapWave`) — later waves get harder via enemy mix, not bullet sponges
+- **Levels:** 1 level = 8 waves. **Wave 5 = mini-boss**, **wave 8 = main boss**. Clearing the main boss loops into the next level (same content for now; new-level design TBD)
 - **Wave-5 mini-boss — THE BLANDFATHER:** arrives alone (spawns + wave timer pause), stalk → telegraphed charge → recovery weak window (orange outline). Immune to knockback, guaranteed food during the fight, boss HP bar. Kill → **pick 1 of 3 boons** (run-long buffs: +1 shot, +1 heart, slower flavor drain, +10% speed, faster attack)
+- **Wave-8 main boss — THE BLAND MAHARAJA:** the level finale. Bigger and tougher than the Blandfather, charges more often, summons the odd swarmer for pressure; gold crown + gold HP bar. Kill → boon → **LEVEL CLEAR** → next level. (Testing: `__mr.bossNow(true)` jumps straight to it; `__mr.bossNow()` = mini-boss)
 - **All difficulty/pacing knobs live in `CONFIG`** (top of game.js); live-tunable on a device via `__mr.config`
 - 3 flavors: **Spicy** (chilli — 3-shot spread, 2× damage) · **Sweet** (jalebi — rapid fire) · **Savory** (vada pav — one-hit shield + knockback pulse every 2.2s, slower attack, slightly slower move)
 - Move speed: base 277 px/s for all flavors (the old Sweet speed is now the default; savory 0.95×)

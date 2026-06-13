@@ -303,9 +303,12 @@ const CONFIG = {
   spawnPerWave: 0.12,
   spawnFloor: 0.2,
   foodLife: 8,
-  // Re-entry ease: the first wave(s) after a boss come in softer, not at
-  // full capped intensity right after the calm duel.
-  postBoss: { easeWaves: 1, spawnMul: 1.8, breather: 4.5 },
+  // Re-entry ease: the wave(s) after a boss come in softer, not at full
+  // capped intensity right after the calm duel. easeWaves:2 keeps BOTH waves
+  // 6 & 7 (after the wave-5 mini-boss) gentle — this is the first level.
+  postBoss: { easeWaves: 2, spawnMul: 1.8, breather: 4.5 },
+  // A level = 8 waves. Wave 5 = mini-boss, wave 8 = main boss → next level.
+  wavesPerLevel: 8,
   enemies: {
     bland: {
       rMin: 13, rMax: 17,
@@ -325,10 +328,12 @@ const CONFIG = {
     },
   },
   // Chance a spawn event is a swarmer pack, indexed by wave (last repeats).
-  swarmerShare: [0, 0, 0.2, 0.3, 0.3, 0.35, 0.4, 0.45],
-  // Mini-boss: arrives alone on its wave; regular spawns + wave timer pause.
+  // Waves 6 & 7 (indexes 5,6) softened — first level shouldn't spike here.
+  swarmerShare: [0, 0, 0.18, 0.25, 0.3, 0.22, 0.28, 0],
+  // Mini-boss (wave 5): arrives alone; regular spawns + wave timer pause.
   boss: {
     wave: 5,
+    mainWave: 8,         // the level finale (see mainBoss config below)
     hp: 55, r: 32, speed: 44,
     telegraph: 1.4,      // emerge time (big, dramatic)
     chargeEvery: 4.2,    // s between charge attacks
@@ -337,6 +342,19 @@ const CONFIG = {
     recover: 1.1,        // slow, vulnerable window after a charge
     foodEvery: 5,        // guaranteed food drop cadence during the fight
     deathDrops: 2,       // guaranteed food on kill
+  },
+  // Main boss (wave 8): the level finale — bigger, tougher, charges harder,
+  // and summons a swarmer now and then. Kept moderate (first level).
+  mainBoss: {
+    hp: 90, r: 42, speed: 50,
+    telegraph: 1.6,
+    chargeEvery: 3.6,
+    chargeWindup: 0.8,
+    chargeSpeed: 470, chargeDur: 0.55,
+    recover: 1.05,
+    foodEvery: 4,        // more food — it's a longer fight
+    deathDrops: 3,
+    addEvery: 7,         // summon a lone swarmer this often (light pressure)
   },
   // Manual powers, charged by play. Two rhythms: eats vs kills.
   powers: {
@@ -372,7 +390,9 @@ let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
-let bossFight, bossFoodT; // mini-boss wave: spawns + wave timer pause
+let bossFight, bossFoodT, bossFoodEvery; // boss wave: spawns + wave timer pause
+let bossWasMain; // the just-killed boss was the level finale → advance level
+let level; // current level (1 level = CONFIG.wavesPerLevel waves)
 let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
@@ -418,6 +438,8 @@ function reset() {
   resumeT = 0;
   bossFight = false;
   bossFoodT = 0;
+  bossWasMain = false;
+  level = 1;
   lastBossWave = 0;
   boonChoices = null;
   boons = [];
@@ -746,9 +768,9 @@ function tickMusic() {
   while (music.next < now + 0.15) {
     const s = music.step;
     const b = BASS_PAT[s];
-    if (b !== null) musicNote(semi(b), 0.5, 0.09, music.next, "triangle");
+    if (b !== null) musicNote(semi(b), 0.5, 0.17, music.next, "triangle");
     const m = MEL_PAT[s];
-    if (m !== null) musicNote(semi(m), 0.35, 0.05, music.next, "sine");
+    if (m !== null) musicNote(semi(m), 0.35, 0.11, music.next, "sine");
     music.next += music.stepDur;
     music.step = (music.step + 1) % 16;
   }
@@ -793,6 +815,16 @@ function closeSettings() {
 function pickBoon(i) {
   applyBoon(boonChoices[i]);
   boonChoices = null;
+  if (bossWasMain) {
+    // Main boss cleared → loop into the next level (same content for now;
+    // new-level design is TBD). Keep boons/hearts/score; reset the wave cycle.
+    bossWasMain = false;
+    level++;
+    wave = 0;          // next gap-tick increments to wave 1
+    waveTimer = 0;
+    lastBossWave = 0;
+    announce("LEVEL " + level, "#ffd24a", 32);
+  }
   gapT = CONFIG.postBoss.breather; // a longer breather after the boss before wave resumes
   sfx.ui();
   if (navigator.vibrate) navigator.vibrate(10);
@@ -1042,32 +1074,51 @@ function spawnEnemy() {
   }
 }
 
-// The wave-5 mini-boss: the Blandfather. Arrives alone, stalks, then
-// telegraphs a charge; the recovery after each charge is the weak window.
-function startBossFight() {
+// Main boss summon: a single swarmer at the arena edge.
+function spawnBossAdd() {
+  const c = CONFIG.enemies.swarmer;
+  const p = spawnPoint(c.rMax);
+  enemies.push(makeEnemy("swarmer", p.x, p.y));
+}
+
+// Bosses arrive alone (regular spawns + wave timer pause), stalk, then
+// telegraph a charge; the recovery after each charge is the weak window.
+// main=false → wave-5 mini-boss (Blandfather); main=true → wave-8 finale.
+function startBossFight(main) {
   bossFight = true;
-  bossFoodT = CONFIG.boss.foodEvery;
   lastBossWave = wave;
-  const c = CONFIG.boss;
+  const c = main ? CONFIG.mainBoss : CONFIG.boss;
+  bossFoodEvery = c.foodEvery;
+  bossFoodT = c.foodEvery;
   const bhp = Math.round(c.hp * diff().boss);
   enemies.push({
-    type: "boss", boss: true,
+    type: "boss", boss: true, main: !!main,
     x: W / 2, y: c.r, r: c.r,
     hp: bhp, maxHp: bhp, speed: c.speed,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
     bossState: "stalk", stateT: 0, chargeT: c.chargeEvery,
     cvx: 0, cvy: 0,
+    // per-boss tuning carried on the entity (updateBoss/killEnemy read these)
+    chargeEvery: c.chargeEvery, chargeWindup: c.chargeWindup,
+    chargeSpeed: c.chargeSpeed, chargeDur: c.chargeDur, recover: c.recover,
+    deathDrops: c.deathDrops,
+    name: main ? "THE BLAND MAHARAJA" : "THE BLANDFATHER",
+    addEvery: main ? c.addEvery : 0, addT: main ? c.addEvery : 0,
   });
-  announce("THE BLANDFATHER", "#e8e8f0");
+  announce(main ? "THE BLAND MAHARAJA" : "THE BLANDFATHER", main ? "#ff8c3c" : "#e8e8f0");
   sfx.fusion();
-  shake = 0.25;
+  shake = main ? 0.4 : 0.25;
 }
 
 // Boss brain: stalk → windup (frozen telegraph) → charge → recover (weak
 // window, barely moves) → stalk. Walls end a charge early.
 function updateBoss(e, dt) {
-  const c = CONFIG.boss;
+  // Main boss summons a lone swarmer now and then (light extra pressure).
+  if (e.addEvery > 0) {
+    e.addT -= dt;
+    if (e.addT <= 0) { e.addT = e.addEvery; spawnBossAdd(); }
+  }
   if (e.bossState === "stalk") {
     const a = Math.atan2(player.y - e.y, player.x - e.x);
     e.x += Math.cos(a) * e.speed * dt;
@@ -1075,17 +1126,17 @@ function updateBoss(e, dt) {
     e.chargeT -= dt;
     if (e.chargeT <= 0) {
       e.bossState = "windup";
-      e.stateT = c.chargeWindup;
+      e.stateT = e.chargeWindup;
       sfx.bossWindup();
     }
   } else if (e.bossState === "windup") {
     e.stateT -= dt;
     if (e.stateT <= 0) {
       const a = Math.atan2(player.y - e.y, player.x - e.x);
-      e.cvx = Math.cos(a) * c.chargeSpeed;
-      e.cvy = Math.sin(a) * c.chargeSpeed;
+      e.cvx = Math.cos(a) * e.chargeSpeed;
+      e.cvy = Math.sin(a) * e.chargeSpeed;
       e.bossState = "charge";
-      e.stateT = c.chargeDur;
+      e.stateT = e.chargeDur;
     }
   } else if (e.bossState === "charge") {
     e.stateT -= dt;
@@ -1093,7 +1144,7 @@ function updateBoss(e, dt) {
     e.y += e.cvy * dt;
     if (e.x <= e.r || e.x >= W - e.r || e.y <= e.r || e.y >= H - e.r || e.stateT <= 0) {
       e.bossState = "recover";
-      e.stateT = c.recover;
+      e.stateT = e.recover;
       shake = Math.max(shake, 0.18);
     }
   } else { // recover
@@ -1101,7 +1152,7 @@ function updateBoss(e, dt) {
     const a = Math.atan2(player.y - e.y, player.x - e.x);
     e.x += Math.cos(a) * e.speed * 0.3 * dt;
     e.y += Math.sin(a) * e.speed * 0.3 * dt;
-    if (e.stateT <= 0) { e.bossState = "stalk"; e.chargeT = c.chargeEvery; }
+    if (e.stateT <= 0) { e.bossState = "stalk"; e.chargeT = e.chargeEvery; }
   }
   e.x = Math.max(e.r, Math.min(W - e.r, e.x));
   e.y = Math.max(e.r, Math.min(H - e.r, e.y));
@@ -1253,17 +1304,20 @@ function killEnemy(j) {
   }
   if (e.boss) {
     bossFight = false;
+    bossWasMain = e.main; // main boss → advance the level after the boon pick
     enemies.splice(j, 1);
-    burst(e.x, e.y, "#8d93a5", 26, 170);
+    burst(e.x, e.y, e.main ? "#ff8c3c" : "#8d93a5", e.main ? 40 : 26, e.main ? 200 : 170);
     dying.push({ x: e.x, y: e.y, r: e.r, life: 0.4 });
-    for (let i = 0; i < CONFIG.boss.deathDrops; i++) {
+    const drops = e.deathDrops || 2;
+    for (let i = 0; i < drops; i++) {
       const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
-      foods.push({ x: e.x + (i - (CONFIG.boss.deathDrops - 1) / 2) * 34, y: e.y, r: 11, type: t, life: CONFIG.foodLife });
+      foods.push({ x: e.x + (i - (drops - 1) / 2) * 34, y: e.y, r: 11, type: t, life: CONFIG.foodLife });
     }
-    shake = 0.45;
+    shake = e.main ? 0.55 : 0.45;
     hitStop = 0.12;
-    fusionFlash = 0.2;
+    fusionFlash = e.main ? 0.3 : 0.2;
     sfx.bossDown();
+    if (e.main) announce("LEVEL CLEAR!", "#ffd24a", 30);
     // Reward: pick 1 of 3 boons (game pauses on the pick screen).
     const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
     boonChoices = pool.slice(0, 3);
@@ -1483,7 +1537,8 @@ function update(dt) {
     if (gapT <= 0) {
       wave++;
       waveTimer = 0;
-      if (wave === CONFIG.boss.wave) startBossFight();
+      if (wave === CONFIG.boss.wave) startBossFight(false);
+      else if (wave === CONFIG.boss.mainWave) startBossFight(true);
       else { announce("WAVE " + wave, "#ffffff"); sfx.wave(); }
     }
   } else if (!bossFight) {
@@ -1510,7 +1565,7 @@ function update(dt) {
   if (bossFight) {
     bossFoodT -= dt;
     if (bossFoodT <= 0) {
-      bossFoodT = CONFIG.boss.foodEvery;
+      bossFoodT = bossFoodEvery;
       const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
       foods.push({
         x: 60 + Math.random() * (W - 120),
@@ -2097,7 +2152,7 @@ function drawHUD() {
   ctx.textAlign = "right";
   ctx.font = "13px sans-serif";
   const NOM_PHASE_NAME = ["", "snack time", "coin toll", "NOM!"];
-  ctx.fillText(nomMode ? "kills " + kills + "  ·  " + NOM_PHASE_NAME[nomPhase] : "kills " + kills + "  ·  wave " + wave, W - 92, 28);
+  ctx.fillText(nomMode ? "kills " + kills + "  ·  " + NOM_PHASE_NAME[nomPhase] : "kills " + kills + "  ·  L" + level + "-" + wave, W - 92, 28);
   drawGear();
 
   // NOM HP bar (easter-egg finale).
@@ -2123,12 +2178,12 @@ function drawHUD() {
       const bw2 = 210, bx2 = (W - bw2) / 2, by2 = 44;
       ctx.fillStyle = "#2c2c3c";
       ctx.fillRect(bx2, by2, bw2, 8);
-      ctx.fillStyle = "#8d93a5";
+      ctx.fillStyle = boss.main ? "#ff8c3c" : "#8d93a5";
       ctx.fillRect(bx2, by2, bw2 * (boss.hp / boss.maxHp), 8);
       ctx.font = "11px " + COMIC_FONT;
       ctx.textAlign = "center";
-      ctx.fillStyle = "#9aa0b0";
-      ctx.fillText("THE BLANDFATHER", W / 2, by2 + 20);
+      ctx.fillStyle = boss.main ? "#ffb347" : "#9aa0b0";
+      ctx.fillText(boss.name || "THE BLANDFATHER", W / 2, by2 + 20);
     }
   }
   // Temporary feel-debug readout (remove once movement is dialed in).
@@ -2472,7 +2527,10 @@ function drawBoss(e) {
   const jx = windup ? (Math.random() - 0.5) * 5 : 0;
   const jy = windup ? (Math.random() - 0.5) * 5 : 0;
   const x = e.x + jx, y = e.y + jy;
-  ctx.fillStyle = e.flash > 0 ? "#ffffff" : windup ? "#8a8ea0" : "#5a5e6c";
+  // Main boss (Maharaja) wears a regal purple-grey; mini-boss stays grey.
+  if (e.flash > 0) ctx.fillStyle = "#ffffff";
+  else if (e.main) ctx.fillStyle = windup ? "#8c7280" : "#5e4a54";
+  else ctx.fillStyle = windup ? "#8a8ea0" : "#5a5e6c";
   ctx.beginPath();
   for (let i = 0; i < 14; i++) {
     const ang = (i / 14) * Math.PI * 2;
@@ -2483,11 +2541,11 @@ function drawBoss(e) {
   }
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = e.bossState === "recover" ? "rgba(255, 179, 71, 0.9)" : "rgba(20, 20, 28, 0.7)";
+  ctx.strokeStyle = e.bossState === "recover" ? "rgba(255, 179, 71, 0.9)" : e.main ? "rgba(255, 140, 60, 0.55)" : "rgba(20, 20, 28, 0.7)";
   ctx.lineWidth = e.bossState === "recover" ? 4 : 3;
   ctx.stroke();
-  // Crown — three dull grey points.
-  ctx.fillStyle = "#8d93a5";
+  // Crown — gold for the Maharaja, dull grey for the Blandfather.
+  ctx.fillStyle = e.main ? "#ffd24a" : "#8d93a5";
   ctx.beginPath();
   ctx.moveTo(x - 16, y - e.r + 4);
   ctx.lineTo(x - 12, y - e.r - 12);
@@ -2601,12 +2659,13 @@ function drawBoonPick() {
   ctx.font = "34px " + COMIC_FONT;
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 6;
-  ctx.strokeText("BOSS DOWN!", W / 2, H * 0.3 - 64);
-  ctx.fillStyle = "#7ddf8a";
-  ctx.fillText("BOSS DOWN!", W / 2, H * 0.3 - 64);
+  const head = bossWasMain ? "LEVEL CLEAR!" : "BOSS DOWN!";
+  ctx.strokeText(head, W / 2, H * 0.3 - 64);
+  ctx.fillStyle = bossWasMain ? "#ffd24a" : "#7ddf8a";
+  ctx.fillText(head, W / 2, H * 0.3 - 64);
   ctx.font = "16px " + COMIC_FONT;
   ctx.fillStyle = "#e8e8f0";
-  ctx.fillText("pick a boon — it lasts the whole run", W / 2, H * 0.3 - 30);
+  ctx.fillText(bossWasMain ? "pick a boon, then onward to the next level" : "pick a boon — it lasts the whole run", W / 2, H * 0.3 - 30);
 
   for (const r of boonLayout()) {
     const b = boonChoices[r.i];
@@ -2664,7 +2723,7 @@ function drawGameOver() {
     ctx.font = "16px " + COMIC_FONT;
     ctx.fillText("“…ok now I'm hungry again.” 🪙", W / 2, H * 0.50);
   } else {
-    ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  wave " + wave, W / 2, H * 0.45);
+    ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  L" + level + " wave " + wave, W / 2, H * 0.45);
     if (bestTime > 0) ctx.fillText("best " + bestTime.toFixed(1) + "s", W / 2, H * 0.49);
     ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.525);
   }
@@ -2713,6 +2772,10 @@ window.__mr = {
   get resumeT() { return resumeT; },
   get config() { return CONFIG; }, // live-tunable: __mr.config.waveLength = 15
   get bossFight() { return bossFight; },
+  get level() { return level; },
+  // Testing: jump straight into a boss fight (skips the wave grind).
+  // __mr.bossNow() = mini-boss · __mr.bossNow(true) = wave-8 main boss.
+  bossNow(main) { if (state === "playing" && !nomMode) { wave = main ? CONFIG.boss.mainWave : CONFIG.boss.wave; enemies.length = 0; bossFight = false; startBossFight(!!main); } },
   get nom() { return { nomMode, nomPhase, nomT, nomWon }; },
   get powers() { return { rushCharge, slamCharge, rushReady: rushReady(), slamReady: slamReady(), rushActive, slowmoT }; },
   triggerRush() { triggerRush(); },
