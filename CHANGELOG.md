@@ -1,5 +1,8 @@
 # Masala Run — Changelog
 
+## 2026-06-13
+- Post-boss re-entry ease: longer breather + softer spawns on the wave right after a boss (`CONFIG.postBoss`)
+
 ## 2026-06-12
 - Two manual powers: MASALA RUSH (freeze Bland 6s + flavor-lock + speed, ~10 eats) and THALI SLAM (slow-mo tri-flavor screen-clear, ~28 kills); right-side buttons, auto/manual setting, Q/E keys
 - Powers vs bosses: Rush slows boss 40% (not freeze), Slam damages normally; auto-mode fires staggered

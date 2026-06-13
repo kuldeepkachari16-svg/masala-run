@@ -303,6 +303,9 @@ const CONFIG = {
   spawnPerWave: 0.12,
   spawnFloor: 0.2,
   foodLife: 8,
+  // Re-entry ease: the first wave(s) after a boss come in softer, not at
+  // full capped intensity right after the calm duel.
+  postBoss: { easeWaves: 1, spawnMul: 1.8, breather: 4.5 },
   enemies: {
     bland: {
       rMin: 13, rMax: 17,
@@ -370,6 +373,7 @@ let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
 let bossFight, bossFoodT; // mini-boss wave: spawns + wave timer pause
+let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
 let rushCharge, slamCharge; // power meters: eats / kills since last use
@@ -410,6 +414,7 @@ function reset() {
   resumeT = 0;
   bossFight = false;
   bossFoodT = 0;
+  lastBossWave = 0;
   boonChoices = null;
   boons = [];
   mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
@@ -765,7 +770,7 @@ function closeSettings() {
 function pickBoon(i) {
   applyBoon(boonChoices[i]);
   boonChoices = null;
-  gapT = CONFIG.breather; // breather, then the next wave announce
+  gapT = CONFIG.postBoss.breather; // a longer breather after the boss before wave resumes
   sfx.ui();
   if (navigator.vibrate) navigator.vibrate(10);
 }
@@ -1017,6 +1022,7 @@ function spawnEnemy() {
 function startBossFight() {
   bossFight = true;
   bossFoodT = CONFIG.boss.foodEvery;
+  lastBossWave = wave;
   const c = CONFIG.boss;
   const bhp = Math.round(c.hp * diff().boss);
   enemies.push({
@@ -1322,7 +1328,9 @@ function update(dt) {
   if (gapT <= 0 && !bossFight) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave) * diff().spawn;
+      // Ease the first wave(s) after a boss: slower spawns than the cap.
+      const postEase = (lastBossWave > 0 && wave > lastBossWave && wave <= lastBossWave + CONFIG.postBoss.easeWaves) ? CONFIG.postBoss.spawnMul : 1;
+      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave) * diff().spawn * postEase;
       spawnEnemy();
     }
   }
