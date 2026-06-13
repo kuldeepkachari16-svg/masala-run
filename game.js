@@ -439,7 +439,7 @@ const OPTIONS = {
   fps: ["off", "on"],
 };
 const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", power: "power trigger", music: "music", fps: "show fps" };
-const DEFAULT_SETTINGS = { difficulty: "normal", stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low", power: "manual", music: "on", fps: "off" };
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "high", smooth: "low", power: "manual", music: "on", fps: "off" };
 
 // Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
 const DIFFICULTY = {
@@ -1815,7 +1815,7 @@ function draw() {
       // Anchored stick: always visible, brightens when held.
       const an = stickAnchor();
       const base = joyBaseSprite(an.r);
-      ctx.globalAlpha = joy ? 0.95 : 0.5;
+      ctx.globalAlpha = joy ? 0.55 : 0.32; // transparent so it occludes less
       ctx.drawImage(base, an.x - base.width / 2, an.y - base.height / 2);
       const max = throwPx();
       let kx = an.x, ky = an.y;
@@ -1838,10 +1838,11 @@ function draw() {
       }
       ctx.globalAlpha = 1;
     } else if (joy) {
-      // Touch-anywhere indicator, same art family.
+      // Touch-anywhere indicator, same art family. Floating + transparent:
+      // appears under the thumb, kept faint so it doesn't block the view.
       const vr = Math.max(throwPx(), 40 * DPR());
       const base = joyBaseSprite(vr);
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.5;
       ctx.drawImage(base, joy.ox - base.width / 2, joy.oy - base.height / 2);
       const len = Math.hypot(joy.dx, joy.dy) || 1;
       const cap = Math.min(len, throwPx());

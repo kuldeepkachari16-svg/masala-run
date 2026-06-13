@@ -41,5 +41,33 @@ is the finish line.
 18. Play Store listing ($25 one-time — only required spend)
 19. Post-launch content cadence: new food/recipe drops
 
+## Possible future scope — feedback-gated (decide, don't default)
+
+### Follow-camera + larger-than-screen world (the "v2 engine")
+**Trigger to build:** Gate 1 passes AND we decide the game's identity is an
+*evolving world* (varied arena shapes/terrain/set-pieces per level), not just
+*escalating arenas* (same box, new backdrop + enemy mix). The latter needs
+none of this and is far cheaper.
+
+**Why it's the proper fix for:** thumb occlusion (player stays centered), real
+spatial variety across many levels, matches Archero/Survivor.io-class feel.
+
+**Cost it pulls in (not just the camera):**
+- off-screen enemy indicators (or you get hit from nowhere)
+- viewport culling + perf pass (more entities)
+- larger / tiling procedural backdrops per level
+- re-touching spawn-on-edge, letterbox/fill, HUD, joystick anchoring
+
+**Cheap hedge to keep the door open now (do while building levels):**
+- Treat **world size as its own variable** — never hardcode `arena === screen`
+  in new code. Keep `W/H` as the *world*, add a camera offset later as an
+  additive render layer, not a rewrite.
+- Keep enemy spawn/positions in world coords (already true).
+- New `CONFIG` knobs when we get there: `world.w`, `world.h`, `camera.lerp`,
+  off-screen-indicator toggle.
+
+**Interim (shipped):** floating + transparent joystick (default `anywhere`)
+mitigates the thumb issue without the camera.
+
 ## Parked until after Gate 2
 Monetization · iOS · accounts/cloud saves · HD-2D art rework

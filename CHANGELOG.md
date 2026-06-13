@@ -1,6 +1,7 @@
 # Masala Run — Changelog
 
 ## 2026-06-13
+- Joystick: floating + transparent by default (`anywhere` mode) to reduce thumb occlusion; follow-camera logged as feedback-gated future scope in ROADMAP
 - Settings menu redesigned into labeled sections: Gameplay / Controls / Audio / Display
 - Power button active state now reads as "running" (filled disc + depleting timer arc), not "ready"
 - Post-boss re-entry ease: longer breather + softer spawns on the wave right after a boss (`CONFIG.postBoss`)
