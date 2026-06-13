@@ -335,6 +335,11 @@ const CONFIG = {
     foodEvery: 5,        // guaranteed food drop cadence during the fight
     deathDrops: 2,       // guaranteed food on kill
   },
+  // Manual powers, charged by play. Two rhythms: eats vs kills.
+  powers: {
+    rush: { eats: 10, dur: 6, speedMul: 1.25 },        // MASALA RUSH: freeze Blands + flavor-lock + speed
+    slam: { kills: 28, burst: 24, dmg: 3, slowmo: 0.4, slowmoDur: 1.1 }, // THALI SLAM: slow-mo tri-flavor screen-clear
+  },
   // Boss-kill boons: pick 1 of 3 (drawn from this pool). Small on purpose.
   boons: [
     { id: "shots", name: "DOUBLE TADKA", desc: "+1 shot every volley" },
@@ -367,6 +372,8 @@ let gapT; // breather countdown between waves
 let bossFight, bossFoodT; // mini-boss wave: spawns + wave timer pause
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
+let rushCharge, slamCharge; // power meters: eats / kills since last use
+let rushActive, slowmoT;    // MASALA RUSH duration / THALI SLAM slow-mo timer
 let bestTime = 0;
 let settingsOpen = false;
 let settingsFx = null; // { key, at } — press feedback in the settings panel
@@ -406,6 +413,10 @@ function reset() {
   boonChoices = null;
   boons = [];
   mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
+  rushCharge = 0;
+  slamCharge = 0;
+  rushActive = 0;
+  slowmoT = 0;
   announce("WAVE 1", "#ffffff");
 }
 
@@ -418,11 +429,12 @@ const OPTIONS = {
   size: ["small", "medium", "large"],
   sens: ["low", "medium", "high"],
   smooth: ["off", "low", "normal"],
+  power: ["manual", "auto"],
   music: ["on", "off"],
   fps: ["off", "on"],
 };
-const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", music: "music", fps: "show fps" };
-const DEFAULT_SETTINGS = { difficulty: "normal", stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low", music: "on", fps: "off" };
+const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", power: "power trigger", music: "music", fps: "show fps" };
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low", power: "manual", music: "on", fps: "off" };
 
 // Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
 const DIFFICULTY = {
@@ -455,6 +467,67 @@ function stickAnchor() {
     y: canvas.height - m - r - 14 * dpr,
     r,
   };
+}
+
+// Power buttons live on the OPPOSITE side from the stick — two stacked
+// circles (rush below, slam above). Device px. {x,y,r,key} each.
+function powerButtons() {
+  const dpr = DPR();
+  const r = 32 * dpr, gap = 18 * dpr, m = 26 * dpr;
+  const x = settings.side === "left" ? canvas.width - m - r : m + r;
+  const yLow = canvas.height - m - r - 14 * dpr;
+  return [
+    { x, y: yLow, r, key: "rush" },
+    { x, y: yLow - (r * 2 + gap), r, key: "slam" },
+  ];
+}
+function triggerPower(key) {
+  if (key === "rush") triggerRush();
+  else triggerSlam();
+}
+
+// Draw the two power buttons (device px). Ring fills as it charges; the
+// glyph glows + pulses when ready.
+function drawPowerButtons() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const tnow = performance.now() / 1000;
+  const defs = [
+    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄", active: rushActive > 0 },
+    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦", active: false },
+  ];
+  const btns = powerButtons();
+  for (const b of btns) {
+    const d = defs.find((x) => x.key === b.key);
+    const pulse = d.ready ? 0.75 + 0.25 * Math.sin(tnow * 5) : 1;
+    // Base disc.
+    ctx.globalAlpha = d.ready ? 0.92 : 0.45;
+    ctx.fillStyle = "rgba(20, 20, 28, 0.6)";
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+    // Charge arc.
+    ctx.strokeStyle = d.ready ? d.color : "rgba(232, 232, 240, 0.45)";
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = (d.ready ? pulse : 0.7);
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r - 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * d.frac);
+    ctx.stroke();
+    // Glyph.
+    ctx.globalAlpha = d.ready ? pulse : 0.6;
+    ctx.fillStyle = d.ready ? d.color : "rgba(232, 232, 240, 0.7)";
+    ctx.font = Math.round(b.r * 0.9) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(d.glyph, b.x, b.y + b.r * 0.32);
+    if (d.active) {
+      ctx.strokeStyle = d.color;
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 // Joystick art, pre-rendered per radius: dished base with direction
@@ -662,6 +735,10 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && state === "gameover") { state = "menu"; return; }
   if (boonChoices && (e.key === "1" || e.key === "2" || e.key === "3")) { pickBoon(+e.key - 1); return; }
   if (e.key === "m" || e.key === "M") { setMuted(!muted); sfx.ui(); return; }
+  if (state === "playing") {
+    if (e.key === "q" || e.key === "Q") { triggerRush(); return; }
+    if (e.key === "e" || e.key === "E") { triggerSlam(); return; }
+  }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
 });
 window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
@@ -759,6 +836,15 @@ canvas.addEventListener("touchstart", (e) => {
   if (uiPress(p)) return;
   if (state === "gameover") { gameOverPress(p); return; }
   if (state !== "playing") { start(); return; }
+  // Power buttons (manual mode): a tap on a glowing button fires it.
+  if (settings.power === "manual" && !settingsOpen && !boonChoices) {
+    for (const b of powerButtons()) {
+      if (Math.hypot(p.x - b.x, p.y - b.y) <= b.r) {
+        triggerPower(b.key);
+        return;
+      }
+    }
+  }
   if (joy) return; // first finger owns the stick
   if (settings.stick === "fixed") {
     const an = stickAnchor();
@@ -1023,6 +1109,7 @@ function eat(food) {
   smallText(food.type.name + "!", food.type.color, player.x, player.y - 26);
   burst(player.x, player.y, food.type.color, 10, 120);
   sfx.eat(flavor);
+  chargeRush();
 
   if (fusion) {
     fuse(prevFlavor, flavor);
@@ -1144,6 +1231,47 @@ function killEnemy(j) {
   dying.push({ x: e.x, y: e.y, r: e.r, life: 0.22 });
   dropFood(e.x, e.y, e.type);
   enemies.splice(j, 1);
+  chargeSlam();
+}
+
+// ---------- Powers ----------
+function rushReady() { return rushCharge >= CONFIG.powers.rush.eats; }
+function slamReady() { return slamCharge >= CONFIG.powers.slam.kills; }
+function chargeRush() {
+  if (rushReady()) return; // already full, awaiting trigger
+  rushCharge++;
+  if (rushReady() && settings.power === "auto") triggerRush();
+}
+function chargeSlam() {
+  if (slamReady()) return;
+  slamCharge++;
+  if (slamReady() && settings.power === "auto") triggerSlam();
+}
+function triggerRush() {
+  if (!rushReady() || rushActive > 0) return;
+  rushCharge = 0;
+  rushActive = CONFIG.powers.rush.dur;
+  rings.push({ x: player.x, y: player.y, r: 20, maxR: 260, life: 0.4, color: "#ffd24a" });
+  announce("MASALA RUSH!", "#ffd24a", 26);
+  sfx.fusion();
+  if (navigator.vibrate) navigator.vibrate(12);
+}
+function triggerSlam() {
+  if (!slamReady()) return;
+  slamCharge = 0;
+  slowmoT = CONFIG.powers.slam.slowmo > 0 ? CONFIG.powers.slam.slowmoDur : 0;
+  const cols = ["#ff5a3c", "#ffb347", "#3ecf8e"];
+  const n = CONFIG.powers.slam.burst;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2;
+    bullets.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 460, vy: Math.sin(ang) * 460, r: 7, damage: CONFIG.powers.slam.dmg, color: cols[i % 3], life: 1.4 });
+  }
+  rings.push({ x: player.x, y: player.y, r: 20, maxR: 320, life: 0.45, color: "#ffffff" });
+  announce("THALI SLAM!", "#ffffff", 30);
+  fusionFlash = 0.3;
+  shake = 0.4;
+  sfx.bossDown();
+  if (navigator.vibrate) navigator.vibrate(20);
 }
 
 // ---------- Update ----------
@@ -1160,6 +1288,9 @@ function update(dt) {
   }
   // Hit-stop: a few frozen frames on big moments.
   if (hitStop > 0) { hitStop -= dt; return; }
+  // Thali Slam slow-mo: scale the whole sim, decay on real time.
+  if (slowmoT > 0) { slowmoT -= dt; dt *= CONFIG.powers.slam.slowmo; }
+  if (rushActive > 0) rushActive -= dt;
   elapsed += dt;
 
   // Waves, with a breather between them.
@@ -1203,8 +1334,8 @@ function update(dt) {
     }
   }
 
-  // Flavor decay (chaat-timing boon slows it).
-  if (flavor !== "none") {
+  // Flavor decay (chaat-timing boon slows it; Masala Rush freezes it).
+  if (flavor !== "none" && rushActive <= 0) {
     flavorTimer -= dt * mods.drain;
     if (flavorTimer <= 0) {
       flavor = "none";
@@ -1234,7 +1365,7 @@ function update(dt) {
   player.moving = ml > 0.01;
   if (mx > 0.1) player.face = 1;
   else if (mx < -0.1) player.face = -1;
-  const spd = player.speed * FLAVORS[flavor].speedMult * mods.speed;
+  const spd = player.speed * FLAVORS[flavor].speedMult * mods.speed * (rushActive > 0 ? CONFIG.powers.rush.speedMul : 1);
   // Smooth the INPUT direction (0..1 vector), not the velocity. Filtering
   // the small normalized stick vector kills touch jitter with far less
   // perceived lag than ramping the full velocity each flick. "off" = raw.
@@ -1302,7 +1433,10 @@ function update(dt) {
     if (e.spawning > 0) { e.spawning -= dt; continue; }
     e.wobble += dt * 6;
     if (e.flash > 0) e.flash -= dt;
-    if (e.boss) {
+    // MASALA RUSH freezes the Bland in place (they still take damage).
+    if (rushActive > 0) {
+      // jitter only — they're stuck, twitching
+    } else if (e.boss) {
       updateBoss(e, dt);
     } else {
       let a = Math.atan2(player.y - e.y, player.x - e.x);
@@ -1688,6 +1822,7 @@ function draw() {
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+    drawPowerButtons();
   }
 
   // Resume countdown: 3-2-1 pop, then "go!".
@@ -2237,6 +2372,9 @@ window.__mr = {
   get resumeT() { return resumeT; },
   get config() { return CONFIG; }, // live-tunable: __mr.config.waveLength = 15
   get bossFight() { return bossFight; },
+  get powers() { return { rushCharge, slamCharge, rushReady: rushReady(), slamReady: slamReady(), rushActive, slowmoT }; },
+  triggerRush() { triggerRush(); },
+  triggerSlam() { triggerSlam(); },
   get boonChoices() { return boonChoices; },
   get boons() { return boons; },
   get mods() { return mods; },
