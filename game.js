@@ -412,15 +412,25 @@ function reset() {
 // ---------- Settings ----------
 const SETTINGS_KEY = "mr_settings";
 const OPTIONS = {
+  difficulty: ["easy", "normal", "hard"],
   stick: ["fixed", "anywhere"],
   side: ["left", "right"],
   size: ["small", "medium", "large"],
   sens: ["low", "medium", "high"],
   smooth: ["off", "low", "normal"],
+  music: ["on", "off"],
   fps: ["off", "on"],
 };
-const SETTING_LABELS = { stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", fps: "show fps" };
-const DEFAULT_SETTINGS = { stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low", fps: "off" };
+const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", music: "music", fps: "show fps" };
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "fixed", side: "left", size: "medium", sens: "high", smooth: "low", music: "on", fps: "off" };
+
+// Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
+const DIFFICULTY = {
+  easy:   { spawn: 1.4, spd: 0.85, hp: 0.8, boss: 0.78 },
+  normal: { spawn: 1.0, spd: 1.0, hp: 1.0, boss: 1.0 },
+  hard:   { spawn: 0.82, spd: 1.12, hp: 1.2, boss: 1.25 },
+};
+function diff() { return DIFFICULTY[settings.difficulty] || DIFFICULTY.normal; }
 let settings = { ...DEFAULT_SETTINGS };
 try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch {}
 function saveSettings() {
@@ -603,6 +613,45 @@ const sfx = {
   },
   ui() { tone({ freq: 880, dur: 0.045, vol: 0.09, type: "triangle" }); },
 };
+
+// ---------- Background music (procedural, looping) ----------
+// Slow ambient loop in an A minor-pentatonic feel: soft bass pulse + sparse
+// plucks. Scheduled ahead of audio time; pauses naturally when rAF stops
+// (tab/app backgrounded). Gated by the "music" setting and the master mute.
+const A = 110; // A2
+const semi = (n) => A * Math.pow(2, n / 12);
+// 16-step patterns (null = rest), notes as semitones above A2 from the
+// minor pentatonic. Bass low, melody two octaves up.
+const BASS_PAT = [0, null, null, null, 7, null, null, null, 5, null, null, null, 3, null, 7, null];
+const MEL_PAT = [12, null, 15, null, null, 17, null, 12, 15, null, null, 10, null, 14, null, null];
+const music = { next: 0, step: 0, stepDur: 0.3 };
+function musicNote(freq, dur, vol, at, type) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type || "triangle";
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0, at);
+  g.gain.linearRampToValueAtTime(vol, at + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  o.connect(g);
+  g.connect(masterGain);
+  o.start(at);
+  o.stop(at + dur + 0.05);
+}
+function tickMusic() {
+  if (settings.music !== "on" || muted || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (music.next < now) music.next = now + 0.05; // (re)sync after a pause
+  while (music.next < now + 0.15) {
+    const s = music.step;
+    const b = BASS_PAT[s];
+    if (b !== null) musicNote(semi(b), 0.5, 0.09, music.next, "triangle");
+    const m = MEL_PAT[s];
+    if (m !== null) musicNote(semi(m), 0.35, 0.05, music.next, "sine");
+    music.next += music.stepDur;
+    music.step = (music.step + 1) % 16;
+  }
+}
 
 // ---------- Input ----------
 const keys = {};
@@ -846,12 +895,13 @@ function spawnPoint(r) {
 
 function makeEnemy(type, x, y) {
   const c = CONFIG.enemies[type];
+  const d = diff();
   const w = effWave();
   const r = c.rMin + Math.random() * (c.rMax - c.rMin);
-  const hp = c.hpBase + Math.floor(w * c.hpPerWave);
+  const hp = Math.max(1, Math.round((c.hpBase + Math.floor(w * c.hpPerWave)) * d.hp));
   return {
     type, x, y, r, hp, maxHp: hp,
-    speed: c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand,
+    speed: (c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand) * d.spd,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
   };
@@ -882,10 +932,11 @@ function startBossFight() {
   bossFight = true;
   bossFoodT = CONFIG.boss.foodEvery;
   const c = CONFIG.boss;
+  const bhp = Math.round(c.hp * diff().boss);
   enemies.push({
     type: "boss", boss: true,
     x: W / 2, y: c.r, r: c.r,
-    hp: c.hp, maxHp: c.hp, speed: c.speed,
+    hp: bhp, maxHp: bhp, speed: c.speed,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
     bossState: "stalk", stateT: 0, chargeT: c.chargeEvery,
@@ -1133,7 +1184,7 @@ function update(dt) {
   if (gapT <= 0 && !bossFight) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave);
+      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave) * diff().spawn;
       spawnEnemy();
     }
   }
@@ -1892,17 +1943,17 @@ function drawMute() {
 function settingsLayout() {
   const compact = H < 600; // landscape: tighter rows so the panel fits
   const cardW = Math.min(W - 104, 430), cardX = (W - cardW) / 2;
-  const rowH = compact ? 38 : 46, step = compact ? 46 : 56;
+  const rowH = compact ? 38 : 40, step = compact ? 46 : 46;
   const rects = [];
-  let y = compact ? 108 : 236;
+  let y = compact ? 108 : 210;
   for (const key of Object.keys(OPTIONS)) {
     rects.push({ x: cardX, y, w: cardW, h: rowH, key });
     y += step;
   }
-  rects.push({ x: cardX, y, w: cardW, h: compact ? 32 : 40, key: "reset" });
-  y += compact ? 40 : 50;
-  const bw = 170, bh = compact ? 42 : 50;
-  rects.push({ x: (W - bw) / 2, y: y + (compact ? 4 : 18), w: bw, h: bh, key: "close" });
+  rects.push({ x: cardX, y, w: cardW, h: compact ? 32 : 34, key: "reset" });
+  y += compact ? 40 : 42;
+  const bw = 170, bh = compact ? 42 : 46;
+  rects.push({ x: (W - bw) / 2, y: y + (compact ? 4 : 10), w: bw, h: bh, key: "close" });
   return rects;
 }
 
@@ -2217,9 +2268,23 @@ function frame(now) {
     if (hitFlash > 0) hitFlash -= dt;
     if (fusionFlash > 0) fusionFlash -= dt;
   }
+  tickMusic();
   draw();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Backgrounding the app (tab switch, app switch) → on return, suspend/resume
+// audio and give a fresh 3-2-1 countdown so the player isn't ambushed.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    if (audioCtx) audioCtx.suspend();
+  } else {
+    if (audioCtx) audioCtx.resume();
+    last = performance.now(); // avoid one giant dt on return
+    music.next = 0;           // resync the music scheduler
+    if (state === "playing" && !settingsOpen && !boonChoices && resumeT <= 0) resumeT = 3;
+  }
+});
 
 })();

@@ -12,7 +12,10 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 
 - Fixed on-screen joystick bottom-left (default) or touch-anywhere mode + WASD/arrows; auto-attack at nearest enemy
 - Portrait 480×800 (landscape support built but parked behind `LANDSCAPE_ENABLED` in game.js — off for now)
-- Settings (gear icon, persisted): joystick mode/side/size, sensitivity, smoothing; opening pauses the game; every tap gives press/value feedback + live stick preview; closing mid-run shows a 3-2-1 countdown before action resumes
+- Settings (gear icon, persisted): difficulty (easy/normal/hard), joystick mode/side/size, sensitivity, smoothing, music, show fps; opening pauses the game; every tap gives press/value feedback + live stick preview; closing mid-run shows a 3-2-1 countdown before action resumes
+- Background music: procedural ambient loop (A-minor-pentatonic), toggle in settings, respects the master mute
+- Backgrounding the app (tab/app switch) auto-pauses; returning gives a fresh 3-2-1 countdown (audio suspends/resumes too)
+- Difficulty setting scales spawn rate, enemy speed/hp, and boss hp (`DIFFICULTY` map)
 - 3s breather between waves (no spawns, "wave cleared!" banner)
 - The Bland: grey blobs, scaling waves every 20s; spawn ON the arena edge with a 0.7s emerge telegraph (no off-screen entries, no insta-hits)
 - **Swarmers** (wave 3+): small spiky wisps — 1 hp, ~2.5× faster, zig-zag approach, spawn in packs of 2-3. Share of spawns grows per wave (`CONFIG.swarmerShare`)
