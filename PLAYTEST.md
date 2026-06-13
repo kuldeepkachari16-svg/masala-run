@@ -22,9 +22,9 @@
 - First death: do they immediately tap REPLAY, or put the phone down?
 
 ## The share message (paste into WhatsApp)
-> Built a tiny mobile game — 2 min to try, no install needed (or "Add to Home Screen" for fullscreen).
+> Built a tiny mobile game — one level is ~3 min, no install (or "Add to Home Screen" for fullscreen).
 > 👉 https://kuldeepkachari16-svg.github.io/masala-run/
-> Don't ask me how to play — that's literally the test. Tell me after: did it make sense, and did you want a second go?
+> Don't ask me how to play — figuring it out is literally the test. Tell me after: did it make sense, and did you want a second go?
 
 ## Response sheet (one row per tester)
 
