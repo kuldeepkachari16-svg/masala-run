@@ -13,6 +13,7 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 - Fixed on-screen joystick bottom-left (default) or touch-anywhere mode + WASD/arrows; auto-attack at nearest enemy
 - Portrait 480×800 (landscape support built but parked behind `LANDSCAPE_ENABLED` in game.js — off for now)
 - Settings (gear icon, persisted): difficulty (easy/normal/hard), joystick mode/side/size, sensitivity, smoothing, music, show fps; opening pauses the game; every tap gives press/value feedback + live stick preview; closing mid-run shows a 3-2-1 countdown before action resumes
+- **NOM mode** (temporary easter egg, Settings → Secret 🍴, off by default): a self-contained 3-phase mini-game — nibblers → INSERT COIN toll → NOM, a giant hungry mouth you overfeed chilli till it pops. Routes in via `start()` so it never touches main-game balance; launch mechanism TBD (see ROADMAP)
 - Background music: procedural ambient loop (A-minor-pentatonic), toggle in settings, respects the master mute
 - Backgrounding the app (tab/app switch) auto-pauses; returning gives a fresh 3-2-1 countdown (audio suspends/resumes too)
 - Difficulty setting scales spawn rate, enemy speed/hp, and boss hp (`DIFFICULTY` map)

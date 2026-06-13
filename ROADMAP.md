@@ -41,6 +41,25 @@ is the finish line.
 18. Play Store listing ($25 one-time — only required spend)
 19. Post-launch content cadence: new food/recipe drops
 
+## NOM MODE — easter egg (temporary, shipped behind a toggle)
+
+A self-contained "viral loop" prototype, **off by default**, reachable via
+Settings → Secret 🍴 → "NOM mode". When on, `start()` routes into NOM mode
+instead of the main game — so it never pollutes the Gate 1 feedback loop.
+
+- **The joke:** NOM is a giant always-hungry mouth that eats everything and
+  makes *you* pay coins. No AI-insider knowledge needed.
+- **3 phases:** (1) nibblers race you to the food · (2) INSERT COIN signs
+  drift across blocking your view, shoot to clear · (3) NOM — eats food off
+  the floor to bloat + slow; overfeed him chilli till he pops.
+- **Reuses the core engine** (movement, eat-to-attack, bullets, food, powers);
+  separate spawn script + 3 new entity types (`nibbler`/`coin`/`nom`).
+
+**Still TBD (decide later):** real launch mechanism (shared `?nom` deep-link
+vs. in-game unlock vs. always-on), the shareable win-card / status-page gag,
+and whether it graduates from "temp toggle" to a first-class mode. Greenlight
+only if Gate 1 shows the core loop is fun.
+
 ## Possible future scope — feedback-gated (decide, don't default)
 
 ### Follow-camera + larger-than-screen world (the "v2 engine")

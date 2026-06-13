@@ -379,6 +379,10 @@ let boons, mods;          // picked boon ids + derived multipliers
 let rushCharge, slamCharge; // power meters: eats / kills since last use
 let rushActive, slowmoT;    // MASALA RUSH duration / THALI SLAM slow-mo timer
 let bestTime = 0;
+// NOM MODE (temporary easter egg): a self-contained 3-phase universe that
+// reuses the core eat-to-attack engine. Gated behind the `nom` setting.
+let nomMode = false;
+let nomPhase, nomT, nomSpawnT, nomFoodT, nomWon;
 let settingsOpen = false;
 let settingsFx = null; // { key, at } — press feedback in the settings panel
 let resumeT = 0; // 3-2-1 countdown after closing settings mid-game
@@ -422,7 +426,9 @@ function reset() {
   slamCharge = 0;
   rushActive = 0;
   slowmoT = 0;
-  announce("WAVE 1", "#ffffff");
+  nomWon = false;
+  if (nomMode) nomReset();
+  else announce("WAVE 1", "#ffffff");
 }
 
 // ---------- Settings ----------
@@ -437,9 +443,10 @@ const OPTIONS = {
   power: ["manual", "auto"],
   music: ["on", "off"],
   fps: ["off", "on"],
+  nom: ["off", "on"], // TEMP easter-egg toggle — start() routes into NOM MODE
 };
-const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", power: "power trigger", music: "music", fps: "show fps" };
-const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "high", smooth: "low", power: "manual", music: "on", fps: "off" };
+const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", power: "power trigger", music: "music", fps: "show fps", nom: "NOM mode 🍴" };
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "high", smooth: "low", power: "manual", music: "on", fps: "off", nom: "off" };
 
 // Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
 const DIFFICULTY = {
@@ -944,6 +951,7 @@ function gameOverPress(p) {
 }
 
 function start() {
+  nomMode = settings.nom === "on"; // route into the easter egg if enabled
   reset();
   state = "playing";
   sfx.wave(); // run-start chime (matches the WAVE 1 announce in reset)
@@ -1231,6 +1239,18 @@ function shoot(dt) {
 function killEnemy(j) {
   const e = enemies[j];
   kills++;
+  if (e.type === "nom") {
+    // NOM is full. You win the easter egg.
+    enemies.splice(j, 1);
+    burst(e.x, e.y, "#ffd24a", 40, 200);
+    dying.push({ x: e.x, y: e.y, r: e.r, life: 0.5 });
+    shake = 0.5; hitStop = 0.14; fusionFlash = 0.3;
+    sfx.bossDown();
+    nomWon = true;
+    state = "gameover";
+    bestTime = Math.max(bestTime, elapsed);
+    return;
+  }
   if (e.boss) {
     bossFight = false;
     enemies.splice(j, 1);
@@ -1303,6 +1323,137 @@ function triggerSlam() {
   if (navigator.vibrate) navigator.vibrate(20);
 }
 
+// ---------- NOM MODE (temporary easter egg) ----------
+// "FEED THE MACHINE": a giant always-hungry mouth that eats everything and
+// makes YOU pay coins. 3 short phases, then the NOM boss. Reuses the core
+// engine; kept self-contained so it never touches the main-game balance.
+const NOM_HP = 50;
+const NOM_BARKS = ["MORE.", "STILL HUNGRY.", "INSERT COIN.", "is that all???", "feed me.", "MINE.", "om nom nom"];
+
+function nomReset() {
+  nomPhase = 1;
+  nomT = 0;
+  nomSpawnT = 0;
+  nomFoodT = 0;
+  announce("NOM MODE", "#ffd24a", 32);
+  smallText("he's hungry. always.", "#9aa0b0", W / 2, H * 0.44);
+  // Seed a little food so the eat-loop starts immediately.
+  for (let i = 0; i < 3; i++) {
+    foods.push({ x: 80 + i * (W - 160) / 2, y: H * 0.55, r: 11, type: FOOD_TYPES[i % FOOD_TYPES.length], life: CONFIG.foodLife });
+  }
+}
+
+function nomFood() {
+  const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+  foods.push({ x: 50 + Math.random() * (W - 100), y: H * 0.25 + Math.random() * H * 0.5, r: 11, type: t, life: CONFIG.foodLife });
+}
+
+function spawnNibblers(n) {
+  const p = spawnPoint(12);
+  for (let i = 0; i < n; i++) {
+    enemies.push({
+      type: "nibbler",
+      x: Math.max(12, Math.min(W - 12, p.x + (Math.random() - 0.5) * 50)),
+      y: Math.max(12, Math.min(H - 12, p.y + (Math.random() - 0.5) * 50)),
+      r: 10, hp: 1, maxHp: 1, speed: 150 + Math.random() * 40,
+      wobble: Math.random() * 7, spawning: 0.5, spawnDur: 0.5,
+    });
+  }
+}
+
+function spawnCoin() {
+  const fromLeft = Math.random() < 0.5;
+  enemies.push({
+    type: "coin", harmless: true,
+    x: fromLeft ? -34 : W + 34, y: H * 0.22 + Math.random() * H * 0.55,
+    r: 22, hp: 2, maxHp: 2, vx: (fromLeft ? 1 : -1) * (58 + Math.random() * 34),
+    wobble: Math.random() * 7, spawning: 0, spawnDur: 0,
+  });
+}
+
+function spawnNom() {
+  enemies.push({
+    type: "nom", x: W / 2, y: 76, r: 40, hp: NOM_HP, maxHp: NOM_HP,
+    speed: 64, wobble: 0, spawning: 0.8, spawnDur: 0.8,
+    lungeT: 3, barkT: 1.5,
+  });
+  shake = 0.3;
+  sfx.fusion();
+}
+
+// NOM brain: lumber toward the player, eat any food it touches (bloats +
+// slows — the gag), with a brief lunge every few seconds. No healing, so the
+// fight can't stalemate — chilli (2× dmg) is the natural "overfeed" answer.
+function updateNomBoss(e, dt) {
+  e.wobble += dt * 4;
+  const a = Math.atan2(player.y - e.y, player.x - e.x);
+  e.lungeT -= dt;
+  let sp = e.speed;
+  if (e.lungeT <= 0.6 && e.lungeT > 0) sp = e.speed * 3.4; // brief lunge
+  if (e.lungeT <= 0) e.lungeT = 3 + Math.random() * 1.5;
+  e.x += Math.cos(a) * sp * dt;
+  e.y += Math.sin(a) * sp * dt;
+  e.x = Math.max(e.r, Math.min(W - e.r, e.x));
+  e.y = Math.max(e.r, Math.min(H - e.r, e.y));
+  for (let i = foods.length - 1; i >= 0; i--) {
+    const fd = foods[i];
+    const rr = e.r + fd.r;
+    if (dist2(e, fd) < rr * rr) {
+      foods.splice(i, 1);
+      e.r = Math.min(58, e.r + 1.5);
+      e.speed = Math.max(26, e.speed - 4); // too full to move
+      smallText("nom!", "#ffd24a", e.x, e.y - e.r - 6);
+    }
+  }
+}
+
+function updateNom(dt) {
+  nomT += dt;
+  // Keep food flowing the whole mode — the eat-loop must never starve.
+  nomFoodT -= dt;
+  if (nomFoodT <= 0) { nomFoodT = 1.5; nomFood(); }
+  // Despawn coins that have drifted clean off the arena.
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (e.type === "coin" && (e.x < -70 || e.x > W + 70)) enemies.splice(i, 1);
+  }
+  nomSpawnT -= dt;
+
+  if (nomPhase === 1) {
+    // Phase 1 — Snack time: little hungry mouths race you to the food.
+    if (nomSpawnT <= 0 && nomT < 13) {
+      nomSpawnT = 1.8;
+      spawnNibblers(2 + Math.floor(Math.random() * 2));
+    }
+    if (nomT >= 13 && !enemies.some((e) => e.type === "nibbler")) {
+      nomPhase = 2; nomT = 0; nomSpawnT = 0;
+      announce("INSERT COIN", "#ffd24a", 28);
+    }
+  } else if (nomPhase === 2) {
+    // Phase 2 — The coin toll: signs block your view, shoot to clear.
+    if (nomSpawnT <= 0 && nomT < 14) {
+      nomSpawnT = 1.4;
+      spawnCoin();
+      if (Math.random() < 0.4) spawnNibblers(2);
+    }
+    if (nomT >= 14) {
+      nomPhase = 3; nomT = 0; nomSpawnT = 0;
+      announce("HERE COMES NOM", "#ff5a3c", 30);
+      spawnNom();
+    }
+  } else if (nomPhase === 3) {
+    // Phase 3 — NOM himself. Barks on a timer; win when he's gone (killEnemy).
+    const nom = enemies.find((e) => e.type === "nom");
+    if (nom && nom.spawning <= 0) {
+      nom.barkT -= dt;
+      if (nom.barkT <= 0) {
+        nom.barkT = 2.2 + Math.random() * 1.5;
+        smallText(NOM_BARKS[Math.floor(Math.random() * NOM_BARKS.length)], "#ffd24a", nom.x, nom.y - nom.r - 10);
+      }
+    }
+  }
+}
+
 // ---------- Update ----------
 function update(dt) {
   if (settingsOpen) return; // settings panel pauses the game
@@ -1323,6 +1474,9 @@ function update(dt) {
   autoPowers();
   elapsed += dt;
 
+  if (nomMode) {
+    updateNom(dt);
+  } else {
   // Waves, with a breather between them.
   if (gapT > 0) {
     gapT -= dt;
@@ -1365,6 +1519,7 @@ function update(dt) {
       });
     }
   }
+  } // end main-mode wave/spawn (NOM mode runs its own script above)
 
   // Flavor decay (chaat-timing boon slows it; Masala Rush freezes it).
   if (flavor !== "none" && rushActive <= 0) {
@@ -1472,6 +1627,28 @@ function update(dt) {
       // regular enemies: stuck, jitter only
     } else if (e.boss) {
       updateBoss(e, dt);
+    } else if (e.type === "nom") {
+      updateNomBoss(e, dt);
+    } else if (e.type === "coin") {
+      // Coin sign: drifts straight across the screen, bobbing. Pure obstacle.
+      e.x += e.vx * dt;
+      e.y += Math.sin(e.wobble * 2) * 0.5;
+    } else if (e.type === "nibbler") {
+      // Little hungry mouth: races to the nearest food, else chases the player.
+      let tx = player.x, ty = player.y, target = null, best = Infinity;
+      for (const fd of foods) { const d = dist2(e, fd); if (d < best) { best = d; target = fd; } }
+      if (target) { tx = target.x; ty = target.y; }
+      const a = Math.atan2(ty - e.y, tx - e.x) + Math.sin(e.wobble * 2) * 0.4;
+      e.x += Math.cos(a) * e.speed * dt;
+      e.y += Math.sin(a) * e.speed * dt;
+      if (target) {
+        const rr = e.r + target.r;
+        if (best < rr * rr) { // beat you to the snack
+          foods.splice(foods.indexOf(target), 1);
+          smallText("MINE", "#9aa0b0", e.x, e.y - 12);
+          e.r = Math.min(15, e.r + 1.2);
+        }
+      }
     } else {
       let a = Math.atan2(player.y - e.y, player.x - e.x);
       // Swarmers dart in a zig-zag instead of beelining.
@@ -1480,16 +1657,18 @@ function update(dt) {
       e.y += Math.sin(a) * e.speed * dt;
     }
 
-    // They drain the street's color where they walk.
-    e.drainT = (e.drainT || 0) - dt;
-    if (e.drainT <= 0) {
-      e.drainT = 0.5 + Math.random() * 0.4;
-      drains.push({ x: e.x, y: e.y, r: e.r * 1.7, life: 3 });
-      if (drains.length > 90) drains.shift();
+    // They drain the street's color where they walk (coins don't — they float).
+    if (!e.harmless) {
+      e.drainT = (e.drainT || 0) - dt;
+      if (e.drainT <= 0) {
+        e.drainT = 0.5 + Math.random() * 0.4;
+        drains.push({ x: e.x, y: e.y, r: e.r * 1.7, life: 3 });
+        if (drains.length > 90) drains.shift();
+      }
     }
 
     const rr = e.r + player.r;
-    if (player.iframes <= 0 && dist2(e, player) < rr * rr) {
+    if (!e.harmless && player.iframes <= 0 && dist2(e, player) < rr * rr) {
       if (player.shield > 0) {
         // Savory shield absorbs the hit.
         player.shield = 0;
@@ -1651,8 +1830,10 @@ function draw() {
       drawBoss(e);
       continue;
     }
-    if (e.type === "swarmer") {
-      // Swarmer: small spiky wisp — angular 7-point shape, beady eyes.
+    if (e.type === "nom") { drawNom(e); continue; }
+    if (e.type === "coin") { drawCoin(e); continue; }
+    if (e.type === "swarmer" || e.type === "nibbler") {
+      // Swarmer / nibbler: small spiky wisp — angular 7-point shape, beady eyes.
       ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#7e8294";
       ctx.beginPath();
       for (let i = 0; i < 7; i++) {
@@ -1915,8 +2096,25 @@ function drawHUD() {
   ctx.fillText(elapsed.toFixed(0) + "s", W / 2, 28);
   ctx.textAlign = "right";
   ctx.font = "13px sans-serif";
-  ctx.fillText("kills " + kills + "  ·  wave " + wave, W - 92, 28);
+  const NOM_PHASE_NAME = ["", "snack time", "coin toll", "NOM!"];
+  ctx.fillText(nomMode ? "kills " + kills + "  ·  " + NOM_PHASE_NAME[nomPhase] : "kills " + kills + "  ·  wave " + wave, W - 92, 28);
   drawGear();
+
+  // NOM HP bar (easter-egg finale).
+  if (nomMode) {
+    const nom = enemies.find((e) => e.type === "nom");
+    if (nom && nom.spawning <= 0) {
+      const bw2 = 210, bx2 = (W - bw2) / 2, by2 = 44;
+      ctx.fillStyle = "#2c2c3c";
+      ctx.fillRect(bx2, by2, bw2, 8);
+      ctx.fillStyle = "#ffd24a";
+      ctx.fillRect(bx2, by2, bw2 * (nom.hp / nom.maxHp), 8);
+      ctx.font = "11px " + COMIC_FONT;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffd24a";
+      ctx.fillText("NOM — feed him chilli till he pops", W / 2, by2 + 20);
+    }
+  }
 
   // Boss HP bar (during the fight, once he has emerged).
   if (bossFight) {
@@ -2033,9 +2231,9 @@ function drawMenu() {
   ctx.font = "13px sans-serif";
   ctx.fillText("Mix two different flavors while the bar is high → recipe.", W / 2, H * 0.625);
   ctx.globalAlpha = 0.7 + 0.3 * Math.sin(performance.now() / 1000 * 3);
-  ctx.fillStyle = "#e8e8f0";
+  ctx.fillStyle = settings.nom === "on" ? "#ffd24a" : "#e8e8f0";
   ctx.font = "22px " + COMIC_FONT;
-  ctx.fillText("tap / space to start", W / 2, H * 0.68);
+  ctx.fillText(settings.nom === "on" ? "🍴 tap to feed NOM" : "tap / space to start", W / 2, H * 0.68);
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#5a5f70";
   ctx.font = "12px sans-serif";
@@ -2116,13 +2314,14 @@ const SETTING_GROUPS = [
   { title: "Controls", keys: ["stick", "side", "size", "sens", "smooth"] },
   { title: "Audio", keys: ["music"] },
   { title: "Display", keys: ["fps"] },
+  { title: "Secret 🍴", keys: ["nom"] }, // TEMP — easter-egg entry
 ];
 
 function settingsLayout() {
   const cardW = Math.min(W - 90, 420), cardX = (W - cardW) / 2;
-  const rowH = 30, step = 35, headH = 22;
+  const rowH = 30, step = 33, headH = 21;
   const rects = [];
-  let y = 190;
+  let y = 184;
   for (const g of SETTING_GROUPS) {
     rects.push({ x: cardX, y, w: cardW, h: headH, header: true, title: g.title });
     y += headH + 3;
@@ -2130,10 +2329,10 @@ function settingsLayout() {
       rects.push({ x: cardX, y, w: cardW, h: rowH, key });
       y += step;
     }
-    y += 4; // gap between groups
+    y += 3; // gap between groups
   }
   rects.push({ x: cardX, y, w: cardW, h: 30, key: "reset" });
-  y += 36;
+  y += 34;
   const bw = 170, bh = 44;
   rects.push({ x: (W - bw) / 2, y, w: bw, h: bh, key: "close" });
   return rects;
@@ -2319,6 +2518,71 @@ function drawBoss(e) {
   ctx.stroke();
 }
 
+// NOM (easter egg boss): a big dark blob that is mostly a giant gaping mouth.
+function drawNom(e) {
+  const x = e.x, y = e.y, r = e.r;
+  // Body.
+  ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#3a3a48";
+  ctx.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const ang = (i / 16) * Math.PI * 2;
+    const wob = 1 + Math.sin(e.wobble * 1.4 + i * 1.6) * 0.06;
+    const px = x + Math.cos(ang) * r * wob;
+    const py = y + Math.sin(ang) * r * wob * 0.95;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 210, 74, 0.85)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  // Hungry eyes.
+  ctx.fillStyle = "#ffd24a";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.32, y - r * 0.34, 4.5, 0, Math.PI * 2);
+  ctx.arc(x + r * 0.32, y - r * 0.34, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#14141c";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.32, y - r * 0.34, 2, 0, Math.PI * 2);
+  ctx.arc(x + r * 0.32, y - r * 0.34, 2, 0, Math.PI * 2);
+  ctx.fill();
+  // Giant gaping mouth — chomps open/closed.
+  const gape = 0.5 + 0.5 * Math.abs(Math.sin(e.wobble * 1.6));
+  ctx.fillStyle = "#14141c";
+  ctx.beginPath();
+  ctx.ellipse(x, y + r * 0.28, r * 0.62, r * 0.42 * gape + 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Teeth.
+  ctx.fillStyle = "#e8e8f0";
+  for (let i = -2; i <= 2; i++) {
+    const tx = x + i * r * 0.24;
+    ctx.beginPath();
+    ctx.moveTo(tx - 3, y + r * 0.28 - (r * 0.42 * gape));
+    ctx.lineTo(tx + 3, y + r * 0.28 - (r * 0.42 * gape));
+    ctx.lineTo(tx, y + r * 0.28 - (r * 0.42 * gape) + 6);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// Coin sign: a gold "INSERT COIN" token that drifts across, blocking the view.
+function drawCoin(e) {
+  const x = e.x, y = e.y, r = e.r;
+  ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#ffd24a";
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#b8860b";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = "#8a6d0b";
+  ctx.textAlign = "center";
+  ctx.font = "bold 9px sans-serif";
+  ctx.fillText("INSERT", x, y - 1);
+  ctx.fillText("COIN", x, y + 9);
+}
+
 // Boon pick screen — shared geometry for draw + tap hit-testing.
 function boonLayout() {
   const cw = Math.min(W - 90, 360), x = (W - cw) / 2;
@@ -2366,30 +2630,44 @@ function drawGameOver() {
   ctx.fillRect(0, 0, W, H);
   const tnow = performance.now() / 1000;
 
-  // "FLAVORLESS" in the comic style, drained to grey — you got Bland-ed.
+  // Win-card for NOM mode, FLAVORLESS otherwise.
   ctx.save();
   ctx.translate(W / 2, H * 0.37);
   ctx.rotate(-0.035);
   ctx.textAlign = "center";
-  ctx.font = "52px " + COMIC_FONT;
+  ctx.font = (nomWon ? "44px " : "52px ") + COMIC_FONT;
   ctx.lineJoin = "round";
   const grad = ctx.createLinearGradient(0, -40, 0, 10);
-  grad.addColorStop(0, "#e8e8f0");
-  grad.addColorStop(0.6, "#9aa0b0");
-  grad.addColorStop(1, "#62687a");
+  if (nomWon) {
+    grad.addColorStop(0, "#ffe9a0");
+    grad.addColorStop(0.6, "#ffd24a");
+    grad.addColorStop(1, "#ff9c2c");
+  } else {
+    grad.addColorStop(0, "#e8e8f0");
+    grad.addColorStop(0.6, "#9aa0b0");
+    grad.addColorStop(1, "#62687a");
+  }
+  const headline = nomWon ? "NOM IS FULL!" : "FLAVORLESS";
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 8;
-  ctx.strokeText("FLAVORLESS", 0, 0);
+  ctx.strokeText(headline, 0, 0);
   ctx.fillStyle = grad;
-  ctx.fillText("FLAVORLESS", 0, 0);
+  ctx.fillText(headline, 0, 0);
   ctx.restore();
 
   ctx.textAlign = "center";
   ctx.font = "15px sans-serif";
   ctx.fillStyle = "#9aa0b0";
-  ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  wave " + wave, W / 2, H * 0.45);
-  if (bestTime > 0) ctx.fillText("best " + bestTime.toFixed(1) + "s", W / 2, H * 0.49);
-  ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.525);
+  if (nomWon) {
+    ctx.fillText("(first time in history)", W / 2, H * 0.45);
+    ctx.fillStyle = "#ffd24a";
+    ctx.font = "16px " + COMIC_FONT;
+    ctx.fillText("“…ok now I'm hungry again.” 🪙", W / 2, H * 0.50);
+  } else {
+    ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  wave " + wave, W / 2, H * 0.45);
+    if (bestTime > 0) ctx.fillText("best " + bestTime.toFixed(1) + "s", W / 2, H * 0.49);
+    ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.525);
+  }
 
   // REPLAY (primary) + MENU (secondary) — specific tap targets.
   ctx.lineJoin = "round";
@@ -2435,6 +2713,7 @@ window.__mr = {
   get resumeT() { return resumeT; },
   get config() { return CONFIG; }, // live-tunable: __mr.config.waveLength = 15
   get bossFight() { return bossFight; },
+  get nom() { return { nomMode, nomPhase, nomT, nomWon }; },
   get powers() { return { rushCharge, slamCharge, rushReady: rushReady(), slamReady: slamReady(), rushActive, slowmoT }; },
   triggerRush() { triggerRush(); },
   triggerSlam() { triggerSlam(); },

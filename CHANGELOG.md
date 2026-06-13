@@ -1,6 +1,7 @@
 # Masala Run — Changelog
 
 ## 2026-06-13
+- NOM MODE (temporary easter egg): Settings → Secret → "NOM mode" (off by default) routes `start()` into a self-contained 3-phase universe — nibblers (race you to food) → INSERT COIN toll signs → NOM, a giant hungry mouth that bloats on food; overfeed it chilli till it pops → "NOM IS FULL!" win. Reuses the core engine, zero impact on main-game balance
 - Joystick: floating + transparent by default (`anywhere` mode) to reduce thumb occlusion; follow-camera logged as feedback-gated future scope in ROADMAP
 - Settings menu redesigned into labeled sections: Gameplay / Controls / Audio / Display
 - Power button active state now reads as "running" (filled disc + depleting timer arc), not "ready"
