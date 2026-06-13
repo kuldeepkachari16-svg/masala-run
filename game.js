@@ -296,8 +296,8 @@ const SAVORY_PULSE_RADIUS = 130;
 // Every difficulty/pacing knob lives here — tweak without touching logic.
 // Live-tunable on a device via __mr.config (e.g. __mr.config.waveLength = 15).
 const CONFIG = {
-  waveLength: 20,      // seconds per wave
-  breather: 3,         // pause between waves
+  waveLength: 14,      // seconds per wave (tuned for "one more go": L1 ≈ 2.5 min)
+  breather: 2.5,       // pause between waves
   scalingCapWave: 5,   // enemy stats & spawn rate stop growing here —
                        // later waves get harder via enemy MIX, not stat sponges
   spawnBase: 0.9,      // spawn interval curve: base - wave*perWave, floored
@@ -464,7 +464,13 @@ function reset() {
   slowmoT = 0;
   nomWon = false;
   if (nomMode) nomReset();
-  else announce("WAVE 1", "#ffffff");
+  else {
+    announce("WAVE 1", "#ffffff");
+    // Teach-by-doing: one unmissable food right next to the player so the
+    // eat → attack link is discovered in the first seconds (chilli reads
+    // clearly different from PLAIN — spread shots + 2× damage).
+    foods.push({ x: W / 2, y: H / 2 - 46, r: 11, type: FOOD_TYPES[0], life: CONFIG.foodLife });
+  }
 }
 
 // ---------- Settings ----------
