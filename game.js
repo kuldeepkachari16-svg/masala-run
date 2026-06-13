@@ -44,6 +44,7 @@ function resize() {
   if (!bgCanvas || W !== pw || H !== ph) {
     buildBackdrop();
     if ((W !== pw || H !== ph) && player) clampToArena(); // keep entities in bounds
+    if (W !== pw || H !== ph) buildBarriers(); // barrier rects are W/H-relative
   }
   scale = Math.min(canvas.width / W, canvas.height / H);
   offX = (canvas.width - W * scale) / 2;
@@ -309,6 +310,19 @@ const CONFIG = {
   postBoss: { easeWaves: 2, spawnMul: 1.8, breather: 4.5 },
   // A level = 8 waves. Wave 5 = mini-boss, wave 8 = main boss → next level.
   wavesPerLevel: 8,
+  // Per-level difficulty (marginal step-up). TWO levers, both config-driven:
+  //  1) enemies — hpMul / spdMul / spawnMul (spawnMul < 1 = faster spawns)
+  //  2) barriers — static blocks in the arena (fractions of W×H, top-left x/y)
+  // FOCUS: Level 1 is the clean, fully-testable level (no barriers). Later
+  // levels exist as provision — same 8-wave content, nudged harder.
+  levels: [
+    { hpMul: 1.00, spdMul: 1.00, spawnMul: 1.00, barriers: [] },
+    { hpMul: 1.08, spdMul: 1.05, spawnMul: 0.94, barriers: [] },
+    { hpMul: 1.16, spdMul: 1.10, spawnMul: 0.90, barriers: [ { x: 0.30, y: 0.42, w: 0.12, h: 0.12 }, { x: 0.58, y: 0.42, w: 0.12, h: 0.12 } ] },
+    { hpMul: 1.24, spdMul: 1.14, spawnMul: 0.86, barriers: [ { x: 0.18, y: 0.30, w: 0.14, h: 0.10 }, { x: 0.68, y: 0.58, w: 0.14, h: 0.10 } ] },
+    { hpMul: 1.32, spdMul: 1.18, spawnMul: 0.83, barriers: [ { x: 0.42, y: 0.28, w: 0.16, h: 0.10 }, { x: 0.42, y: 0.62, w: 0.16, h: 0.10 } ] },
+    { hpMul: 1.40, spdMul: 1.22, spawnMul: 0.80, barriers: [ { x: 0.20, y: 0.45, w: 0.12, h: 0.12 }, { x: 0.44, y: 0.45, w: 0.12, h: 0.12 }, { x: 0.68, y: 0.45, w: 0.12, h: 0.12 } ] },
+  ],
   enemies: {
     bland: {
       rMin: 13, rMax: 17,
@@ -391,8 +405,8 @@ let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
 let bossFight, bossFoodT, bossFoodEvery; // boss wave: spawns + wave timer pause
-let bossWasMain; // the just-killed boss was the level finale → advance level
-let level; // current level (1 level = CONFIG.wavesPerLevel waves)
+let level;       // level currently being played (1-based)
+let barriers = []; // active barrier rects (pixels) for the current level
 let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
@@ -438,8 +452,8 @@ function reset() {
   resumeT = 0;
   bossFight = false;
   bossFoodT = 0;
-  bossWasMain = false;
-  level = 1;
+  level = nomMode ? 1 : startLevelNum; // play the chosen / resumed level
+  buildBarriers();
   lastBossWave = 0;
   boonChoices = null;
   boons = [];
@@ -477,6 +491,53 @@ const DIFFICULTY = {
   hard:   { spawn: 0.82, spd: 1.12, hp: 1.2, boss: 1.25 },
 };
 function diff() { return DIFFICULTY[settings.difficulty] || DIFFICULTY.normal; }
+
+// ---------- Levels & progress ----------
+const PROGRESS_KEY = "mr_progress";
+const MAX_LEVEL = CONFIG.levels.length;
+let unlockedLevel = 1; // highest playable level; clearing one unlocks the next
+try { unlockedLevel = Math.min(MAX_LEVEL, Math.max(1, JSON.parse(localStorage.getItem(PROGRESS_KEY) || "1") | 0)); } catch {}
+let startLevelNum = unlockedLevel; // reset() plays this; defaults to the frontier (auto-resume)
+function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, String(unlockedLevel)); } catch {} }
+function lvl() { return CONFIG.levels[Math.min(level - 1, MAX_LEVEL - 1)]; }
+// Barriers are stored as fractions of W×H; bake to pixel rects per level.
+function buildBarriers() {
+  if (!level || nomMode) { barriers = []; return; }
+  const defs = lvl().barriers || [];
+  barriers = defs.map((b) => ({ x: b.x * W, y: b.y * H, w: b.w * W, h: b.h * H }));
+}
+// Push the player circle out of any barrier it overlaps. Barriers block the
+// player and bullets; the Bland are ethereal and drift through them.
+function resolveBarriers() {
+  for (const b of barriers) {
+    const cx = Math.max(b.x, Math.min(player.x, b.x + b.w));
+    const cy = Math.max(b.y, Math.min(player.y, b.y + b.h));
+    const dx = player.x - cx, dy = player.y - cy;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= player.r * player.r) continue;
+    const d = Math.sqrt(d2);
+    if (d < 0.0001) { // center inside the rect → eject along the nearest edge
+      const left = player.x - b.x, right = b.x + b.w - player.x;
+      const top = player.y - b.y, bot = b.y + b.h - player.y;
+      const m = Math.min(left, right, top, bot);
+      if (m === left) player.x = b.x - player.r;
+      else if (m === right) player.x = b.x + b.w + player.r;
+      else if (m === top) player.y = b.y - player.r;
+      else player.y = b.y + b.h + player.r;
+    } else {
+      const push = player.r - d;
+      player.x += (dx / d) * push;
+      player.y += (dy / d) * push;
+    }
+  }
+}
+function bulletHitsBarrier(bx, by) {
+  for (const b of barriers) {
+    if (bx >= b.x && bx <= b.x + b.w && by >= b.y && by <= b.y + b.h) return true;
+  }
+  return false;
+}
+
 let settings = { ...DEFAULT_SETTINGS };
 try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") }; } catch {}
 function saveSettings() {
@@ -782,14 +843,19 @@ window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
   ensureAudio(); // any key is a gesture — unlock audio
   if (e.key === "Escape" && settingsOpen) { closeSettings(); return; }
-  if (e.key === "Escape" && state === "gameover") { state = "menu"; return; }
+  if (e.key === "Escape" && (state === "gameover" || state === "levelclear")) { state = "levels"; return; }
   if (boonChoices && (e.key === "1" || e.key === "2" || e.key === "3")) { pickBoon(+e.key - 1); return; }
   if (e.key === "m" || e.key === "M") { setMuted(!muted); sfx.ui(); return; }
   if (state === "playing") {
     if (e.key === "q" || e.key === "Q") { triggerRush(); return; }
     if (e.key === "e" || e.key === "E") { triggerSlam(); return; }
   }
-  if (state !== "playing" && (e.key === " " || e.key === "Enter")) start();
+  if (state !== "playing" && (e.key === " " || e.key === "Enter")) {
+    if (state === "menu") { if (settings.nom === "on") start(); else state = "levels"; }
+    else if (state === "levels") startLevel(unlockedLevel);
+    else if (state === "levelclear") state = "levels";
+    else start(); // gameover → replay current level
+  }
 });
 window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 
@@ -815,19 +881,30 @@ function closeSettings() {
 function pickBoon(i) {
   applyBoon(boonChoices[i]);
   boonChoices = null;
-  if (bossWasMain) {
-    // Main boss cleared → loop into the next level (same content for now;
-    // new-level design is TBD). Keep boons/hearts/score; reset the wave cycle.
-    bossWasMain = false;
-    level++;
-    wave = 0;          // next gap-tick increments to wave 1
-    waveTimer = 0;
-    lastBossWave = 0;
-    announce("LEVEL " + level, "#ffd24a", 32);
-  }
   gapT = CONFIG.postBoss.breather; // a longer breather after the boss before wave resumes
   sfx.ui();
   if (navigator.vibrate) navigator.vibrate(10);
+}
+
+// Main boss down → level complete. Unlock the next level, show the clear
+// screen (no boon — next level starts fresh). New-level content is TBD.
+function clearLevel() {
+  if (level >= unlockedLevel && unlockedLevel < MAX_LEVEL) {
+    unlockedLevel = level + 1;
+    startLevelNum = unlockedLevel; // auto-resume points at the new frontier
+    saveProgress();
+  }
+  bestTime = Math.max(bestTime, elapsed);
+  state = "levelclear";
+}
+
+// Start a specific level from the select screen (always the main game).
+function startLevel(n) {
+  nomMode = false;
+  startLevelNum = Math.min(Math.max(1, n), unlockedLevel);
+  reset();
+  state = "playing";
+  sfx.wave();
 }
 
 // Taps on UI (gear icon, settings panel). Returns true if consumed.
@@ -896,7 +973,10 @@ canvas.addEventListener("touchstart", (e) => {
   const p = toLocal(t);
   if (uiPress(p)) return;
   if (state === "gameover") { gameOverPress(p); return; }
-  if (state !== "playing") { start(); return; }
+  if (state === "levelclear") { sfx.ui(); state = "levels"; return; }
+  if (state === "menu") { sfx.ui(); if (settings.nom === "on") start(); else state = "levels"; return; }
+  if (state === "levels") { levelsPress(p); return; }
+  if (state !== "playing") return;
   // Power buttons (manual mode): a tap on a glowing button fires it.
   if (settings.power === "manual" && !settingsOpen && !boonChoices) {
     for (const b of powerButtons()) {
@@ -956,7 +1036,9 @@ canvas.addEventListener("mousedown", (e) => {
   const p = { x: e.clientX * dpr, y: e.clientY * dpr };
   if (uiPress(p)) return;
   if (state === "gameover") { gameOverPress(p); return; }
-  if (state !== "playing") start();
+  if (state === "levelclear") { sfx.ui(); state = "levels"; return; }
+  if (state === "menu") { sfx.ui(); if (settings.nom === "on") start(); else state = "levels"; return; }
+  if (state === "levels") { levelsPress(p); return; }
 });
 
 // End-screen buttons. Specific hit-zones only — taps elsewhere do nothing,
@@ -976,7 +1058,7 @@ function gameOverPress(p) {
       sfx.ui();
       if (navigator.vibrate) navigator.vibrate(8);
       if (r.key === "replay") start();
-      else state = "menu";
+      else state = "levels";
       return;
     }
   }
@@ -1045,11 +1127,12 @@ function makeEnemy(type, x, y) {
   const c = CONFIG.enemies[type];
   const d = diff();
   const w = effWave();
+  const L = lvl();
   const r = c.rMin + Math.random() * (c.rMax - c.rMin);
-  const hp = Math.max(1, Math.round((c.hpBase + Math.floor(w * c.hpPerWave)) * d.hp));
+  const hp = Math.max(1, Math.round((c.hpBase + Math.floor(w * c.hpPerWave)) * d.hp * L.hpMul));
   return {
     type, x, y, r, hp, maxHp: hp,
-    speed: (c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand) * d.spd,
+    speed: (c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand) * d.spd * L.spdMul,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
   };
@@ -1090,7 +1173,7 @@ function startBossFight(main) {
   const c = main ? CONFIG.mainBoss : CONFIG.boss;
   bossFoodEvery = c.foodEvery;
   bossFoodT = c.foodEvery;
-  const bhp = Math.round(c.hp * diff().boss);
+  const bhp = Math.round(c.hp * diff().boss * lvl().hpMul);
   enemies.push({
     type: "boss", boss: true, main: !!main,
     x: W / 2, y: c.r, r: c.r,
@@ -1304,7 +1387,6 @@ function killEnemy(j) {
   }
   if (e.boss) {
     bossFight = false;
-    bossWasMain = e.main; // main boss → advance the level after the boon pick
     enemies.splice(j, 1);
     burst(e.x, e.y, e.main ? "#ff8c3c" : "#8d93a5", e.main ? 40 : 26, e.main ? 200 : 170);
     dying.push({ x: e.x, y: e.y, r: e.r, life: 0.4 });
@@ -1317,10 +1399,13 @@ function killEnemy(j) {
     hitStop = 0.12;
     fusionFlash = e.main ? 0.3 : 0.2;
     sfx.bossDown();
-    if (e.main) announce("LEVEL CLEAR!", "#ffd24a", 30);
-    // Reward: pick 1 of 3 boons (game pauses on the pick screen).
-    const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
-    boonChoices = pool.slice(0, 3);
+    if (e.main) {
+      clearLevel(); // finale: no boon — every level starts with a fresh setup
+    } else {
+      // Mini-boss reward: pick 1 of 3 boons (lasts the rest of THIS level only).
+      const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
+      boonChoices = pool.slice(0, 3);
+    }
     return;
   }
   sfx.kill();
@@ -1556,7 +1641,7 @@ function update(dt) {
     if (spawnTimer <= 0) {
       // Ease the first wave(s) after a boss: slower spawns than the cap.
       const postEase = (lastBossWave > 0 && wave > lastBossWave && wave <= lastBossWave + CONFIG.postBoss.easeWaves) ? CONFIG.postBoss.spawnMul : 1;
-      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave) * diff().spawn * postEase;
+      spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave) * diff().spawn * postEase * lvl().spawnMul;
       spawnEnemy();
     }
   }
@@ -1618,6 +1703,7 @@ function update(dt) {
   player.vy = player.imy * spd;
   player.x = Math.max(player.r, Math.min(W - player.r, player.x + player.vx * dt));
   player.y = Math.max(player.r, Math.min(H - player.r, player.y + player.vy * dt));
+  if (barriers.length) resolveBarriers();
   if (player.iframes > 0) player.iframes -= dt;
 
   shoot(dt);
@@ -1656,6 +1742,7 @@ function update(dt) {
       bullets.splice(i, 1);
       continue;
     }
+    if (barriers.length && bulletHitsBarrier(b.x, b.y)) { bullets.splice(i, 1); continue; }
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
       if (e.spawning > 0) continue;
@@ -1819,6 +1906,11 @@ function draw() {
     if (settingsOpen) drawSettings();
     return;
   }
+  if (state === "levels") {
+    drawLevels();
+    if (settingsOpen) drawSettings();
+    return;
+  }
 
   // Everything in the arena clips to it — nothing renders in the letterbox.
   ctx.save();
@@ -1834,6 +1926,17 @@ function draw() {
     ctx.drawImage(drainSprite, d.x - d.r, d.y - d.r, d.r * 2, d.r * 2);
   }
   ctx.globalAlpha = 1;
+
+  // Barriers: solid crates the player & bullets can't pass (later levels).
+  for (const b of barriers) {
+    ctx.fillStyle = "#23232e";
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(b.x, b.y, b.w, 4); // top highlight
+    ctx.strokeStyle = "rgba(141,147,165,0.55)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+  }
 
   // Foods: bobbing emoji on a pulsing glow.
   for (const fd of foods) {
@@ -2042,6 +2145,7 @@ function draw() {
   }
 
   if (state === "gameover") drawGameOver();
+  if (state === "levelclear") drawLevelClear();
 
   // Joystick.
   if (state === "playing" && !settingsOpen) {
@@ -2288,7 +2392,7 @@ function drawMenu() {
   ctx.globalAlpha = 0.7 + 0.3 * Math.sin(performance.now() / 1000 * 3);
   ctx.fillStyle = settings.nom === "on" ? "#ffd24a" : "#e8e8f0";
   ctx.font = "22px " + COMIC_FONT;
-  ctx.fillText(settings.nom === "on" ? "🍴 tap to feed NOM" : "tap / space to start", W / 2, H * 0.68);
+  ctx.fillText(settings.nom === "on" ? "🍴 tap to feed NOM" : "tap to choose level", W / 2, H * 0.68);
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#5a5f70";
   ctx.font = "12px sans-serif";
@@ -2659,13 +2763,12 @@ function drawBoonPick() {
   ctx.font = "34px " + COMIC_FONT;
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 6;
-  const head = bossWasMain ? "LEVEL CLEAR!" : "BOSS DOWN!";
-  ctx.strokeText(head, W / 2, H * 0.3 - 64);
-  ctx.fillStyle = bossWasMain ? "#ffd24a" : "#7ddf8a";
-  ctx.fillText(head, W / 2, H * 0.3 - 64);
+  ctx.strokeText("BOSS DOWN!", W / 2, H * 0.3 - 64);
+  ctx.fillStyle = "#7ddf8a";
+  ctx.fillText("BOSS DOWN!", W / 2, H * 0.3 - 64);
   ctx.font = "16px " + COMIC_FONT;
   ctx.fillStyle = "#e8e8f0";
-  ctx.fillText(bossWasMain ? "pick a boon, then onward to the next level" : "pick a boon — it lasts the whole run", W / 2, H * 0.3 - 30);
+  ctx.fillText("pick a boon — it lasts this level", W / 2, H * 0.3 - 30);
 
   for (const r of boonLayout()) {
     const b = boonChoices[r.i];
@@ -2682,6 +2785,122 @@ function drawBoonPick() {
     ctx.fillStyle = "#cfd3de";
     ctx.fillText(b.desc, W / 2, r.y + 60);
   }
+}
+
+// ---------- Level select ----------
+// A level is playable only once unlocked (clear the previous one). The
+// frontier (last unfinished level) is highlighted as the resume point.
+function levelsLayout() {
+  const n = MAX_LEVEL, cols = 3, rows = Math.ceil(n / cols);
+  const gx = 16, gy = 16;
+  const tw = Math.min(96, (Math.min(W - 40, 420) - (cols - 1) * gx) / cols), th = tw;
+  const gridW = cols * tw + (cols - 1) * gx;
+  const x0 = (W - gridW) / 2, y0 = H * 0.32;
+  const rects = [];
+  for (let i = 0; i < n; i++) {
+    const c = i % cols, r = Math.floor(i / cols);
+    rects.push({ x: x0 + c * (tw + gx), y: y0 + r * (th + gy), w: tw, h: th, n: i + 1, key: "tile" });
+  }
+  const bw = 230, bh = 52, by = y0 + rows * (th + gy) + 22;
+  rects.push({ x: (W - bw) / 2, y: by, w: bw, h: bh, key: "play" });
+  return rects;
+}
+
+function levelsPress(p) {
+  const a = toArena(p);
+  for (const r of levelsLayout()) {
+    if (a.x < r.x || a.x > r.x + r.w || a.y < r.y || a.y > r.y + r.h) continue;
+    if (r.key === "play") { sfx.ui(); if (navigator.vibrate) navigator.vibrate(8); startLevel(unlockedLevel); return; }
+    if (r.n <= unlockedLevel) { sfx.ui(); if (navigator.vibrate) navigator.vibrate(8); startLevel(r.n); }
+    else sfx.ui(); // locked — no-op blip
+    return;
+  }
+}
+
+function drawLevels() {
+  const tnow = performance.now() / 1000;
+  for (const s of MENU_SPARKS) {
+    const sy = (((s.y0 - tnow * s.spd) % H) + H) % H;
+    ctx.globalAlpha = 0.18 + 0.14 * Math.sin(tnow * 2 + s.x);
+    ctx.drawImage(glowSprite(s.color), s.x - s.size, sy - s.size, s.size * 2, s.size * 2);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  ctx.font = "40px " + COMIC_FONT;
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 7;
+  ctx.strokeText("SELECT LEVEL", W / 2, H * 0.18);
+  ctx.fillStyle = "#ffb347";
+  ctx.fillText("SELECT LEVEL", W / 2, H * 0.18);
+  ctx.font = "13px sans-serif";
+  ctx.fillStyle = "#8d93a5";
+  ctx.fillText("clear a level to unlock the next", W / 2, H * 0.18 + 26);
+
+  for (const r of levelsLayout()) {
+    if (r.key === "play") {
+      ctx.globalAlpha = 0.9 + 0.1 * Math.sin(tnow * 3);
+      ctx.fillStyle = "#ffb347";
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#14141c";
+      ctx.font = "24px " + COMIC_FONT;
+      ctx.textAlign = "center";
+      ctx.fillText((unlockedLevel > 1 ? "RESUME — L" : "PLAY — L") + unlockedLevel, r.x + r.w / 2, r.y + r.h / 2 + 9);
+      continue;
+    }
+    const unlocked = r.n <= unlockedLevel;
+    const cleared = r.n < unlockedLevel;
+    const frontier = r.n === unlockedLevel;
+    ctx.fillStyle = unlocked ? "rgba(255,179,71,0.14)" : "rgba(255,255,255,0.04)";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.lineWidth = frontier ? 3 : 2;
+    ctx.strokeStyle = frontier ? "rgba(255,179,71," + (0.6 + 0.4 * Math.sin(tnow * 4)) + ")" : unlocked ? "rgba(255,179,71,0.5)" : "rgba(120,126,150,0.3)";
+    ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+    ctx.textAlign = "center";
+    ctx.font = "30px " + COMIC_FONT;
+    ctx.fillStyle = unlocked ? "#ffd24a" : "#5a5f70";
+    ctx.fillText(r.n, r.x + r.w / 2, r.y + r.h / 2 + 4);
+    ctx.font = "16px sans-serif";
+    if (cleared) { ctx.fillStyle = "#7ddf8a"; ctx.fillText("✓", r.x + r.w / 2, r.y + r.h - 12); }
+    else if (!unlocked) { ctx.fillStyle = "#5a5f70"; ctx.fillText("🔒", r.x + r.w / 2, r.y + r.h - 11); }
+    else if (frontier) { ctx.fillStyle = "#ffb347"; ctx.font = "10px sans-serif"; ctx.fillText("NEXT", r.x + r.w / 2, r.y + r.h - 12); }
+  }
+  drawGear();
+}
+
+// ---------- Level clear ----------
+function drawLevelClear() {
+  ctx.fillStyle = "rgba(10, 10, 16, 0.85)";
+  ctx.fillRect(0, 0, W, H);
+  const tnow = performance.now() / 1000;
+  ctx.save();
+  ctx.translate(W / 2, H * 0.37);
+  ctx.rotate(-0.03);
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  ctx.font = "46px " + COMIC_FONT;
+  const grad = ctx.createLinearGradient(0, -40, 0, 12);
+  grad.addColorStop(0, "#ffe9a0");
+  grad.addColorStop(0.6, "#ffd24a");
+  grad.addColorStop(1, "#ff9c2c");
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 8;
+  ctx.strokeText("LEVEL " + level + " CLEAR!", 0, 0);
+  ctx.fillStyle = grad;
+  ctx.fillText("LEVEL " + level + " CLEAR!", 0, 0);
+  ctx.restore();
+
+  ctx.textAlign = "center";
+  ctx.font = "16px " + COMIC_FONT;
+  ctx.fillStyle = "#e8e8f0";
+  ctx.fillText(level < MAX_LEVEL ? "LEVEL " + (level + 1) + " UNLOCKED!" : "you cleared the final level!", W / 2, H * 0.46);
+  ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tnow * 3);
+  ctx.fillStyle = "#ffb347";
+  ctx.font = "22px " + COMIC_FONT;
+  ctx.fillText("tap to continue", W / 2, H * 0.56);
+  ctx.globalAlpha = 1;
 }
 
 function drawGameOver() {
@@ -2773,6 +2992,12 @@ window.__mr = {
   get config() { return CONFIG; }, // live-tunable: __mr.config.waveLength = 15
   get bossFight() { return bossFight; },
   get level() { return level; },
+  get unlocked() { return unlockedLevel; },
+  get barriers() { return barriers; },
+  // Testing: jump to a level (ignores the unlock gate). __mr.goLevel(3)
+  goLevel(n) { unlockedLevel = Math.max(unlockedLevel, Math.min(MAX_LEVEL, n)); saveProgress(); startLevel(n); },
+  // Testing: wipe progress back to level 1 only.
+  resetProgress() { unlockedLevel = 1; startLevelNum = 1; saveProgress(); state = "menu"; },
   // Testing: jump straight into a boss fight (skips the wave grind).
   // __mr.bossNow() = mini-boss · __mr.bossNow(true) = wave-8 main boss.
   bossNow(main) { if (state === "playing" && !nomMode) { wave = main ? CONFIG.boss.mainWave : CONFIG.boss.wave; enemies.length = 0; bossFight = false; startBossFight(!!main); } },

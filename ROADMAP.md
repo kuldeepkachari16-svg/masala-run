@@ -11,6 +11,7 @@ GitHub + Pages deploy, mobile viewport/joystick/speed fixes.
 1. ~~Procedural sound (eat/fusion/hit/kill/death) + mute button~~ ✅ 2026-06-12
 2. ~~Wave-5 mini-boss — runs get a milestone, not just death~~ ✅ 2026-06-12 (THE BLANDFATHER + 1-of-3 boon pick)
    - ~~Level structure (8 waves) + wave-8 main boss + level loop~~ ✅ 2026-06-13 (THE BLAND MAHARAJA; clear → next level, same content for now — **new-level design is TBD, see Phase 2 item 8**)
+   - ~~Level-select hub + unlock progression + persistence + fresh-setup-per-level + per-level difficulty (enemies/barriers, config-driven)~~ ✅ 2026-06-13. **FOCUS: Level 1 is the complete, testable level for playtest round 1.** Levels 2-6 exist as provision (same content, marginally harder). New distinct-level *content* design is still TBD (Phase 2 item 8)
 3. ~~Second enemy type (fast swarmer) — forces flavor switching~~ ✅ 2026-06-12 (+ CONFIG block: all tuning centralized, scaling capped at wave 5)
 4. ~~PWA manifest + icon — home-screen install, offline play~~ ✅ 2026-06-12
 5. Playtest round 1: 3–5 friends. Questions: figured out eat-to-attack
