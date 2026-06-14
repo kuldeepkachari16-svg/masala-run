@@ -72,7 +72,7 @@ function coverDraw(g, img, w, h) {
 // Per-level backdrops (portrait masters). Levels not listed fall back to the
 // procedural drawStreet — as does landscape (no landscape art yet) and the
 // gap before an image loads. Menu uses level 1's art.
-const LEVEL_BG_SRC = { 1: "assets/bg-street.jpg", 2: "assets/bg-street-2.jpg" };
+const LEVEL_BG_SRC = { 1: "assets/bg-street.jpg", 2: "assets/bg-street-2.jpg", 3: "assets/bg-street-3.jpg", 4: "assets/bg-street-4.jpg" };
 const bgImgs = {};
 for (const n in LEVEL_BG_SRC) {
   const im = new Image();
