@@ -327,6 +327,10 @@ const SAVORY_PULSE_RADIUS = 130;
 const CONFIG = {
   waveLength: 14,      // seconds per wave (tuned for "one more go": L1 ≈ 2.5 min)
   breather: 2.5,       // pause between waves
+  bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
+  // Solid stall walls down each side (fraction of W per side). The painted
+  // shops become impassable; player + Bland stay in the open center lane.
+  edgeWalls: { on: true, w: 0.15 },
   scalingCapWave: 5,   // enemy stats & spawn rate stop growing here —
                        // later waves get harder via enemy MIX, not stat sponges
   spawnBase: 0.9,      // spawn interval curve: base - wave*perWave, floored
@@ -341,16 +345,18 @@ const CONFIG = {
   wavesPerLevel: 8,
   // Per-level difficulty (marginal step-up). TWO levers, both config-driven:
   //  1) enemies — hpMul / spdMul / spawnMul (spawnMul < 1 = faster spawns)
-  //  2) barriers — static blocks in the arena (fractions of W×H, top-left x/y)
-  // FOCUS: Level 1 is the clean, fully-testable level (no barriers). Later
-  // levels exist as provision — same 8-wave content, nudged harder.
+  //  2) barriers — EXTRA static blocks beyond the side stall-walls (which all
+  //     levels get automatically via CONFIG.edgeWalls). Fractions of W×H,
+  //     top-left x/y. Left empty: "solid edges only" — open center lane.
+  // FOCUS: Level 1 is the clean, fully-testable level. Later levels exist as
+  // provision — same 8-wave content, nudged harder.
   levels: [
     { hpMul: 1.00, spdMul: 1.00, spawnMul: 1.00, barriers: [] },
     { hpMul: 1.08, spdMul: 1.05, spawnMul: 0.94, barriers: [] },
-    { hpMul: 1.16, spdMul: 1.10, spawnMul: 0.90, barriers: [ { x: 0.30, y: 0.42, w: 0.12, h: 0.12 }, { x: 0.58, y: 0.42, w: 0.12, h: 0.12 } ] },
-    { hpMul: 1.24, spdMul: 1.14, spawnMul: 0.86, barriers: [ { x: 0.18, y: 0.30, w: 0.14, h: 0.10 }, { x: 0.68, y: 0.58, w: 0.14, h: 0.10 } ] },
-    { hpMul: 1.32, spdMul: 1.18, spawnMul: 0.83, barriers: [ { x: 0.42, y: 0.28, w: 0.16, h: 0.10 }, { x: 0.42, y: 0.62, w: 0.16, h: 0.10 } ] },
-    { hpMul: 1.40, spdMul: 1.22, spawnMul: 0.80, barriers: [ { x: 0.20, y: 0.45, w: 0.12, h: 0.12 }, { x: 0.44, y: 0.45, w: 0.12, h: 0.12 }, { x: 0.68, y: 0.45, w: 0.12, h: 0.12 } ] },
+    { hpMul: 1.16, spdMul: 1.10, spawnMul: 0.90, barriers: [] },
+    { hpMul: 1.24, spdMul: 1.14, spawnMul: 0.86, barriers: [] },
+    { hpMul: 1.32, spdMul: 1.18, spawnMul: 0.83, barriers: [] },
+    { hpMul: 1.40, spdMul: 1.22, spawnMul: 0.80, barriers: [] },
   ],
   enemies: {
     bland: {
@@ -433,9 +439,11 @@ let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
 let hitFlash, shake, fusionFlash;
 let gapT; // breather countdown between waves
+let endingLevel; // true while the main boss plays its defeat beat (pauses spawns)
 let bossFight, bossFoodT, bossFoodEvery; // boss wave: spawns + wave timer pause
 let level;       // level currently being played (1-based)
 let barriers = []; // active barrier rects (pixels) for the current level
+let showBarriers = false; // debug: draw collision rects to author them over the BG art
 let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
@@ -482,6 +490,7 @@ function reset() {
   bossFight = false;
   bossFoodT = 0;
   level = nomMode ? 1 : startLevelNum; // play the chosen / resumed level
+  endingLevel = false;
   buildBackdrop(); // per-level backdrop may differ from the previous level
   buildBarriers();
   lastBossWave = 0;
@@ -541,29 +550,42 @@ function buildBarriers() {
   if (!level || nomMode) { barriers = []; return; }
   const defs = lvl().barriers || [];
   barriers = defs.map((b) => ({ x: b.x * W, y: b.y * H, w: b.w * W, h: b.h * H }));
+  // Solid stall walls down each side — keeps player + Bland in the open lane,
+  // so the painted shops read as impassable.
+  const ew = CONFIG.edgeWalls;
+  if (ew && ew.on) {
+    const ww = ew.w * W;
+    barriers.unshift({ x: 0, y: 0, w: ww, h: H }, { x: W - ww, y: 0, w: ww, h: H });
+  }
 }
-// Push the player circle out of any barrier it overlaps. Barriers block the
-// player and bullets; the Bland are ethereal and drift through them.
-function resolveBarriers() {
+// Left/right inset of the open lane (0 when edge walls are off).
+function laneMargin() {
+  const ew = CONFIG.edgeWalls;
+  return (ew && ew.on && level && !nomMode) ? ew.w * W : 0;
+}
+// Push a circle entity (player OR an enemy) out of any barrier it overlaps —
+// circle-vs-AABB with sliding, so they round small obstacles instead of
+// sticking. Barriers are solid for everyone now; bullets are blocked too.
+function resolveBarriers(o) {
   for (const b of barriers) {
-    const cx = Math.max(b.x, Math.min(player.x, b.x + b.w));
-    const cy = Math.max(b.y, Math.min(player.y, b.y + b.h));
-    const dx = player.x - cx, dy = player.y - cy;
+    const cx = Math.max(b.x, Math.min(o.x, b.x + b.w));
+    const cy = Math.max(b.y, Math.min(o.y, b.y + b.h));
+    const dx = o.x - cx, dy = o.y - cy;
     const d2 = dx * dx + dy * dy;
-    if (d2 >= player.r * player.r) continue;
+    if (d2 >= o.r * o.r) continue;
     const d = Math.sqrt(d2);
     if (d < 0.0001) { // center inside the rect → eject along the nearest edge
-      const left = player.x - b.x, right = b.x + b.w - player.x;
-      const top = player.y - b.y, bot = b.y + b.h - player.y;
+      const left = o.x - b.x, right = b.x + b.w - o.x;
+      const top = o.y - b.y, bot = b.y + b.h - o.y;
       const m = Math.min(left, right, top, bot);
-      if (m === left) player.x = b.x - player.r;
-      else if (m === right) player.x = b.x + b.w + player.r;
-      else if (m === top) player.y = b.y - player.r;
-      else player.y = b.y + b.h + player.r;
+      if (m === left) o.x = b.x - o.r;
+      else if (m === right) o.x = b.x + b.w + o.r;
+      else if (m === top) o.y = b.y - o.r;
+      else o.y = b.y + b.h + o.r;
     } else {
-      const push = player.r - d;
-      player.x += (dx / d) * push;
-      player.y += (dy / d) * push;
+      const push = o.r - d;
+      o.x += (dx / d) * push;
+      o.y += (dy / d) * push;
     }
   }
 }
@@ -1151,12 +1173,14 @@ function burst(x, y, color, n, speed) {
 function effWave() { return Math.min(wave, CONFIG.scalingCapWave); }
 
 function spawnPoint(r) {
-  // ON the arena edge (never in the letterbox).
+  // In the open lane (never inside the side stall-walls or the letterbox).
+  const m = laneMargin();
+  const x0 = m + r, x1 = W - m - r;
   const side = Math.floor(Math.random() * 4);
-  if (side === 0) return { x: r + Math.random() * (W - 2 * r), y: r };
-  if (side === 1) return { x: r + Math.random() * (W - 2 * r), y: H - r };
-  if (side === 2) return { x: r, y: r + Math.random() * (H - 2 * r) };
-  return { x: W - r, y: r + Math.random() * (H - 2 * r) };
+  if (side === 0) return { x: x0 + Math.random() * (x1 - x0), y: r };
+  if (side === 1) return { x: x0 + Math.random() * (x1 - x0), y: H - r };
+  if (side === 2) return { x: x0, y: r + Math.random() * (H - 2 * r) };
+  return { x: x1, y: r + Math.random() * (H - 2 * r) };
 }
 
 function makeEnemy(type, x, y) {
@@ -1423,25 +1447,34 @@ function killEnemy(j) {
   }
   if (e.boss) {
     bossFight = false;
+    if (e.main) {
+      // Finale: don't vanish on the killing blow. Hold the moment — the boss
+      // slumps in a "defeated" state with a callout, then the update loop runs
+      // out e.defeatT and triggers LEVEL CLEAR (no boon — fresh setup next).
+      e.defeated = true;
+      e.defeatT = CONFIG.bossDefeat;
+      e.flash = 0;
+      e.cvx = e.cvy = 0;
+      endingLevel = true; // stop regular spawns during the victory beat
+      burst(e.x, e.y, "#ff8c3c", 50, 230);
+      shake = 0.65; hitStop = 0.16; fusionFlash = 0.4;
+      announce("MAHARAJA DEFEATED!", "#ff8c3c", 28);
+      sfx.bossDown();
+      return;
+    }
+    // Mini-boss: instant down → pick 1 of 3 boons (lasts the rest of THIS level).
     enemies.splice(j, 1);
-    burst(e.x, e.y, e.main ? "#ff8c3c" : "#8d93a5", e.main ? 40 : 26, e.main ? 200 : 170);
+    burst(e.x, e.y, "#8d93a5", 26, 170);
     dying.push({ x: e.x, y: e.y, r: e.r, life: 0.4 });
     const drops = e.deathDrops || 2;
     for (let i = 0; i < drops; i++) {
       const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
       foods.push({ x: e.x + (i - (drops - 1) / 2) * 34, y: e.y, r: 11, type: t, life: CONFIG.foodLife });
     }
-    shake = e.main ? 0.55 : 0.45;
-    hitStop = 0.12;
-    fusionFlash = e.main ? 0.3 : 0.2;
+    shake = 0.45; hitStop = 0.12; fusionFlash = 0.2;
     sfx.bossDown();
-    if (e.main) {
-      clearLevel(); // finale: no boon — every level starts with a fresh setup
-    } else {
-      // Mini-boss reward: pick 1 of 3 boons (lasts the rest of THIS level only).
-      const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
-      boonChoices = pool.slice(0, 3);
-    }
+    const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
+    boonChoices = pool.slice(0, 3);
     return;
   }
   sfx.kill();
@@ -1450,6 +1483,39 @@ function killEnemy(j) {
   dropFood(e.x, e.y, e.type);
   enemies.splice(j, 1);
   chargeSlam();
+}
+
+// Light separation so a flock doesn't collapse into one overlapping pile
+// (which read as a single Bland that "vanishes & reappears" when you peel the
+// top one off). Eases pairs apart over a few frames; bosses hold their ground.
+function separateEnemies() {
+  const n = enemies.length;
+  if (n < 2) return;
+  for (let i = 0; i < n; i++) {
+    const a = enemies[i];
+    if (a.spawning > 0 || a.boss || a.defeated || a.type === "coin") continue;
+    for (let j = i + 1; j < n; j++) {
+      const b = enemies[j];
+      if (b.spawning > 0 || b.boss || b.defeated || b.type === "coin") continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const min = (a.r + b.r) * 0.85; // allow a little overlap, never a full stack
+      const d2v = dx * dx + dy * dy;
+      if (d2v < min * min) {
+        let d = Math.sqrt(d2v), ux, uy;
+        if (d < 0.01) { const ra = Math.random() * Math.PI * 2; ux = Math.cos(ra); uy = Math.sin(ra); d = 0; }
+        else { ux = dx / d; uy = dy / d; }
+        const push = (min - d) * 0.25; // gentle — settles over a few frames
+        a.x -= ux * push; a.y -= uy * push;
+        b.x += ux * push; b.y += uy * push;
+      }
+    }
+  }
+  for (const e of enemies) {
+    if (e.boss || e.spawning > 0) continue;
+    if (barriers.length) resolveBarriers(e); // obstacles are solid for the Bland too
+    e.x = Math.max(e.r, Math.min(W - e.r, e.x));
+    e.y = Math.max(e.r, Math.min(H - e.r, e.y));
+  }
 }
 
 // ---------- Powers ----------
@@ -1672,7 +1738,7 @@ function update(dt) {
 
   // Spawning accelerates with waves until the cap.
   // Paused during the breather AND the boss fight (the boss comes alone).
-  if (gapT <= 0 && !bossFight) {
+  if (gapT <= 0 && !bossFight && !endingLevel) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
       // Ease the first wave(s) after a boss: slower spawns than the cap.
@@ -1688,8 +1754,10 @@ function update(dt) {
     if (bossFoodT <= 0) {
       bossFoodT = bossFoodEvery;
       const t = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+      const fm = laneMargin();
+      const fx0 = Math.max(60, fm + 20), fx1 = Math.min(W - 60, W - fm - 20);
       foods.push({
-        x: 60 + Math.random() * (W - 120),
+        x: fx0 + Math.random() * (fx1 - fx0),
         y: H * 0.3 + Math.random() * H * 0.4,
         r: 11, type: t, life: CONFIG.foodLife,
       });
@@ -1739,8 +1807,22 @@ function update(dt) {
   player.vy = player.imy * spd;
   player.x = Math.max(player.r, Math.min(W - player.r, player.x + player.vx * dt));
   player.y = Math.max(player.r, Math.min(H - player.r, player.y + player.vy * dt));
-  if (barriers.length) resolveBarriers();
+  if (barriers.length) resolveBarriers(player);
   if (player.iframes > 0) player.iframes -= dt;
+
+  // Motion trail: small flavor-tinted dust puffs lag behind while moving, so
+  // movement reads as kinetic instead of a sprite sliding on glass.
+  if (player.moving) {
+    player.trailT = (player.trailT || 0) - dt;
+    if (player.trailT <= 0) {
+      player.trailT = 0.03;
+      particles.push({
+        x: player.x, y: player.y + player.r * 0.5,
+        vx: -player.vx * 0.05, vy: -player.vy * 0.05,
+        life: 0.32, color: FLAVORS[flavor].color, r: 2 + Math.random() * 1.8,
+      });
+    }
+  }
 
   shoot(dt);
 
@@ -1781,7 +1863,7 @@ function update(dt) {
     if (barriers.length && bulletHitsBarrier(b.x, b.y)) { bullets.splice(i, 1); continue; }
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
-      if (e.spawning > 0) continue;
+      if (e.spawning > 0 || e.defeated) continue;
       const rr = b.r + e.r;
       if (dist2(b, e) < rr * rr) {
         e.hp -= b.damage;
@@ -1794,8 +1876,18 @@ function update(dt) {
   }
 
   // Enemies chase player (once fully emerged).
+  let levelDone = false;
   for (const e of enemies) {
     if (e.spawning > 0) { e.spawning -= dt; continue; }
+    if (e.defeated) {
+      // Defeated main boss: slump + smoke, harmless, until the beat runs out.
+      e.defeatT -= dt;
+      e.wobble += dt * 2;
+      e.r = Math.max(e.r * 0.6, e.r - dt * 10);
+      if (Math.random() < 0.45) burst(e.x + (Math.random() - 0.5) * e.r * 1.6, e.y + (Math.random() - 0.5) * e.r * 1.6, "#8d93a5", 1, 80);
+      if (e.defeatT <= 0) levelDone = true;
+      continue;
+    }
     e.wobble += dt * 6;
     if (e.flash > 0) e.flash -= dt;
     // MASALA RUSH freezes regular Bland in place (they still take damage).
@@ -1872,6 +1964,8 @@ function update(dt) {
       }
     }
   }
+  separateEnemies(); // spread the flock so kills don't reveal a stacked Bland
+  if (levelDone) { enemies.length = 0; clearLevel(); } // boss defeat beat over
 
   // Foods: despawn timer + pickup.
   for (let i = foods.length - 1; i >= 0; i--) {
@@ -1964,14 +2058,17 @@ function draw() {
   ctx.globalAlpha = 1;
 
   // Barriers: solid crates the player & bullets can't pass (later levels).
-  for (const b of barriers) {
-    ctx.fillStyle = "#23232e";
-    ctx.fillRect(b.x, b.y, b.w, b.h);
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
-    ctx.fillRect(b.x, b.y, b.w, 4); // top highlight
-    ctx.strokeStyle = "rgba(141,147,165,0.55)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+  // Barriers are invisible in play — the painted BG item IS the obstacle.
+  // __mr.showBarriers = true overlays the collision rects for authoring them
+  // against each background's art.
+  if (showBarriers) {
+    for (const b of barriers) {
+      ctx.fillStyle = "rgba(255,80,80,0.22)";
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeStyle = "rgba(255,80,80,0.9)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+    }
   }
 
   // Foods: bobbing emoji on a pulsing glow.
@@ -2004,17 +2101,18 @@ function draw() {
   // Enemies — the Bland: grey, desaturated blobs.
   for (const e of enemies) {
     if (e.spawning > 0) {
-      // Emerging telegraph: a closing ring + materializing blob.
+      // Emerging telegraph: a closing ring + materializing blob. Kept clearly
+      // visible (even on dark backdrops) so a spawn never reads as a flicker.
       const p = 1 - e.spawning / e.spawnDur;
-      ctx.strokeStyle = "rgba(140, 146, 165, " + (0.3 + p * 0.5) + ")";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(150, 156, 175, " + (0.5 + p * 0.45) + ")";
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(e.x, e.y, e.r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
       ctx.stroke();
-      ctx.globalAlpha = 0.4 * p;
+      ctx.globalAlpha = 0.45 + 0.45 * p; // 0.45 → 0.9, always legible
       ctx.fillStyle = "#6e7280";
       ctx.beginPath();
-      ctx.arc(e.x, e.y, e.r * p, 0, Math.PI * 2);
+      ctx.arc(e.x, e.y, e.r * (0.55 + 0.45 * p), 0, Math.PI * 2); // starts half-size
       ctx.fill();
       ctx.globalAlpha = 1;
       continue;
@@ -2663,6 +2761,7 @@ function drawSettingsStickPreview(fx) {
 // The Blandfather: a big bland with a crown. Vibrates during the charge
 // windup (the tell); orange outline during recovery (the weak window).
 function drawBoss(e) {
+  if (e.defeated) { drawBossDefeated(e); return; }
   const windup = e.bossState === "windup";
   const jx = windup ? (Math.random() - 0.5) * 5 : 0;
   const jy = windup ? (Math.random() - 0.5) * 5 : 0;
@@ -2714,6 +2813,58 @@ function drawBoss(e) {
   ctx.beginPath();
   ctx.arc(x, y + 15, 7, Math.PI * 1.1, Math.PI * 1.9);
   ctx.stroke();
+}
+
+// Defeated main boss: greyed-out, tilted slump with X eyes and a toppling
+// crown. Fades over the final stretch of the defeat beat.
+function drawBossDefeated(e) {
+  const x = e.x, y = e.y;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, e.defeatT / 0.6); // fade out near the end
+  ctx.translate(x, y);
+  ctx.rotate(0.35); // slumped to one side
+  // Body — drained grey.
+  ctx.fillStyle = "#4a4650";
+  ctx.beginPath();
+  for (let i = 0; i < 14; i++) {
+    const ang = (i / 14) * Math.PI * 2;
+    const wob = 1 + Math.sin(e.wobble + i * 1.8) * 0.05;
+    const px = Math.cos(ang) * e.r * wob;
+    const py = Math.sin(ang) * e.r * wob * 0.95;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(20, 20, 28, 0.6)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  // Toppling gold crown, sliding off.
+  ctx.fillStyle = "#ffd24a";
+  ctx.beginPath();
+  ctx.moveTo(-16, -e.r - 2);
+  ctx.lineTo(-12, -e.r - 18);
+  ctx.lineTo(-6, -e.r - 5);
+  ctx.lineTo(0, -e.r - 21);
+  ctx.lineTo(6, -e.r - 5);
+  ctx.lineTo(12, -e.r - 18);
+  ctx.lineTo(16, -e.r - 2);
+  ctx.closePath();
+  ctx.fill();
+  // X-X eyes.
+  ctx.strokeStyle = "#14141c";
+  ctx.lineWidth = 2.5;
+  for (const ex of [-8, 8]) {
+    ctx.beginPath();
+    ctx.moveTo(ex - 3, -4); ctx.lineTo(ex + 3, 2);
+    ctx.moveTo(ex + 3, -4); ctx.lineTo(ex - 3, 2);
+    ctx.stroke();
+  }
+  // Wavy dazed mouth.
+  ctx.beginPath();
+  ctx.moveTo(-7, 11);
+  ctx.lineTo(-3, 8); ctx.lineTo(1, 11); ctx.lineTo(5, 8); ctx.lineTo(8, 11);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // NOM (easter egg boss): a big dark blob that is mostly a giant gaping mouth.
@@ -3030,6 +3181,9 @@ window.__mr = {
   get level() { return level; },
   get unlocked() { return unlockedLevel; },
   get barriers() { return barriers; },
+  // Authoring: overlay collision rects on the BG to align them to the art.
+  get showBarriers() { return showBarriers; },
+  set showBarriers(v) { showBarriers = !!v; },
   // Testing: jump to a level (ignores the unlock gate). __mr.goLevel(3)
   goLevel(n) { unlockedLevel = Math.max(unlockedLevel, Math.min(MAX_LEVEL, n)); saveProgress(); startLevel(n); },
   // Testing: wipe progress back to level 1 only.
