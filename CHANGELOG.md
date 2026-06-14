@@ -1,5 +1,10 @@
 # Masala Run — Changelog
 
+## 2026-06-14 — code-review fixes
+- **Bugfix (main path): a win could flip to a loss.** Enemies the Maharaja summons (and stragglers) stayed lethal during the 1.9s defeat beat — a contact hit after the boss died sent you to GAME OVER instead of LEVEL CLEAR. The player is now invulnerable for the duration of the beat (`endingLevel` guard on contact damage). Verified: straggler on top of the player deals 0 damage, run ends in LEVEL CLEAR.
+- **Bugfix (NOM mode): toll-coins never despawned.** The enemy-separation clamp was pinning every non-boss entity inside the arena, so coins couldn't drift off-screen to despawn (and the giant NOM boss got jostled). Separation/clamp now skips `coin` and `nom`. Verified: coin drifts past the edge.
+- Polish: `nearestEnemy()` skips the defeated boss (player no longer auto-fires at the corpse); `buildBackdrop` computes `levelBg()` once; corrected the menu-backdrop comment.
+
 ## 2026-06-14 — solid stall walls (light "realism")
 - **Side stalls are now impassable.** Each level gets invisible **edge walls** (`CONFIG.edgeWalls`, 15% of width per side) so the player AND the Bland can't walk into the painted shops — the open center lane is the playfield. Realistic, aligns across phone sizes, no pathfinding needed.
 - Generalized barrier collision to **all enemies** (`resolveBarriers(entity)`, circle-vs-AABB with sliding) — obstacles are solid for the Bland now, not just the player. Bosses excluded (hold their ground).

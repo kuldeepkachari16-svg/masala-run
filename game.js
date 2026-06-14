@@ -71,7 +71,8 @@ function coverDraw(g, img, w, h) {
 
 // Per-level backdrops (portrait masters). Levels not listed fall back to the
 // procedural drawStreet — as does landscape (no landscape art yet) and the
-// gap before an image loads. Menu uses level 1's art.
+// gap before an image loads. Before any level is played the menu shows level
+// 1's art; afterwards it keeps the last-played level's until the next loads.
 const LEVEL_BG_SRC = { 1: "assets/bg-street.jpg", 2: "assets/bg-street-2.jpg", 3: "assets/bg-street-3.jpg", 4: "assets/bg-street-4.jpg" };
 const bgImgs = {};
 for (const n in LEVEL_BG_SRC) {
@@ -170,14 +171,15 @@ function drawStreet(g, w, h) {
 // street is rotated 90° — footpaths land on the top/bottom edges.
 function buildBackdrop() {
   bgCanvas = makeSprite(W, H, (g) => {
+    const bg = W > H ? null : levelBg();
     if (W > H) {
       // Landscape: rotated procedural street (no landscape art yet).
       g.translate(W, 0);
       g.rotate(Math.PI / 2);
       drawStreet(g, H, W);
-    } else if (levelBg()) {
+    } else if (bg) {
       // Portrait: per-level backdrop master, cover-fit.
-      coverDraw(g, levelBg(), W, H);
+      coverDraw(g, bg, W, H);
     } else {
       drawStreet(g, W, H);
     }
@@ -1404,7 +1406,7 @@ function fuse(a, b) {
 function nearestEnemy() {
   let best = null, bd = Infinity;
   for (const e of enemies) {
-    if (e.spawning > 0) continue;
+    if (e.spawning > 0 || e.defeated) continue;
     const d = dist2(player, e);
     if (d < bd) { bd = d; best = e; }
   }
@@ -1493,10 +1495,10 @@ function separateEnemies() {
   if (n < 2) return;
   for (let i = 0; i < n; i++) {
     const a = enemies[i];
-    if (a.spawning > 0 || a.boss || a.defeated || a.type === "coin") continue;
+    if (a.spawning > 0 || a.boss || a.defeated || a.type === "coin" || a.type === "nom") continue;
     for (let j = i + 1; j < n; j++) {
       const b = enemies[j];
-      if (b.spawning > 0 || b.boss || b.defeated || b.type === "coin") continue;
+      if (b.spawning > 0 || b.boss || b.defeated || b.type === "coin" || b.type === "nom") continue;
       const dx = b.x - a.x, dy = b.y - a.y;
       const min = (a.r + b.r) * 0.85; // allow a little overlap, never a full stack
       const d2v = dx * dx + dy * dy;
@@ -1511,7 +1513,9 @@ function separateEnemies() {
     }
   }
   for (const e of enemies) {
-    if (e.boss || e.spawning > 0) continue;
+    // Skip bosses + NOM entities; coins must stay free to drift off-screen
+    // (their despawn depends on it), so never clamp them.
+    if (e.boss || e.spawning > 0 || e.type === "coin" || e.type === "nom") continue;
     if (barriers.length) resolveBarriers(e); // obstacles are solid for the Bland too
     e.x = Math.max(e.r, Math.min(W - e.r, e.x));
     e.y = Math.max(e.r, Math.min(H - e.r, e.y));
@@ -1938,7 +1942,7 @@ function update(dt) {
     }
 
     const rr = e.r + player.r;
-    if (!e.harmless && player.iframes <= 0 && dist2(e, player) < rr * rr) {
+    if (!e.harmless && !endingLevel && player.iframes <= 0 && dist2(e, player) < rr * rr) {
       if (player.shield > 0) {
         // Savory shield absorbs the hit.
         player.shield = 0;
