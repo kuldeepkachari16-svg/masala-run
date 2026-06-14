@@ -2,13 +2,15 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v1";
+const CACHE = "masala-run-v3";
 const ASSETS = [
   "./",
   "index.html",
   "game.js",
   "manifest.json",
   "fonts/bangers.woff2",
+  "assets/bg-street.jpg",
+  "assets/bg-street-2.jpg",
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",

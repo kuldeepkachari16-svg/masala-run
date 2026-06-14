@@ -62,6 +62,29 @@ function makeSprite(w, h, drawFn) {
   return c;
 }
 
+// Draw an image to fill w×h, preserving aspect (center-crop the overflow).
+function coverDraw(g, img, w, h) {
+  const s = Math.max(w / img.width, h / img.height);
+  const dw = img.width * s, dh = img.height * s;
+  g.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+}
+
+// Per-level backdrops (portrait masters). Levels not listed fall back to the
+// procedural drawStreet — as does landscape (no landscape art yet) and the
+// gap before an image loads. Menu uses level 1's art.
+const LEVEL_BG_SRC = { 1: "assets/bg-street.jpg", 2: "assets/bg-street-2.jpg" };
+const bgImgs = {};
+for (const n in LEVEL_BG_SRC) {
+  const im = new Image();
+  im.onload = () => { if (bgCanvas) buildBackdrop(); };
+  im.src = LEVEL_BG_SRC[n];
+  bgImgs[n] = im;
+}
+function levelBg() {
+  const im = bgImgs[level || 1];
+  return im && im.complete && im.naturalWidth ? im : null;
+}
+
 // Soft glow blobs, cached per color — used for bullets and food halos.
 const glowCache = {};
 function glowSprite(color) {
@@ -148,10 +171,16 @@ function drawStreet(g, w, h) {
 function buildBackdrop() {
   bgCanvas = makeSprite(W, H, (g) => {
     if (W > H) {
+      // Landscape: rotated procedural street (no landscape art yet).
       g.translate(W, 0);
       g.rotate(Math.PI / 2);
+      drawStreet(g, H, W);
+    } else if (levelBg()) {
+      // Portrait: per-level backdrop master, cover-fit.
+      coverDraw(g, levelBg(), W, H);
+    } else {
+      drawStreet(g, W, H);
     }
-    drawStreet(g, Math.min(W, H), Math.max(W, H));
   });
   vignette = makeSprite(W, H, (g) => {
     const grad = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.72);
@@ -453,6 +482,7 @@ function reset() {
   bossFight = false;
   bossFoodT = 0;
   level = nomMode ? 1 : startLevelNum; // play the chosen / resumed level
+  buildBackdrop(); // per-level backdrop may differ from the previous level
   buildBarriers();
   lastBossWave = 0;
   boonChoices = null;
