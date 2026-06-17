@@ -343,6 +343,12 @@ const CONFIG = {
   // small drag = a gentle walk and speed ramps to full near the edge. Makes
   // the stick feel "analog/connected" instead of on-off. Live-tune: __mr.config.stickCurve
   stickCurve: 1.6,
+  // How fast the integrated frame-delta (dt) tracks the real frame interval.
+  // Position moves by vx·dt; if dt lags reality (low value) under variable
+  // framerate, the character rubber-bands ahead of your finger = "floaty".
+  // 1 = raw clamped dt (tightest, may micro-stutter on dropped frames);
+  // lower = smoother dt but floatier. Live-tune: __mr.config.dtTrack
+  dtTrack: 0.5,
   // Re-entry ease: the wave(s) after a boss come in softer, not at full
   // capped intensity right after the calm duel. easeWaves:2 keeps BOTH waves
   // 6 & 7 (after the wave-5 mini-boss) gentle — this is the first level.
@@ -533,7 +539,10 @@ const OPTIONS = {
   nom: ["off", "on"], // TEMP easter-egg toggle — start() routes into NOM MODE
 };
 const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", power: "power trigger", music: "music", fps: "show fps", nom: "NOM mode 🍴" };
-const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "medium", smooth: "low", power: "manual", music: "on", fps: "off", nom: "off" };
+// Joystick defaults reflect playtested best-feel: fixed stick (visible neutral,
+// no drifting-origin float), smoothing off (direct, no slide), medium sens
+// (analog ramp window). See the joystick-feel work in CHANGELOG.
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "fixed", side: "left", size: "medium", sens: "medium", smooth: "off", power: "manual", music: "on", fps: "off", nom: "off" };
 
 // Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
 const DIFFICULTY = {
@@ -1064,6 +1073,12 @@ canvas.addEventListener("touchstart", (e) => {
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   if (!joy) return;
+  // Phantom-stick guard: if our finger vanished from the active set without a
+  // clean touchend (slid off-screen / system gesture ate it), drop the stick
+  // so the character can't keep gliding on a stale deflection.
+  let alive = false;
+  for (const t of e.touches) if (t.identifier === joy.id) { alive = true; break; }
+  if (!alive) { joy = null; return; }
   for (const t of e.changedTouches) {
     if (t.identifier !== joy.id) continue;
     const p = toLocal(t);
@@ -1086,14 +1101,23 @@ canvas.addEventListener("touchmove", (e) => {
   }
 }, { passive: false });
 const endTouch = (e) => {
-  e.preventDefault();
   if (!joy) return;
+  e.preventDefault();
   for (const t of e.changedTouches) {
-    if (t.identifier === joy.id) joy = null;
+    if (t.identifier === joy.id) { joy = null; return; }
   }
+  // Safety net: our finger never reported a clean touchend (slid off the
+  // screen edge, esp. a corner fixed stick, or a system gesture). If nothing
+  // is touching the surface anymore, there is no stick — clear it so the
+  // character stops instead of floating off on a stale deflection.
+  if (e.touches.length === 0) joy = null;
 };
 canvas.addEventListener("touchend", endTouch, { passive: false });
 canvas.addEventListener("touchcancel", endTouch, { passive: false });
+// Also listen on window: a touch that began on the canvas but ends off it
+// (finger dragged past the edge) reports its touchend to window, not canvas.
+window.addEventListener("touchend", endTouch, { passive: false });
+window.addEventListener("touchcancel", endTouch, { passive: false });
 canvas.addEventListener("mousedown", (e) => {
   ensureAudio();
   const dpr = DPR();
@@ -3226,7 +3250,11 @@ function frame(now) {
   if (raw > 0.05) raw = 0.05; // hitch guard (GC pause, tab restore)
   // Low-pass the frame delta so rAF jitter doesn't ride straight into
   // position (x += v·dt). Robust across 60/90/120Hz, no beat-frequency.
-  smoothDt += (raw - smoothDt) * 0.2;
+  // Converge fast: a slow factor smears a single hitch's inflated dt across
+  // many frames and decouples motion from real time under variable framerate,
+  // which reads as the character "floating" ahead of your finger. The old
+  // hardcoded 0.2 lingered ~15 frames after any stall. Live-tunable.
+  smoothDt += (raw - smoothDt) * CONFIG.dtTrack;
   const dt = smoothDt;
   if (state === "playing") {
     update(dt);
@@ -3241,6 +3269,13 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Returning from a backgrounded tab/app pauses rAF, so `last` goes stale.
+// Without this, the first frame back integrates a huge (clamped) delta and
+// the character lurches/floats. Resync the clock + dt so resume is seamless.
+function resyncClock() { last = performance.now(); smoothDt = 1 / 60; }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) resyncClock(); });
+window.addEventListener("focus", resyncClock);
 
 // Backgrounding the app (tab switch, app switch) → on return, suspend/resume
 // audio and give a fresh 3-2-1 countdown so the player isn't ambushed.
