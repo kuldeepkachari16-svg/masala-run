@@ -339,6 +339,10 @@ const CONFIG = {
   spawnPerWave: 0.12,
   spawnFloor: 0.2,
   foodLife: 8,
+  // Joystick response curve exponent. 1 = linear; >1 eases the low end so a
+  // small drag = a gentle walk and speed ramps to full near the edge. Makes
+  // the stick feel "analog/connected" instead of on-off. Live-tune: __mr.config.stickCurve
+  stickCurve: 1.6,
   // Re-entry ease: the wave(s) after a boss come in softer, not at full
   // capped intensity right after the calm duel. easeWaves:2 keeps BOTH waves
   // 6 & 7 (after the wave-5 mini-boss) gentle — this is the first level.
@@ -529,7 +533,7 @@ const OPTIONS = {
   nom: ["off", "on"], // TEMP easter-egg toggle — start() routes into NOM MODE
 };
 const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "stick side", size: "stick size", sens: "sensitivity", smooth: "smoothing", power: "power trigger", music: "music", fps: "show fps", nom: "NOM mode 🍴" };
-const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "high", smooth: "low", power: "manual", music: "on", fps: "off", nom: "off" };
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "medium", smooth: "low", power: "manual", music: "on", fps: "off", nom: "off" };
 
 // Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
 const DIFFICULTY = {
@@ -610,7 +614,7 @@ function cycleSetting(key) {
   saveSettings();
 }
 const STICK_SIZES = { small: 44, medium: 56, large: 68 }; // CSS px base radius
-const SENS_THROW = { low: 34, medium: 25, high: 18 };     // CSS px drag for full speed
+const SENS_THROW = { low: 48, medium: 38, high: 28 };     // CSS px drag for full speed (analog ramp window)
 const SMOOTH_K = { low: 52, normal: 30 };                  // velocity smoothing rate
 function throwPx() { return SENS_THROW[settings.sens] * DPR(); }
 function stickAnchor() {
@@ -1790,7 +1794,9 @@ function update(dt) {
     const max = throwPx();
     const len = Math.hypot(joy.dx, joy.dy);
     if (len > 3 * DPR()) {
-      const c = Math.min(len, max) / max;
+      // Magnitude 0..1, then a response curve so the low end is gentle and
+      // speed ramps to full near the edge — analog "connected" feel.
+      const c = Math.pow(Math.min(len, max) / max, CONFIG.stickCurve);
       mx = (joy.dx / len) * c;
       my = (joy.dy / len) * c;
     }
