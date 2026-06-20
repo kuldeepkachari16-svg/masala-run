@@ -2,6 +2,34 @@
 
 **Play:** https://kuldeepkachari16-svg.github.io/masala-run/
 
+---
+
+## ⭐ Commercial north-star (set 2026-06-20)
+
+**Goal:** a real commercial launch — app stores, revenue, players we don't know.
+This **re-orders** the phased plan below (which was scoped for a web/portfolio
+finish with store "optional"). Retention, meta-progression, distribution and
+monetization are now **first-class**, gated on proof.
+
+**What decides success, in order (everything else is downstream):**
+1. **Core-loop retention** — a stranger *involuntarily* replays. Casual benchmark: D1 ≥ ~35%, avg session ≥ ~4 min. **Unvalidated today.**
+2. **Build depth** — the flavor hook becomes a real run-build (see `docs/build-system.md`). Our differentiator; currently thin (5 boons, bosses only).
+3. **Meta-progression** — permanent unlocks/currency between runs = the retention engine. **Absent today.**
+4. **Distribution** — solo + no UA budget ⇒ the realistic path to a *hit* is a casual-games **publisher who funds user acquisition**. They sign only on proven CPI/retention. So the real gate is an *instrumented, retentive* build — no shortcut around the metrics.
+
+**Critical path:**
+- **P0 — Validate fun (now, in this JS prototype; cheap):** (a) Gate-1 playtest — *still the immediate gate, still undone* (Phase 1 item 5). (b) Build the flavor **build system** + a minimal **meta loop**, then re-test for "one more run."
+- **P1 — Productionize (only if P0 passes):** analytics first (measure retention for real) → port/wrap for stores (Unity/Godot, or Capacitor as a cheap first test) → ads + IAP → ASO.
+- **P2 — Soft-launch + publisher:** small-geo test, measure CPI/D1/D7, pitch a publisher or self-fund UA.
+
+**Tech trajectory:** vanilla JS/Canvas2D/PWA was the *right* prototyping choice and is **not** the launch stack (monetization SDKs, store presence, and survivor-scale juice assume native/engine). **Do not port until P0 proves the loop.** "Zero-deps single game.js" is a prototype constraint, not a launch one.
+
+**Scope discipline — NOT now (until P0 passes):** more levels, more backdrops/art, more enemy types, NOM mode. That's premature scaling. *One loop, proven addictive, beats eight shallow levels.*
+
+**Top risks:** (1) the loop isn't retentive (unvalidated); (2) Canvas2D perf ceiling at survivor-scale entity counts; (3) no distribution = invisible, regardless of quality.
+
+---
+
 ## Phase 0 — v0 prototype ✅
 Concept + critique, eat-to-attack core loop, 3 flavors, fusion recipes +
 recipe book, balance tuning (food = lifeline), procedural art pass,
