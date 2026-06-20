@@ -8,20 +8,29 @@ it lives in `game.js`, not the in-game settings panel.
 ## The switch
 
 ```js
-const ACTIVE_THEME = "night-v1"; // game.js, in the "Visual themes" block
+const ACTIVE_THEME = "retro-day"; // game.js, in the "Visual themes" block
 ```
 
 Change that constant and reload. That's the only thing that ships.
 
 ## Themes that exist
 
-| Theme        | Look                          | Backdrops                         | Status        |
-|--------------|-------------------------------|-----------------------------------|---------------|
-| `night-v1`   | Shipped night street (AI art) | `assets/themes/night-v1/*.jpg`    | **Active**    |
-| `retro-day`  | Daytime pixel-retro direction | `assets/themes/retro-day/*.png`   | Art pending   |
+| Theme        | Look                              | Backdrops                          | Status     |
+|--------------|-----------------------------------|------------------------------------|------------|
+| `retro-day`  | Daytime flat retro, drawn in code | **procedural** (`drawDayStreet`)   | **Active** |
+| `night-v1`   | Night street (AI art)             | `assets/themes/night-v1/*.jpg`     | Archived   |
 
-`night-v1` is the archived, known-good look — keep it untouched. If we ever re-master
-those scenes, add `night-v2` rather than overwriting, so revert stays one constant away.
+`retro-day` is **procedural** — no image files. `drawDayStreet` lays out a flat
+POWER-UP-style street from an element kit (`DAY_ELEMENTS`: stall, cart, crate, pot,
+plant, dog, cat) confined to the side-margins, with a per-level seed so every level
+gets a distinct but consistent layout. Exact proportions (big open lane), zero assets.
+Tune via the `DAY` palette + `DAY_ELEMENTS`.
+
+`night-v1` is the archived AI-art look — kept untouched as a one-line revert. A theme
+with a `draw` function (like retro-day) is procedural and ignores its `bg` images;
+without one it falls back to per-level images or the `drawStreet` palette.
+`assets/themes/retro-day/bg-1.png` + `tools/process-bg.py` are leftovers from the
+earlier image approach — unused now, retained as reference / for marketing art.
 
 ## Live preview while developing (dev console only)
 

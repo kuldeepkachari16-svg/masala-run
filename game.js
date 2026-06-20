@@ -97,16 +97,13 @@ const THEMES = {
       crate: "#242433", crosswalk: "rgba(255, 255, 255, 0.05)",
     },
   },
-  // Daytime pixel-retro direction. Backdrop images TBD — drop bg-1.png…bg-4.png
-  // into assets/themes/retro-day/, then set ACTIVE_THEME = "retro-day".
+  // Daytime flat retro direction — drawn procedurally in code (see drawDayStreet),
+  // NOT from images: exact proportions (small props in the side-margins, big open
+  // lane), simple recognisable shapes, consistent across unlimited levels.
   "retro-day": {
     vignette: 0.14, // daylight: only a gentle edge falloff
-    bg: {
-      1: "assets/themes/retro-day/bg-1.png",
-      2: "assets/themes/retro-day/bg-2.png",
-      3: "assets/themes/retro-day/bg-3.png",
-      4: "assets/themes/retro-day/bg-4.png",
-    },
+    draw: drawDayStreet, // procedural — takes precedence over bg images
+    bg: {},
     pal: {
       baseTop: "#cdbb95", baseBot: "#c1ad84",
       path: "#b8a37c", curb: "#dccdb0", dash: "#e9ddc2",
@@ -133,6 +130,7 @@ let bgImgs = {};
 function loadThemeImages() {
   bgImgs = {};
   LEVEL_BG_SRC = theme().bg;
+  if (theme().draw) return; // procedural theme — no images to preload
   for (const n in LEVEL_BG_SRC) {
     const im = new Image();
     im.onload = () => { if (bgCanvas) buildBackdrop(); };
@@ -231,16 +229,199 @@ function drawStreet(g, w, h, pal) {
   for (let i = 0; i < 6; i++) g.fillRect(58 + i * 64, h - 90, 36, 44);
 }
 
+// ---------- Procedural DAY backdrop (retro-day theme) ----------
+// Flat, POWER-UP-style street built entirely in code: solid fills, warm dark
+// outlines, a few RECOGNISABLE (not detailed) stalls/props confined to the
+// outer side-margins so the center lane stays fully open for play. One element
+// kit + a per-level seed = unlimited varied, consistent backdrops, zero assets.
+const DAY = {
+  ground: "#c9b78f", dot: "rgba(120,98,66,0.10)",
+  path: "#c1ad83", curb: "#b3996f", shadow: "rgba(74,59,46,0.13)",
+  ink: "#4a3b2e",
+  wood: "#9c7144", woodDk: "#7a5634",
+  cream: "#e7dcc0", red: "#b15441", teal: "#43807c", mustard: "#d3a04c",
+  leaf: "#6d8c4d", leafDk: "#4f6c39", orange: "#d68a3c", terra: "#b5673f",
+  dog: "#d9c39c", dogPatch: "#a87b50", cat: "#574434", steel: "#9aa0a6",
+};
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Flat fill + warm outline in one call (the POWER-UP look).
+function box(g, x, y, w, h, fill) {
+  g.fillStyle = fill; g.fillRect(x, y, w, h);
+  g.strokeStyle = DAY.ink; g.lineWidth = 2; g.strokeRect(x, y, w, h);
+}
+function dot(g, cx, cy, r, fill) {
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2);
+  g.fillStyle = fill; g.fill(); g.strokeStyle = DAY.ink; g.lineWidth = 2; g.stroke();
+}
+function softShadow(g, cx, by, rw, rh) {
+  g.save(); g.fillStyle = DAY.shadow;
+  g.beginPath(); g.ellipse(cx, by, rw, rh, 0, 0, Math.PI * 2); g.fill(); g.restore();
+}
+
+// Each element draws around a horizontal center cx with its base (ground
+// contact) at baseY, growing upward. s = scale. flip mirrors the facing.
+const DAY_ELEMENTS = {
+  stall(g, cx, baseY, s, rng) {
+    const cw = 46 * s, ch = 30 * s, ax = cw + 10 * s, ah = 15 * s;
+    softShadow(g, cx, baseY + 3, cw * 0.62, 6 * s);
+    box(g, cx - cw / 2, baseY - ch, cw, ch, DAY.wood);           // counter
+    box(g, cx - cw / 2, baseY - ch, cw, 5 * s, DAY.woodDk);      // shelf lip
+    // steaming cup glyph
+    dot(g, cx, baseY - ch * 0.5, 5 * s, DAY.cream);
+    // awning: striped band with a scalloped lower edge
+    const ay = baseY - ch - ah, n = 5;
+    const cols = rng() < 0.5 ? [DAY.red, DAY.cream] : [DAY.teal, DAY.cream];
+    for (let i = 0; i < n; i++) {
+      g.fillStyle = i % 2 ? cols[1] : cols[0];
+      g.fillRect(cx - ax / 2 + (i * ax) / n, ay, ax / n + 0.5, ah);
+    }
+    g.strokeStyle = DAY.ink; g.lineWidth = 2; g.strokeRect(cx - ax / 2, ay, ax, ah);
+    g.beginPath(); // scallops
+    for (let i = 0; i <= n; i++) {
+      const x = cx - ax / 2 + (i * ax) / n;
+      if (i === 0) g.moveTo(x, ay + ah);
+      g.lineTo(x - ax / n / 2, ay + ah + 4 * s);
+      g.lineTo(x + (i < n ? 0 : 0), ay + ah);
+    }
+  },
+  cart(g, cx, baseY, s, rng) {
+    const cw = 44 * s, ch = 24 * s;
+    softShadow(g, cx, baseY + 3, cw * 0.66, 6 * s);
+    box(g, cx - cw / 2, baseY - ch, cw, ch, DAY.wood);
+    box(g, cx - cw / 2 + 4 * s, baseY - ch + 5 * s, cw - 8 * s, ch - 10 * s, DAY.woodDk);
+    dot(g, cx + cw / 2 - 6 * s, baseY, 8 * s, DAY.woodDk);        // wheel
+    dot(g, cx + cw / 2 - 6 * s, baseY, 2.4 * s, DAY.cream);
+    // produce pyramid
+    for (let row = 0; row < 3; row++)
+      for (let i = 0; i <= row; i++)
+        dot(g, cx - row * 5 * s + i * 10 * s, baseY - ch - 4 * s - (2 - row) * 8 * s, 4.5 * s, DAY.orange);
+    // parasol
+    g.strokeStyle = DAY.ink; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(cx, baseY - ch - 6 * s); g.lineTo(cx, baseY - ch - 34 * s); g.stroke();
+    g.beginPath(); g.moveTo(cx - 18 * s, baseY - ch - 34 * s);
+    g.quadraticCurveTo(cx, baseY - ch - 48 * s, cx + 18 * s, baseY - ch - 34 * s);
+    g.closePath(); g.fillStyle = [DAY.mustard, DAY.red, DAY.teal][(rng() * 3) | 0]; g.fill(); g.stroke();
+  },
+  crate(g, cx, baseY, s, rng) {
+    const cw = 40 * s, ch = 24 * s;
+    softShadow(g, cx, baseY + 3, cw * 0.6, 5 * s);
+    box(g, cx - cw / 2, baseY - ch, cw, ch, DAY.wood);
+    g.strokeStyle = DAY.woodDk; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(cx, baseY - ch); g.lineTo(cx, baseY); g.stroke();
+    g.beginPath(); g.moveTo(cx - cw / 2, baseY - ch / 2); g.lineTo(cx + cw / 2, baseY - ch / 2); g.stroke();
+    const veg = rng() < 0.5 ? DAY.orange : DAY.leaf;
+    dot(g, cx - 7 * s, baseY - ch - 3 * s, 4 * s, veg);
+    dot(g, cx + 4 * s, baseY - ch - 4 * s, 4 * s, veg);
+  },
+  pot(g, cx, baseY, s) {
+    const tw = 26 * s, bw = 18 * s, h = 26 * s;
+    softShadow(g, cx, baseY + 2, tw * 0.6, 4 * s);
+    g.beginPath();
+    g.moveTo(cx - tw / 2, baseY - h); g.lineTo(cx + tw / 2, baseY - h);
+    g.lineTo(cx + bw / 2, baseY); g.lineTo(cx - bw / 2, baseY); g.closePath();
+    g.fillStyle = DAY.terra; g.fill(); g.strokeStyle = DAY.ink; g.lineWidth = 2; g.stroke();
+    box(g, cx - tw / 2 - 1, baseY - h - 4 * s, tw + 2, 5 * s, DAY.terra); // rim
+    for (let i = -1; i <= 1; i++) dot(g, cx + i * 7 * s, baseY - h * 0.5, 1.6 * s, DAY.cream);
+  },
+  plant(g, cx, baseY, s) {
+    const pw = 18 * s, ph = 14 * s;
+    softShadow(g, cx, baseY + 2, pw * 0.7, 4 * s);
+    box(g, cx - pw / 2, baseY - ph, pw, ph, DAY.terra);
+    for (let i = -1; i <= 1; i++) {
+      g.save(); g.translate(cx + i * 5 * s, baseY - ph); g.rotate(i * 0.5);
+      g.beginPath(); g.ellipse(0, -9 * s, 4 * s, 10 * s, 0, 0, Math.PI * 2);
+      g.fillStyle = i ? DAY.leafDk : DAY.leaf; g.fill();
+      g.strokeStyle = DAY.ink; g.lineWidth = 1.5; g.stroke(); g.restore();
+    }
+    dot(g, cx, baseY - ph - 12 * s, 3 * s, DAY.orange); // a marigold bloom
+  },
+  dog(g, cx, baseY, s) {
+    softShadow(g, cx, baseY + 1, 16 * s, 4 * s);
+    g.save(); g.translate(cx, baseY); g.fillStyle = DAY.dog;
+    g.strokeStyle = DAY.ink; g.lineWidth = 2;
+    g.fillRect(-9 * s, -7 * s, 3 * s, 7 * s); g.strokeRect(-9 * s, -7 * s, 3 * s, 7 * s); // back leg
+    g.fillRect(6 * s, -7 * s, 3 * s, 7 * s); g.strokeRect(6 * s, -7 * s, 3 * s, 7 * s);   // front leg
+    g.beginPath(); g.ellipse(0, -9 * s, 13 * s, 6 * s, 0, 0, Math.PI * 2); g.fill(); g.stroke(); // body
+    g.beginPath(); g.moveTo(-12 * s, -11 * s); g.quadraticCurveTo(-20 * s, -16 * s, -15 * s, -21 * s); g.lineWidth = 3; g.stroke(); // tail
+    g.lineWidth = 2;
+    g.beginPath(); g.ellipse(13 * s, -13 * s, 6 * s, 5 * s, 0, 0, Math.PI * 2); g.fill(); g.stroke(); // head
+    g.fillRect(16 * s, -13 * s, 5 * s, 4 * s); g.strokeRect(16 * s, -13 * s, 5 * s, 4 * s);          // snout
+    g.beginPath(); g.moveTo(9 * s, -17 * s); g.lineTo(11 * s, -23 * s); g.lineTo(15 * s, -17 * s); g.closePath(); g.fill(); g.stroke(); // ear
+    g.beginPath(); g.ellipse(-2 * s, -10 * s, 5 * s, 4 * s, 0, 0, Math.PI * 2); g.fillStyle = DAY.dogPatch; g.fill(); // patch
+    g.restore();
+  },
+  cat(g, cx, baseY, s) {
+    softShadow(g, cx, baseY + 1, 12 * s, 3.5 * s);
+    g.save(); g.translate(cx, baseY); g.fillStyle = DAY.cat;
+    g.strokeStyle = DAY.ink; g.lineWidth = 2;
+    g.beginPath(); // body sitting
+    g.moveTo(-9 * s, 0); g.quadraticCurveTo(-8 * s, -20 * s, 0, -20 * s);
+    g.quadraticCurveTo(8 * s, -20 * s, 9 * s, 0); g.closePath(); g.fill(); g.stroke();
+    g.beginPath(); g.ellipse(0, -22 * s, 7 * s, 6 * s, 0, 0, Math.PI * 2); g.fill(); g.stroke(); // head
+    g.beginPath(); // ears
+    g.moveTo(-6 * s, -26 * s); g.lineTo(-3 * s, -32 * s); g.lineTo(-1 * s, -26 * s);
+    g.moveTo(6 * s, -26 * s); g.lineTo(3 * s, -32 * s); g.lineTo(1 * s, -26 * s); g.fill();
+    g.beginPath(); g.moveTo(9 * s, -2 * s); g.quadraticCurveTo(18 * s, -2 * s, 15 * s, -12 * s); g.lineWidth = 3; g.stroke(); // tail
+    g.restore();
+  },
+};
+
+// Draw the whole day street for the current level (seeded, stable per level).
+function drawDayStreet(g, w, h) {
+  g.fillStyle = DAY.ground; g.fillRect(0, 0, w, h);
+  const mw = (CONFIG.edgeWalls.w || 0.15) * w; // side-margin width = the walled zone
+  // Faint ground stipple (drawn once into the cached backdrop).
+  const sr = mulberry32(12345);
+  g.fillStyle = DAY.dot;
+  for (let y = 0; y < h; y += 22) for (let x = 0; x < w; x += 22) {
+    g.fillRect(x + sr() * 18, y + sr() * 18, 2, 2);
+  }
+  // Subtle side bands so the open lane reads (kept close to ground tone).
+  g.fillStyle = DAY.path; g.fillRect(0, 0, mw, h); g.fillRect(w - mw, 0, mw, h);
+  g.fillStyle = DAY.curb; g.fillRect(mw - 2, 0, 2, h); g.fillRect(w - mw, 0, 2, h);
+
+  const rng = mulberry32((level || 1) * 9301 + 49297);
+  const pool = ["stall", "cart", "crate", "pot", "plant"];
+  const s = (mw / 72);                       // scale elements to the margin width
+  const colL = mw * 0.52, colR = w - mw * 0.52;
+  // Deal from a shuffled deck: every type is used before any repeats — variety,
+  // never a cluster of identical props.
+  const deck = () => { const d = pool.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; [d[i], d[j]] = [d[j], d[i]]; } return d; };
+  const place = (cx) => {
+    let y = 0.10 * h, d = deck();
+    while (y < 0.9 * h) {
+      if (!d.length) d = deck();
+      DAY_ELEMENTS[d.pop()](g, cx, y, s, rng);
+      y += (0.17 + rng() * 0.13) * h;          // sparse vertical gaps
+    }
+  };
+  place(colL); place(colR);
+  // Guarantee one dog + one cat, tucked at the lane edge (visual only).
+  DAY_ELEMENTS.dog(g, colL + mw * 0.18, 0.85 * h, s);
+  DAY_ELEMENTS.cat(g, colR - mw * 0.18, 0.66 * h, s);
+}
+
 // Backdrop + vignette at the current arena size. In landscape the portrait
 // street is rotated 90° — footpaths land on the top/bottom edges.
 function buildBackdrop() {
   bgCanvas = makeSprite(W, H, (g) => {
+    const drawFn = theme().draw;
     const bg = W > H ? null : levelBg();
     if (W > H) {
       // Landscape: rotated procedural street (no landscape art yet).
       g.translate(W, 0);
       g.rotate(Math.PI / 2);
-      drawStreet(g, H, W);
+      (drawFn || drawStreet)(g, H, W);
+    } else if (drawFn) {
+      // Portrait procedural theme (retro-day): drawn to exact proportions.
+      drawFn(g, W, H);
     } else if (bg) {
       // Portrait: per-level backdrop master, cover-fit.
       coverDraw(g, bg, W, H);
@@ -420,7 +601,11 @@ const CONFIG = {
   // Re-entry ease: the wave(s) after a boss come in softer, not at full
   // capped intensity right after the calm duel. easeWaves:2 keeps BOTH waves
   // 6 & 7 (after the wave-5 mini-boss) gentle — this is the first level.
-  postBoss: { easeWaves: 2, spawnMul: 1.8, breather: 4.5 },
+  // EARLY-LEVEL extra ease: on levels ≤ easeLevels the post-mini-boss waves
+  // come in softer still — fewer Blands (earlySpawnMul widens the spacing on
+  // top of spawnMul) and a little slower (earlySpdMul). New players are still
+  // learning; the wave after the mini-boss was spiking too hard.
+  postBoss: { easeWaves: 2, spawnMul: 1.8, breather: 4.5, easeLevels: 3, earlySpawnMul: 1.35, earlySpdMul: 0.88 },
   // A level = 8 waves. Wave 5 = mini-boss, wave 8 = main boss → next level.
   wavesPerLevel: 8,
   // Per-level difficulty (marginal step-up). TWO levers, both config-driven:
@@ -1281,7 +1466,7 @@ function spawnPoint(r) {
   return { x: x1, y: r + Math.random() * (H - 2 * r) };
 }
 
-function makeEnemy(type, x, y) {
+function makeEnemy(type, x, y, spdMul = 1) {
   const c = CONFIG.enemies[type];
   const d = diff();
   const w = effWave();
@@ -1290,14 +1475,15 @@ function makeEnemy(type, x, y) {
   const hp = Math.max(1, Math.round((c.hpBase + Math.floor(w * c.hpPerWave)) * d.hp * L.hpMul));
   return {
     type, x, y, r, hp, maxHp: hp,
-    speed: (c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand) * d.spd * L.spdMul,
+    speed: (c.spdBase + w * c.spdPerWave + Math.random() * c.spdRand) * d.spd * L.spdMul * spdMul,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
   };
 }
 
 // One spawn EVENT: a lone bland, or a swarmer pack (same edge point, jittered).
-function spawnEnemy() {
+// spdMul lets the caller dial spawned-enemy speed down (post-boss early-level ease).
+function spawnEnemy(spdMul = 1) {
   const share = CONFIG.swarmerShare[Math.min(wave - 1, CONFIG.swarmerShare.length - 1)];
   if (Math.random() < share) {
     const c = CONFIG.enemies.swarmer;
@@ -1306,12 +1492,12 @@ function spawnEnemy() {
     for (let i = 0; i < n; i++) {
       const e = makeEnemy("swarmer",
         Math.max(c.rMax, Math.min(W - c.rMax, p.x + (Math.random() - 0.5) * 52)),
-        Math.max(c.rMax, Math.min(H - c.rMax, p.y + (Math.random() - 0.5) * 52)));
+        Math.max(c.rMax, Math.min(H - c.rMax, p.y + (Math.random() - 0.5) * 52)), spdMul);
       enemies.push(e);
     }
   } else {
     const p = spawnPoint(CONFIG.enemies.bland.rMax);
-    enemies.push(makeEnemy("bland", p.x, p.y));
+    enemies.push(makeEnemy("bland", p.x, p.y, spdMul));
   }
 }
 
@@ -1841,10 +2027,14 @@ function update(dt) {
   if (gapT <= 0 && !bossFight && !endingLevel) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      // Ease the first wave(s) after a boss: slower spawns than the cap.
-      const postEase = (lastBossWave > 0 && wave > lastBossWave && wave <= lastBossWave + CONFIG.postBoss.easeWaves) ? CONFIG.postBoss.spawnMul : 1;
+      // Ease the first wave(s) after a boss: slower spawns than the cap. On the
+      // early levels, ease it MORE — extra spacing (fewer Blands) + a small
+      // speed cut — so the post-mini-boss spike doesn't wall new players.
+      const inEase = lastBossWave > 0 && wave > lastBossWave && wave <= lastBossWave + CONFIG.postBoss.easeWaves;
+      const early = inEase && level <= CONFIG.postBoss.easeLevels;
+      const postEase = inEase ? CONFIG.postBoss.spawnMul * (early ? CONFIG.postBoss.earlySpawnMul : 1) : 1;
       spawnTimer = Math.max(CONFIG.spawnFloor, CONFIG.spawnBase - effWave() * CONFIG.spawnPerWave) * diff().spawn * postEase * lvl().spawnMul;
-      spawnEnemy();
+      spawnEnemy(early ? CONFIG.postBoss.earlySpdMul : 1);
     }
   }
 

@@ -1,5 +1,18 @@
 # Masala Run — Changelog
 
+## 2026-06-20 — retro-day backdrops go fully procedural (flat, in-code)
+Closed the backdrop thread. AI image generation fought us on the one thing that matters for a top-down arena: **scale/proportion** — generated stalls were too big, ate the play area, and pulled focus to one side. Code fixes all of that deterministically, so `retro-day` is now drawn entirely in code.
+- **`drawDayStreet`** — a flat POWER-UP-style street built from an element kit (`DAY_ELEMENTS`: stall, cart, crate, pot, plant, dog, cat), all confined to the side-margins (the existing 15% walled zone) so the **center lane stays fully open** by construction. Simple, recognisable shapes — not detailed.
+- **Per-level variety** via a seeded shuffled deck: every prop type is used before any repeats (no clusters), and each level gets a distinct-but-stable layout. Unlimited levels, zero asset files.
+- Themes can now carry a `draw` fn (procedural) that takes precedence over `bg` images; `loadThemeImages` skips image preload for procedural themes. `night-v1` stays the image-based revert. `bg-1.png` + `process-bg.py` retained as unused reference. Docs in `THEMES.md`.
+- Verified live: L1 + L3 render distinct backdrops, big open lane, player/enemies/food read clearly, no errors.
+
+## 2026-06-20 — early-level pacing: soften the wave after the mini-boss
+Playtest note: the wave right after the mini-boss spiked too hard while new players are still learning. Pre-mini-boss pacing was fine. Eased only the post-mini-boss waves (6 & 7) on the **early levels** — pre-boss waves and later levels untouched.
+- New `postBoss` knobs: `easeLevels: 3`, `earlySpawnMul: 1.35`, `earlySpdMul: 0.88`. On levels ≤ 3, the post-mini-boss waves get **+35% spawn spacing** (fewer Blands, on top of the existing generic ease) and **−12% enemy speed**.
+- Threaded an optional `spdMul` through `spawnEnemy`/`makeEnemy` so the speed cut applies only to enemies spawned in that window — lingering enemies and bosses are unaffected. All knobs live-tunable via `__mr.config.postBoss`.
+- Verified: post-boss early-level spawn interval 0.54s → 0.73s; pre-boss waves still spawn at full speed (no regression).
+
 ## 2026-06-20 — visual themes: archive current look, scaffold pixel-retro-day
 Groundwork to migrate the art direction toward a daytime pixel-retro style **without losing the shipped night look**. The whole look is now a swappable, code-only theme.
 - **Theme registry** (`THEMES` + `ACTIVE_THEME` in `game.js`). A theme bundles its backdrop images, a procedural-street palette, and vignette strength. Reverting/migrating = editing one constant; deliberately **not** a player-facing setting.
