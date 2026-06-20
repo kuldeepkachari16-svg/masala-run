@@ -69,18 +69,78 @@ function coverDraw(g, img, w, h) {
   g.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
 }
 
-// Per-level backdrops (portrait masters). Levels not listed fall back to the
-// procedural drawStreet — as does landscape (no landscape art yet) and the
-// gap before an image loads. Before any level is played the menu shows level
-// 1's art; afterwards it keeps the last-played level's until the next loads.
-const LEVEL_BG_SRC = { 1: "assets/bg-street.jpg", 2: "assets/bg-street-2.jpg", 3: "assets/bg-street-3.jpg", 4: "assets/bg-street-4.jpg" };
-const bgImgs = {};
-for (const n in LEVEL_BG_SRC) {
-  const im = new Image();
-  im.onload = () => { if (bgCanvas) buildBackdrop(); };
-  im.src = LEVEL_BG_SRC[n];
-  bgImgs[n] = im;
+// ---------- Visual themes ----------
+// The whole look (backdrop images + procedural-street palette + vignette) is
+// bundled into a named theme so we can A/B or fully revert without touching
+// render code. SWITCH THEMES BY EDITING ACTIVE_THEME BELOW (code-only — this is
+// deliberately NOT a player-facing setting). Live preview while developing:
+//   __mr.setTheme("retro-day")  /  __mr.themes  (lists names)
+// Each theme's backdrop masters live under assets/themes/<name>/. See THEMES.md.
+const THEMES = {
+  // The shipped night look (AI-generated portrait street scenes). v1 = archive
+  // tag; bump to night-v2 etc. if we ever re-master these rather than editing.
+  "night-v1": {
+    vignette: 0.4, // radial darken strength at the edges
+    bg: {
+      1: "assets/themes/night-v1/bg-street.jpg",
+      2: "assets/themes/night-v1/bg-street-2.jpg",
+      3: "assets/themes/night-v1/bg-street-3.jpg",
+      4: "assets/themes/night-v1/bg-street-4.jpg",
+    },
+    // Palette for the procedural drawStreet fallback (landscape / pre-load gap /
+    // un-arted levels). Keyed names below are theme-agnostic.
+    pal: {
+      baseTop: "#191923", baseBot: "#14141d",
+      path: "#1f1f2b", curb: "#262634", dash: "#23232f",
+      lamp: "rgba(255, 178, 92, 0.07)",
+      stall: "#20202e", awningA: "#3a2e36", awningB: "#2e2e42",
+      crate: "#242433", crosswalk: "rgba(255, 255, 255, 0.05)",
+    },
+  },
+  // Daytime pixel-retro direction. Backdrop images TBD — drop bg-1.png…bg-4.png
+  // into assets/themes/retro-day/, then set ACTIVE_THEME = "retro-day".
+  "retro-day": {
+    vignette: 0.14, // daylight: only a gentle edge falloff
+    bg: {
+      1: "assets/themes/retro-day/bg-1.png",
+      2: "assets/themes/retro-day/bg-2.png",
+      3: "assets/themes/retro-day/bg-3.png",
+      4: "assets/themes/retro-day/bg-4.png",
+    },
+    pal: {
+      baseTop: "#cdbb95", baseBot: "#c1ad84",
+      path: "#b8a37c", curb: "#dccdb0", dash: "#e9ddc2",
+      lamp: "rgba(255, 236, 170, 0.10)",
+      stall: "#9c7a52", awningA: "#c2543f", awningB: "#d98a3a",
+      crate: "#a8895f", crosswalk: "rgba(255, 255, 255, 0.18)",
+    },
+  },
+};
+const ACTIVE_THEME = "retro-day"; // <-- the only switch. Edit to revert/migrate.
+// Migration note: retro-day ships bg-1 only so far; levels 2–4 fall back to the
+// day procedural street until their masters land. Revert with "night-v1".
+
+let curThemeName = ACTIVE_THEME; // mutable so __mr.setTheme() can preview live
+function theme() { return THEMES[curThemeName] || THEMES["night-v1"]; }
+
+// Per-level backdrops (portrait masters) for the active theme. Levels not listed
+// fall back to the procedural drawStreet — as does landscape (no landscape art
+// yet) and the gap before an image loads. Before any level is played the menu
+// shows level 1's art; afterwards it keeps the last-played level's until the
+// next loads.
+let LEVEL_BG_SRC = theme().bg;
+let bgImgs = {};
+function loadThemeImages() {
+  bgImgs = {};
+  LEVEL_BG_SRC = theme().bg;
+  for (const n in LEVEL_BG_SRC) {
+    const im = new Image();
+    im.onload = () => { if (bgCanvas) buildBackdrop(); };
+    im.src = LEVEL_BG_SRC[n];
+    bgImgs[n] = im;
+  }
 }
+loadThemeImages();
 function levelBg() {
   const im = bgImgs[level || 1];
   return im && im.complete && im.naturalWidth ? im : null;
@@ -121,38 +181,42 @@ const auraSprite = makeSprite(128, 128, (g, w, h) => {
   g.fillRect(0, 0, w, h);
 });
 
-// Night street, drawn in portrait space (w = short side, h = long side).
-function drawStreet(g, w, h) {
+// Procedural street fallback, drawn in portrait space (w = short side, h = long
+// side). Colors come from the active theme's palette (pal) so the same geometry
+// reads as a night or a daytime street. The lamp pools double as warm sun pools.
+function drawStreet(g, w, h, pal) {
+  pal = pal || theme().pal;
   const base = g.createLinearGradient(0, 0, 0, h);
-  base.addColorStop(0, "#191923");
-  base.addColorStop(1, "#14141d");
+  base.addColorStop(0, pal.baseTop);
+  base.addColorStop(1, pal.baseBot);
   g.fillStyle = base;
   g.fillRect(0, 0, w, h);
   // Footpaths + curbs.
-  g.fillStyle = "#1f1f2b";
+  g.fillStyle = pal.path;
   g.fillRect(0, 0, 42, h);
   g.fillRect(w - 42, 0, 42, h);
-  g.fillStyle = "#262634";
+  g.fillStyle = pal.curb;
   g.fillRect(40, 0, 3, h);
   g.fillRect(w - 43, 0, 3, h);
   // Centre lane dashes.
-  g.fillStyle = "#23232f";
+  g.fillStyle = pal.dash;
   for (let y = 20; y < h; y += 64) g.fillRect(w / 2 - 3, y, 6, 34);
-  // Warm streetlight pools.
+  // Warm light pools (streetlights at night / sun glints by day).
+  const lampSolid = pal.lamp.replace(/[\d.]+\)$/, "0)");
   const lamps = [[90, 130], [400, 300], [120, 520], [380, 680], [240, 60]];
   for (const [lx, ly] of lamps) {
     const lg = g.createRadialGradient(lx, ly, 5, lx, ly, 150);
-    lg.addColorStop(0, "rgba(255, 178, 92, 0.07)");
-    lg.addColorStop(1, "rgba(255, 178, 92, 0)");
+    lg.addColorStop(0, pal.lamp);
+    lg.addColorStop(1, lampSolid);
     g.fillStyle = lg;
     g.fillRect(lx - 150, ly - 150, 300, 300);
   }
   // Street props: stall silhouettes with awnings, crates, a crosswalk.
   const stall = (sx, sy) => {
-    g.fillStyle = "#20202e";
+    g.fillStyle = pal.stall;
     g.fillRect(sx, sy + 10, 34, 44);
     for (let i = 0; i < 5; i++) {
-      g.fillStyle = i % 2 ? "#3a2e36" : "#2e2e42";
+      g.fillStyle = i % 2 ? pal.awningA : pal.awningB;
       g.fillRect(sx - 2 + i * 7.6, sy, 7.6, 12);
     }
   };
@@ -160,10 +224,10 @@ function drawStreet(g, w, h) {
   stall(2, 600);
   stall(w - 36, 330);
   stall(w - 36, 720);
-  g.fillStyle = "#242433";
+  g.fillStyle = pal.crate;
   g.fillRect(4, 420, 18, 18);
   g.fillRect(w - 24, 80, 18, 18);
-  g.fillStyle = "rgba(255, 255, 255, 0.05)";
+  g.fillStyle = pal.crosswalk;
   for (let i = 0; i < 6; i++) g.fillRect(58 + i * 64, h - 90, 36, 44);
 }
 
@@ -187,7 +251,7 @@ function buildBackdrop() {
   vignette = makeSprite(W, H, (g) => {
     const grad = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.72);
     grad.addColorStop(0, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0.4)");
+    grad.addColorStop(1, "rgba(0,0,0," + theme().vignette + ")");
     g.fillStyle = grad;
     g.fillRect(0, 0, W, H);
   });
@@ -546,7 +610,7 @@ const SETTING_LABELS = { difficulty: "difficulty", stick: "joystick", side: "sti
 // Joystick defaults reflect playtested best-feel: fixed stick (visible neutral,
 // no drifting-origin float), smoothing off (direct, no slide), medium sens
 // (analog ramp window). See the joystick-feel work in CHANGELOG.
-const DEFAULT_SETTINGS = { difficulty: "normal", stick: "fixed", side: "left", size: "medium", sens: "medium", smooth: "off", power: "manual", music: "on", fps: "off", nom: "off" };
+const DEFAULT_SETTINGS = { difficulty: "normal", stick: "anywhere", side: "left", size: "medium", sens: "medium", smooth: "off", power: "manual", music: "on", fps: "off", nom: "off" };
 
 // Difficulty scales the core knobs. spawn>1 = slower spawns (easier).
 const DIFFICULTY = {
@@ -3245,6 +3309,18 @@ window.__mr = {
   get mods() { return mods; },
   // Deterministic step for testing (rAF pauses in background tabs).
   tick(dt) { if (state === "playing") update(dt); },
+  // Visual theme (dev-only — not a player setting). __mr.themes lists names;
+  // __mr.setTheme("retro-day") loads that theme's art + palette live. The
+  // shipped default is the ACTIVE_THEME constant near the top of this file.
+  get themes() { return Object.keys(THEMES); },
+  get activeTheme() { return curThemeName; },
+  setTheme(name) {
+    if (!THEMES[name]) return "unknown theme: " + name + " — try " + Object.keys(THEMES).join(", ");
+    curThemeName = name;
+    loadThemeImages();
+    buildBackdrop();
+    return "theme → " + name;
+  },
 };
 
 // ---------- Main loop ----------

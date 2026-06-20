@@ -2,17 +2,19 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v5";
+const CACHE = "masala-run-v6";
 const ASSETS = [
   "./",
   "index.html",
   "game.js",
   "manifest.json",
   "fonts/bangers.woff2",
-  "assets/bg-street.jpg",
-  "assets/bg-street-2.jpg",
-  "assets/bg-street-3.jpg",
-  "assets/bg-street-4.jpg",
+  // Active theme's backdrops (see THEMES.md). Network-first means a theme swap
+  // just needs this list updated; un-listed images still cache on first fetch.
+  "assets/themes/night-v1/bg-street.jpg",
+  "assets/themes/night-v1/bg-street-2.jpg",
+  "assets/themes/night-v1/bg-street-3.jpg",
+  "assets/themes/night-v1/bg-street-4.jpg",
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",

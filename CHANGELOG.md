@@ -1,5 +1,16 @@
 # Masala Run — Changelog
 
+## 2026-06-20 — visual themes: archive current look, scaffold pixel-retro-day
+Groundwork to migrate the art direction toward a daytime pixel-retro style **without losing the shipped night look**. The whole look is now a swappable, code-only theme.
+- **Theme registry** (`THEMES` + `ACTIVE_THEME` in `game.js`). A theme bundles its backdrop images, a procedural-street palette, and vignette strength. Reverting/migrating = editing one constant; deliberately **not** a player-facing setting.
+- **Archived the night look as `night-v1`.** `git mv`'d the 4 backdrops into `assets/themes/night-v1/` (history preserved, no duplication). It stays the active, known-good theme. Verified all 4 load from the new path (200) and the old paths are gone (404), backdrop renders identically.
+- **Scaffolded `retro-day`** (daytime pixel-retro). Folder `assets/themes/retro-day/` reserved for `bg-1.png…bg-4.png`; lighter vignette + warm daylight fallback palette. Activate by dropping art + flipping `ACTIVE_THEME`.
+- **Parametrized `drawStreet(pal)`** — the procedural fallback now reads its colors from the active theme, so a missing image never shows the wrong time of day.
+- **Dev hooks:** `__mr.themes`, `__mr.activeTheme`, `__mr.setTheme(name)` for live preview (not persisted, not in-game UI). `sw.js` → `masala-run-v6`. Full docs in `THEMES.md`.
+- **First retro-day backdrop landed (L1).** `tools/process-bg.py` turns a raw AI generation into a clean, muted, flat theme asset in one pass — resize → denoise → mute (brightness/saturation) → posterize flat. Keeps the clean-vector look (not a chunky pixel grid). Tuned to the approved "gentle mute" so the backdrop recedes and gameplay characters pop. `ACTIVE_THEME` is now `retro-day` (migrating); L2–4 fall back to the day procedural street until their masters land. Verified live: muted lane, characters read clearly, no errors.
+- **UI chrome NOT yet themed** — title/HUD/settings/game-over + fonts are a separate planned pass (will extend the theme with UI palette + font tokens so the one-line revert restores the whole look).
+- **Default joystick → `anywhere`** (was `fixed`). Only affects fresh installs / after a settings reset; existing saves keep their choice.
+
 ## 2026-06-20 — joystick: floating origin + real deadzone (kill the off-center lurch)
 External-review handoff caught the deeper cause behind the joystick complaints: the fixed stick measured deflection from the **anchor center**, so a thumb landing off-center produced instant movement before any deliberate drag. Reworked the control model:
 - **Floating origin.** A fixed-stick touch now becomes the origin itself (`ox/oy` = touch point, `dx=0`), not the anchor. Imperfect thumb placement starts at zero deflection — you only move once you actually drag. The visible stick floats to the thumb while held and parks a faint home indicator in the corner when idle.
