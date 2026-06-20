@@ -576,8 +576,9 @@ const SAVORY_PULSE_RADIUS = 130;
 // Every difficulty/pacing knob lives here — tweak without touching logic.
 // Live-tunable on a device via __mr.config (e.g. __mr.config.waveLength = 15).
 const CONFIG = {
-  waveLength: 14,      // seconds per wave (tuned for "one more go": L1 ≈ 2.5 min)
-  breather: 2.5,       // pause between waves
+  waveLength: 20,      // seconds per wave — longer so level-up picks (not wave
+                       // breaks) are the rhythm; fewer choppy transitions
+  breather: 2,         // pause between waves
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
@@ -1224,9 +1225,9 @@ function pickBoon(i) {
   applyBoon(boonChoices[i]);
   boonChoices = null;
   // After a boss pick, give the longer breather before the wave resumes. A
-  // mid-wave level-up pick just resumes — the modal already paused the action.
+  // mid-wave level-up pick resumes INSTANTLY — the modal pause was the break;
+  // a countdown here reads like the wave restarted (playtest note).
   if (pickKind === "boss") gapT = CONFIG.postBoss.breather;
-  else if (state === "playing") resumeT = 1;
   pickKind = null;
   sfx.ui();
   if (navigator.vibrate) navigator.vibrate(10);
