@@ -547,14 +547,18 @@ const FLAVORS = {
     damage: 1,
     speedMult: 1, // speed perk folded into the base speed (277)
     shots: 1,
+    pierce: 2,     // identity: rapid crowd-shredder — punches through a line
+    bulletR: 3,    // small, fast
   },
   savory: {
     label: "SAVORY",
     color: "#3ecf8e",
     fireInterval: 0.75,
-    damage: 1,
+    damage: 2,        // identity: heavy control/tank — slow but each shot hits hard
     speedMult: 0.95,
     shots: 1,
+    bulletSpeed: 320, // slow, weighty round (plus its knockback aura + shield on eat)
+    bulletR: 6,
   },
 };
 const FLAVOR_DURATION = 15;   // seconds
@@ -1738,9 +1742,10 @@ function shoot(dt) {
   const base = Math.atan2(target.y - player.y, target.x - player.x);
   const spread = 0.22;
   const shots = f.shots + mods.shots;
+  const spd = f.bulletSpeed || 420;
   for (let i = 0; i < shots; i++) {
     const a = base + (i - (shots - 1) / 2) * spread;
-    bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, r: 4, damage: f.damage, color: f.color, life: 1.5 });
+    bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: f.bulletR || 4, damage: f.damage, color: f.color, life: 1.5, pierce: f.pierce || 0 });
   }
 }
 
@@ -2195,11 +2200,17 @@ function update(dt) {
       if (e.spawning > 0 || e.defeated) continue;
       const rr = b.r + e.r;
       if (dist2(b, e) < rr * rr) {
+        if (b.hit && b.hit.has(e)) continue; // pierced this one already
         e.hp -= b.damage;
         e.flash = 0.08;
-        bullets.splice(i, 1);
         if (e.hp <= 0) killEnemy(j);
-        break;
+        if (b.pierce > 0) {
+          b.pierce--;
+          (b.hit || (b.hit = new Set())).add(e); // don't re-hit it as it passes
+        } else {
+          bullets.splice(i, 1);
+        }
+        break; // one hit per bullet per frame (killEnemy may have spliced enemies)
       }
     }
   }
