@@ -579,6 +579,10 @@ const CONFIG = {
   waveLength: 20,      // seconds per wave — longer so level-up picks (not wave
                        // breaks) are the rhythm; fewer choppy transitions
   breather: 2,         // pause between waves
+  // XP / level-up cadence. xpNext(level) = base + (level-1)*step XP. Tuned so
+  // the upgrade pick lands every ~20-30s and slows down — NOT every few seconds
+  // (early playtest: it spammed the pick screen). Live-tune: __mr.config.levelXp
+  levelXp: { base: 40, step: 22, killXp: { bland: 2, swarmer: 1 } },
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
@@ -769,7 +773,7 @@ function reset() {
   buildBarriers();
   lastBossWave = 0;
   boonChoices = null;
-  xp = 0; playerLevel = 1; xpNext = 5; pendingLevels = 0; pickKind = null;
+  xp = 0; playerLevel = 1; xpNext = CONFIG.levelXp.base; pendingLevels = 0; pickKind = null;
   boons = [];
   mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
   rushCharge = 0;
@@ -1610,13 +1614,13 @@ function applyBoon(b) {
 }
 
 // ---------- XP & level-ups (build-system spike) ----------
-const XP_PER = { bland: 2, swarmer: 1 };
+function xpToNext(lvl) { const c = CONFIG.levelXp; return c.base + (lvl - 1) * c.step; }
 function addXp(type) {
-  xp += XP_PER[type] || 1;
+  xp += CONFIG.levelXp.killXp[type] || 1;
   while (xp >= xpNext) {
     xp -= xpNext;
     playerLevel++;
-    xpNext = 4 + playerLevel * 3;   // gentle ramp: lvl1→2 ≈ 5xp, then +3 each
+    xpNext = xpToNext(playerLevel);
     pendingLevels++;
   }
 }
