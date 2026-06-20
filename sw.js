@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v7";
+const CACHE = "masala-run-v8";
 const ASSETS = [
   "./",
   "index.html",
@@ -36,7 +36,11 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request)
+    // cache:"no-cache" forces the browser to REVALIDATE with the server (cheap
+    // 304 when unchanged) instead of silently serving a stale disk-cached copy.
+    // This is what kept old game.js alive after a deploy. Offline still falls
+    // back to the cache below.
+    fetch(e.request, { cache: "no-cache" })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
