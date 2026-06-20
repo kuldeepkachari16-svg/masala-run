@@ -712,6 +712,10 @@ let showBarriers = false; // debug: draw collision rects to author them over the
 let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
+// Build-system spike: XP from kills → level-ups → a 1-of-3 upgrade pick (reuses
+// the boon modal). pickKind drives the modal copy + post-pick resume.
+let xp, playerLevel, xpNext, pendingLevels;
+let pickKind = null;      // "levelup" | "boss"
 let rushCharge, slamCharge; // power meters: eats / kills since last use
 let rushActive, slowmoT;    // MASALA RUSH duration / THALI SLAM slow-mo timer
 let bestTime = 0;
@@ -760,6 +764,7 @@ function reset() {
   buildBarriers();
   lastBossWave = 0;
   boonChoices = null;
+  xp = 0; playerLevel = 1; xpNext = 5; pendingLevels = 0; pickKind = null;
   boons = [];
   mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
   rushCharge = 0;
@@ -1214,7 +1219,11 @@ function closeSettings() {
 function pickBoon(i) {
   applyBoon(boonChoices[i]);
   boonChoices = null;
-  gapT = CONFIG.postBoss.breather; // a longer breather after the boss before wave resumes
+  // After a boss pick, give the longer breather before the wave resumes. A
+  // mid-wave level-up pick just resumes — the modal already paused the action.
+  if (pickKind === "boss") gapT = CONFIG.postBoss.breather;
+  else if (state === "playing") resumeT = 1;
+  pickKind = null;
   sfx.ui();
   if (navigator.vibrate) navigator.vibrate(10);
 }
@@ -1595,6 +1604,28 @@ function applyBoon(b) {
   announce(b.name + "!", "#ffb347", 26);
 }
 
+// ---------- XP & level-ups (build-system spike) ----------
+const XP_PER = { bland: 2, swarmer: 1 };
+function addXp(type) {
+  xp += XP_PER[type] || 1;
+  while (xp >= xpNext) {
+    xp -= xpNext;
+    playerLevel++;
+    xpNext = 4 + playerLevel * 3;   // gentle ramp: lvl1→2 ≈ 5xp, then +3 each
+    pendingLevels++;
+  }
+}
+// Open a 1-of-3 upgrade pick if one is queued and the field is clear (defers
+// during a boss fight / the level-clear beat). Reuses the boon modal + pool.
+function tryOpenPick() {
+  if (boonChoices || pendingLevels <= 0 || bossFight || endingLevel) return;
+  pendingLevels--;
+  pickKind = "levelup";
+  boonChoices = [...CONFIG.boons].sort(() => Math.random() - 0.5).slice(0, 3);
+  sfx.bossDown();
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
 function dropFood(x, y, type) {
   const rate = (CONFIG.enemies[type] || CONFIG.enemies.bland).drop;
   if (Math.random() > rate) return;
@@ -1757,6 +1788,7 @@ function killEnemy(j) {
     }
     shake = 0.45; hitStop = 0.12; fusionFlash = 0.2;
     sfx.bossDown();
+    pickKind = "boss";
     const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
     boonChoices = pool.slice(0, 3);
     return;
@@ -1765,6 +1797,7 @@ function killEnemy(j) {
   burst(e.x, e.y, "#8d93a5", 8, 90);
   dying.push({ x: e.x, y: e.y, r: e.r, life: 0.22 });
   dropFood(e.x, e.y, e.type);
+  addXp(e.type);
   enemies.splice(j, 1);
   chargeSlam();
 }
@@ -1984,7 +2017,8 @@ function updateNom(dt) {
 // ---------- Update ----------
 function update(dt) {
   if (settingsOpen) return; // settings panel pauses the game
-  if (boonChoices) return;  // boon pick screen pauses the game
+  if (!boonChoices) tryOpenPick(); // queued level-up → open the upgrade pick
+  if (boonChoices) return;  // boon/upgrade pick screen pauses the game
   if (resumeT > 0) {
     // Post-pause countdown: world frozen, leftover effects still settle.
     resumeT -= dt;
@@ -2690,6 +2724,19 @@ function drawHUD() {
   ctx.font = "13px sans-serif";
   const NOM_PHASE_NAME = ["", "snack time", "coin toll", "NOM!"];
   ctx.fillText(nomMode ? "kills " + kills + "  ·  " + NOM_PHASE_NAME[nomPhase] : "kills " + kills + "  ·  L" + level + "-" + wave, W - 92, 28);
+
+  // XP bar (build system): thin gold bar across the very top + level number.
+  if (!nomMode) {
+    const bh = 5;
+    ctx.fillStyle = "rgba(20,20,30,0.55)";
+    ctx.fillRect(0, 0, W, bh);
+    ctx.fillStyle = "#ffd24a";
+    ctx.fillRect(0, 0, W * Math.max(0, Math.min(1, xp / xpNext)), bh);
+    ctx.textAlign = "center";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillStyle = "#ffd24a";
+    ctx.fillText("LV " + playerLevel, W / 2, 15);
+  }
   drawGear();
 
   // NOM HP bar (easter-egg finale).
@@ -3246,15 +3293,17 @@ function drawBoonPick() {
 
   ctx.textAlign = "center";
   ctx.lineJoin = "round";
+  const isLevel = pickKind === "levelup";
+  const title = isLevel ? "LEVEL " + playerLevel + "!" : "BOSS DOWN!";
   ctx.font = "34px " + COMIC_FONT;
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 6;
-  ctx.strokeText("BOSS DOWN!", W / 2, H * 0.3 - 64);
-  ctx.fillStyle = "#7ddf8a";
-  ctx.fillText("BOSS DOWN!", W / 2, H * 0.3 - 64);
+  ctx.strokeText(title, W / 2, H * 0.3 - 64);
+  ctx.fillStyle = isLevel ? "#ffd24a" : "#7ddf8a";
+  ctx.fillText(title, W / 2, H * 0.3 - 64);
   ctx.font = "16px " + COMIC_FONT;
   ctx.fillStyle = "#e8e8f0";
-  ctx.fillText("pick a boon — it lasts this level", W / 2, H * 0.3 - 30);
+  ctx.fillText(isLevel ? "pick an upgrade" : "pick a boon — it lasts this level", W / 2, H * 0.3 - 30);
 
   for (const r of boonLayout()) {
     const b = boonChoices[r.i];
@@ -3495,6 +3544,7 @@ window.__mr = {
   triggerRush() { triggerRush(); },
   triggerSlam() { triggerSlam(); },
   get boonChoices() { return boonChoices; },
+  get build() { return { xp, playerLevel, xpNext, pendingLevels, pickKind }; },
   get boons() { return boons; },
   get mods() { return mods; },
   // Deterministic step for testing (rAF pauses in background tabs).
