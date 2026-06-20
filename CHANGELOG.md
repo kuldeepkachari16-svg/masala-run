@@ -1,5 +1,13 @@
 # Masala Run — Changelog
 
+## 2026-06-20 — joystick: floating origin + real deadzone (kill the off-center lurch)
+External-review handoff caught the deeper cause behind the joystick complaints: the fixed stick measured deflection from the **anchor center**, so a thumb landing off-center produced instant movement before any deliberate drag. Reworked the control model:
+- **Floating origin.** A fixed-stick touch now becomes the origin itself (`ox/oy` = touch point, `dx=0`), not the anchor. Imperfect thumb placement starts at zero deflection — you only move once you actually drag. The visible stick floats to the thumb while held and parks a faint home indicator in the corner when idle.
+- **Real deadzone + remap.** Bumped the input deadzone from `3px` to a config knob `CONFIG.stickDeadzone = 10` CSS px (finger wobble no longer registers), and remapped the remaining range so speed ramps from **zero at the deadzone edge** (`(len-dead)/(max-dead)`) instead of jumping. Response curve still applies on top.
+- **Clean release everywhere.** New `clearJoy()` zeroes `joy` + `imx/imy/vx/vy` on every release, cancel, settings-open, setting-change, phantom-touch drop, and **app backgrounding** — no stale deflection or smoothed velocity survives a lift or focus loss, no inherited velocity on re-touch.
+- Removed `setFixedDeflection` (anchor-relative deflection) — obsolete under the floating-origin model.
+- Verified by state-stepping the engine (`__mr.tick`): off-center rest = 0px, in-deadzone wobble = 0px, gentle drag = slow creep, full drag = fast, post-release glide = 0px, re-touch = no inherited velocity. All six handoff acceptance criteria pass.
+
 ## 2026-06-17 — joystick feel: analog ramp + kill the "float"
 Playtest surfaced the character "floating uncontrollably" after a while. Root-caused to **three** separate issues and fixed each:
 - **Analog speed scaling was too compressed.** Speed already scaled with stick magnitude, but the throw-to-full-speed distance was tiny (18px), so it read as on/off. Widened the throw window (`SENS_THROW` → low 48 / med 38 / high 28) and added a config-driven **response curve** (`CONFIG.stickCurve` = 1.6, `pow(magnitude, curve)`) — gentle low end, ramps to full near the edge. Live-tune: `__mr.config.stickCurve`.

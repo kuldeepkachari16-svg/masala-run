@@ -343,6 +343,10 @@ const CONFIG = {
   // small drag = a gentle walk and speed ramps to full near the edge. Makes
   // the stick feel "analog/connected" instead of on-off. Live-tune: __mr.config.stickCurve
   stickCurve: 1.6,
+  // Deadzone before the stick produces ANY movement (CSS px). The thumb can
+  // rest / wobble inside this radius without the character drifting; movement
+  // ramps from zero only past it. ~8-14 px is the mobile sweet spot.
+  stickDeadzone: 10,
   // How fast the integrated frame-delta (dt) tracks the real frame interval.
   // Position moves by vx·dt; if dt lags reality (low value) under variable
   // framerate, the character rubber-bands ahead of your finger = "floaty".
@@ -619,7 +623,7 @@ function saveSettings() {
 function cycleSetting(key) {
   const opts = OPTIONS[key];
   settings[key] = opts[(opts.indexOf(settings[key]) + 1) % opts.length];
-  joy = null;
+  clearJoy();
   saveSettings();
 }
 const STICK_SIZES = { small: 44, medium: 56, large: 68 }; // CSS px base radius
@@ -936,7 +940,14 @@ window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 // - "fixed" (default): a visible stick anchored bottom-left/right; only
 //   touches near it move the player, so the screen stays readable.
 // - "anywhere": touch any point; origin follows the thumb at full throw.
-let joy = null; // {id, fixed?, ox?, oy?, dx, dy} in canvas px
+let joy = null; // {id, fixed?, ox, oy, dx, dy} in canvas px — ox/oy = touch origin
+// Drop the stick AND zero all carried movement state. Smoothed input (imx/imy)
+// and velocity would otherwise keep gliding the character after the thumb lifts
+// or the app loses focus. Use this everywhere a touch session ends.
+function clearJoy() {
+  joy = null;
+  if (player) { player.imx = 0; player.imy = 0; player.vx = 0; player.vy = 0; }
+}
 function toLocal(t) {
   const dpr = DPR();
   return { x: t.clientX * dpr, y: t.clientY * dpr };
@@ -1004,7 +1015,7 @@ function uiPress(p) {
         else if (r.key === "reset") {
           settings = { ...DEFAULT_SETTINGS };
           saveSettings();
-          joy = null;
+          clearJoy();
         } else cycleSetting(r.key);
         return true;
       }
@@ -1013,7 +1024,7 @@ function uiPress(p) {
   }
   if (Math.hypot(a.x - (W - 26), a.y - 30) < 26) {
     settingsOpen = true;
-    joy = null;
+    clearJoy();
     sfx.ui();
     return true;
   }
@@ -1025,18 +1036,6 @@ function uiPress(p) {
     return true;
   }
   return false;
-}
-
-function setFixedDeflection(p) {
-  const an = stickAnchor();
-  joy.dx = p.x - an.x;
-  joy.dy = p.y - an.y;
-  const max = throwPx();
-  const len = Math.hypot(joy.dx, joy.dy);
-  if (len > max) {
-    joy.dx *= max / len;
-    joy.dy *= max / len;
-  }
 }
 
 canvas.addEventListener("touchstart", (e) => {
@@ -1061,10 +1060,13 @@ canvas.addEventListener("touchstart", (e) => {
   }
   if (joy) return; // first finger owns the stick
   if (settings.stick === "fixed") {
+    // Touch must land in the corner movement zone, but the origin is the touch
+    // point itself — NOT the anchor center. An off-center landing starts at
+    // zero deflection, so the character only moves once the thumb deliberately
+    // drags past the deadzone (no lurch from imperfect thumb placement).
     const an = stickAnchor();
     if (Math.hypot(p.x - an.x, p.y - an.y) <= an.r * 1.7) {
-      joy = { id: t.identifier, fixed: true, dx: 0, dy: 0 };
-      setFixedDeflection(p);
+      joy = { id: t.identifier, fixed: true, ox: p.x, oy: p.y, dx: 0, dy: 0 };
     }
   } else {
     joy = { id: t.identifier, ox: p.x, oy: p.y, dx: 0, dy: 0 };
@@ -1078,19 +1080,21 @@ canvas.addEventListener("touchmove", (e) => {
   // so the character can't keep gliding on a stale deflection.
   let alive = false;
   for (const t of e.touches) if (t.identifier === joy.id) { alive = true; break; }
-  if (!alive) { joy = null; return; }
+  if (!alive) { clearJoy(); return; }
   for (const t of e.changedTouches) {
     if (t.identifier !== joy.id) continue;
     const p = toLocal(t);
-    if (joy.fixed) {
-      setFixedDeflection(p);
-    } else {
-      joy.dx = p.x - joy.ox;
-      joy.dy = p.y - joy.oy;
-      const max = throwPx();
-      const len = Math.hypot(joy.dx, joy.dy);
-      if (len > max) {
-        // Drag origin along behind the thumb.
+    joy.dx = p.x - joy.ox;
+    joy.dy = p.y - joy.oy;
+    const max = throwPx();
+    const len = Math.hypot(joy.dx, joy.dy);
+    if (len > max) {
+      if (joy.fixed) {
+        // Pinned origin: just clamp deflection so the stick stays put.
+        joy.dx *= max / len;
+        joy.dy *= max / len;
+      } else {
+        // Touch-anywhere: drag the origin along behind the thumb.
         const k = (len - max) / len;
         joy.ox += joy.dx * k;
         joy.oy += joy.dy * k;
@@ -1104,13 +1108,13 @@ const endTouch = (e) => {
   if (!joy) return;
   e.preventDefault();
   for (const t of e.changedTouches) {
-    if (t.identifier === joy.id) { joy = null; return; }
+    if (t.identifier === joy.id) { clearJoy(); return; }
   }
   // Safety net: our finger never reported a clean touchend (slid off the
   // screen edge, esp. a corner fixed stick, or a system gesture). If nothing
   // is touching the surface anymore, there is no stick — clear it so the
   // character stops instead of floating off on a stale deflection.
-  if (e.touches.length === 0) joy = null;
+  if (e.touches.length === 0) clearJoy();
 };
 canvas.addEventListener("touchend", endTouch, { passive: false });
 canvas.addEventListener("touchcancel", endTouch, { passive: false });
@@ -1815,12 +1819,15 @@ function update(dt) {
   if (keys["arrowdown"] || keys["s"]) my += 1;
   // …or joystick.
   if (joy) {
+    const dead = CONFIG.stickDeadzone * DPR();
     const max = throwPx();
     const len = Math.hypot(joy.dx, joy.dy);
-    if (len > 3 * DPR()) {
-      // Magnitude 0..1, then a response curve so the low end is gentle and
-      // speed ramps to full near the edge — analog "connected" feel.
-      const c = Math.pow(Math.min(len, max) / max, CONFIG.stickCurve);
+    if (len > dead) {
+      // Remap past the deadzone so movement ramps from zero at the edge of the
+      // deadzone (not a jump), then a response curve so the low end is gentle
+      // and speed ramps to full near the throw edge — analog "connected" feel.
+      const mag = Math.min(1, (len - dead) / (max - dead));
+      const c = Math.pow(mag, CONFIG.stickCurve);
       mx = (joy.dx / len) * c;
       my = (joy.dy / len) * c;
     }
@@ -2320,22 +2327,20 @@ function draw() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const flavorColor = FLAVORS[flavor].color;
     if (settings.stick === "fixed") {
-      // Anchored stick: always visible, brightens when held.
       const an = stickAnchor();
       const base = joyBaseSprite(an.r);
-      ctx.globalAlpha = joy ? 0.55 : 0.32; // transparent so it occludes less
-      ctx.drawImage(base, an.x - base.width / 2, an.y - base.height / 2);
-      const max = throwPx();
-      let kx = an.x, ky = an.y;
+      const knob = joyKnobSprite(an.r * 0.42);
       if (joy) {
+        // Held: the stick floats to where the thumb landed (origin), so the
+        // visible knob deflection matches the input the player is feeling.
+        const max = throwPx();
         const len = Math.hypot(joy.dx, joy.dy) || 1;
         const cap = Math.min(len, max);
-        kx += (joy.dx / len) * (cap / max) * an.r * 0.55;
-        ky += (joy.dy / len) * (cap / max) * an.r * 0.55;
-      }
-      const knob = joyKnobSprite(an.r * 0.42);
-      ctx.drawImage(knob, kx - knob.width / 2, ky - knob.height / 2);
-      if (joy) {
+        const kx = joy.ox + (joy.dx / len) * (cap / max) * an.r * 0.55;
+        const ky = joy.oy + (joy.dy / len) * (cap / max) * an.r * 0.55;
+        ctx.globalAlpha = 0.55;
+        ctx.drawImage(base, joy.ox - base.width / 2, joy.oy - base.height / 2);
+        ctx.drawImage(knob, kx - knob.width / 2, ky - knob.height / 2);
         // Flavor-colored ring while steering.
         ctx.strokeStyle = flavorColor;
         ctx.globalAlpha = 0.85;
@@ -2343,6 +2348,12 @@ function draw() {
         ctx.beginPath();
         ctx.arc(kx, ky, an.r * 0.42 + 2, 0, Math.PI * 2);
         ctx.stroke();
+      } else {
+        // Idle: a faint home indicator parked in the corner zone so the player
+        // knows where to rest the thumb.
+        ctx.globalAlpha = 0.32;
+        ctx.drawImage(base, an.x - base.width / 2, an.y - base.height / 2);
+        ctx.drawImage(knob, an.x - knob.width / 2, an.y - knob.height / 2);
       }
       ctx.globalAlpha = 1;
     } else if (joy) {
@@ -3282,6 +3293,7 @@ window.addEventListener("focus", resyncClock);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     if (audioCtx) audioCtx.suspend();
+    clearJoy(); // backgrounding mid-drag must not leave a stale deflection
   } else {
     if (audioCtx) audioCtx.resume();
     last = performance.now(); // avoid one giant dt on return
