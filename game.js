@@ -2649,12 +2649,18 @@ function draw() {
   if (!blinking) {
     const bob = player.moving ? Math.sin(now * 14) * 2 : Math.sin(now * 3) * 1;
     const py = player.y + bob;
-    // Flavor glow underfoot.
-    ctx.globalAlpha = 0.5;
-    ctx.drawImage(glowSprite(f.color), player.x - 30, py - 30, 60, 60);
-    ctx.globalAlpha = 1;
+    // Flavor aura: a subtle, flat colored glow at the FEET (not a disc over the
+    // body), only while a flavor is active, fading as the meter drains. Flavor
+    // also reads via the HUD + the pulse on eat — this is just ambient tint.
+    if (flavor !== "none") {
+      const fr = Math.max(0, Math.min(1, flavorTimer / FLAVOR_DURATION));
+      const gw = player.r * 3.0, gh = player.r * 1.4;
+      ctx.globalAlpha = 0.16 + 0.18 * fr;
+      ctx.drawImage(glowSprite(f.color), player.x - gw / 2, py + player.r * 0.9 - gh / 2, gw, gh);
+      ctx.globalAlpha = 1;
+    }
     // The Tiffin Runner — authored sprite if loaded, else the procedural blob.
-    // Flavor still reads via the underfoot glow + HUD, so a fixed sprite is fine.
+    // Flavor reads via the foot aura + HUD + eat pulse, so a fixed sprite is fine.
     const cs = SPRITES.courier;
     if (cs) {
       const sp = CONFIG.sprites.player;

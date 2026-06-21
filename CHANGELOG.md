@@ -1,5 +1,8 @@
 # Masala Run — Changelog
 
+## 2026-06-21 — flavor cue: subtle foot aura instead of a glow disc
+The full-color glow disc drawn over the courier read as a garish circle (esp. savory green) now that there's a real sprite. Replaced with a small, flat colored aura at the **feet**, shown only while a flavor is active and fading as the meter drains. Flavor still reads loud via the HUD + the bright pulse on eat. `sw.js` → `masala-run-v12`.
+
 ## 2026-06-21 — fix sprite flicker + punchier Bland-touch feedback
 - **Flicker fix.** Sprites were drawn from the raw SVG every frame, so the browser re-decoded the vector each frame → flicker + dropped frames. Now each sprite is **rasterized once** to an offscreen canvas (2× supersample for hi-DPI crispness) and that bitmap is drawn each frame — same pattern as `glowSprite`/`auraSprite`. Hit-flash white silhouette derives from the cached bitmap too.
 - **Bland-touch feedback.** Taking a hit now also: a **haptic buzz** (`navigator.vibrate`, a longer pattern on death), a **20px recoil** shoving the courier away from the Bland, a red impact ring + a "-1 ♥" floater, and bigger shake/flash (0.4 / 0.35). Previously only a small flash+shake — easy to miss on mobile.
