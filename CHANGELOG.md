@@ -1,5 +1,13 @@
 # Masala Run — Changelog
 
+## 2026-06-21 — character sprites: the Tiffin Runner + the Bland
+First authored characters land — the player and the basic Bland now render as flat-vector sprites instead of procedural blobs (direction + spec in `docs/sprites.md`).
+- **SVG-on-canvas, no rasterization.** Sprites ship as tight SVG files (`assets/sprites/courier.svg`, `bland.svg`) drawn straight onto the canvas, so they stay crisp at any scale and keep us asset-light. Authored in SVG for exact proportion control (the recurring AI-gen pain).
+- **Courier = the Tiffin Runner** (cap + hair, tied apron, small steel dabba, warm palette). Flavor still reads via the underfoot glow + HUD, so a fixed-color sprite is fine. **Basic Bland** = the smug grey blob; bosses/swarmer stay procedural for now (they become Bland variants later).
+- **Safe by construction:** a `SPRITES` registry loads the images async; until a sprite loads (or if it 404s) the **procedural blob keeps drawing** — assets can never break the game. Hit-flash uses a cached white silhouette of the sprite.
+- **Live-tunable:** `CONFIG.sprites.{player,bland}.{scale,yOff}` (drawn height = 2·r·scale). `__mr.sprites` reports load state.
+- Verified live: both sprites load, render in-game at good scale over the day street, no console errors, white-flash path clean, level-up cadence still firing at ~20 kills. `sw.js` → `masala-run-v10`.
+
 ## 2026-06-21 — "B": a run is one continuous build across all zones
 The structural fix behind "level-ups feel like irritating interruptions." Root cause wasn't pick *frequency* — it was that the build **reset at every level boundary**, so every pick bought an upgrade you'd lose in ~3 minutes. Now a run spans all zones with the build intact (the survivor-like model). Picks compound into a real power fantasy, so the interruption becomes a reward.
 - **Split `reset()`** into `resetRun()` (build + courier — XP, level, picked boons, stat mods, HP/maxHp; runs once per run) and `setupStage(n, fresh)` (the transient arena — enemies, waves, backdrop, barriers; runs at every zone, never touches the build). `reset()` now orchestrates both.

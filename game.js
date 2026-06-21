@@ -139,6 +139,45 @@ function loadThemeImages() {
   }
 }
 loadThemeImages();
+
+// ---------- Character sprites (SVG → canvas) ----------
+// Authored flat-vector sprites (see docs/sprites.md). Drawn straight from SVG so
+// they stay crisp at any scale — no rasterization. Until a sprite loads (or if it
+// fails), the procedural blob keeps drawing, so the game never breaks on assets.
+const SPRITE_SRC = { courier: "assets/sprites/courier.svg", bland: "assets/sprites/bland.svg" };
+const SPRITES = {}; // name -> { img, white } once loaded
+function loadSprites() {
+  for (const name in SPRITE_SRC) {
+    const im = new Image();
+    im.onload = () => { SPRITES[name] = { img: im, white: null }; };
+    im.src = SPRITE_SRC[name];
+  }
+}
+loadSprites();
+// White silhouette of a sprite (cached) — the hit-flash frame.
+function spriteWhite(s) {
+  if (s.white) return s.white;
+  const c = document.createElement("canvas");
+  c.width = s.img.naturalWidth || s.img.width;
+  c.height = s.img.naturalHeight || s.img.height;
+  const g = c.getContext("2d");
+  g.drawImage(s.img, 0, 0, c.width, c.height);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = "#ffffff";
+  g.fillRect(0, 0, c.width, c.height);
+  s.white = c;
+  return s.white;
+}
+// Draw a sprite centered on (x,y), scaled to height h, optionally flipped/flashed.
+function drawSprite(s, x, y, h, faceDir, white, yOff) {
+  const iw = s.img.naturalWidth || s.img.width, ih = s.img.naturalHeight || s.img.height;
+  const w = h * (iw / ih);
+  ctx.save();
+  ctx.translate(x, y + (yOff || 0));
+  if (faceDir < 0) ctx.scale(-1, 1);
+  ctx.drawImage(white ? spriteWhite(s) : s.img, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
 function levelBg() {
   const im = bgImgs[level || 1];
   return im && im.complete && im.naturalWidth ? im : null;
@@ -585,6 +624,11 @@ const CONFIG = {
   // of modals. Together: picks land ~every 25-30s early, rarer late, never spam.
   // Live-tune: __mr.config.levelXp
   levelXp: { base: 40, step: 22, minGap: 26, killXp: { bland: 2, swarmer: 1 } },
+  // Character sprite sizing (see docs/sprites.md). drawn height = 2*r*scale;
+  // yOff nudges the sprite up/down off the entity center. Live-tune in preview
+  // via __mr.config.sprites — falls back to the procedural blob if a sprite is
+  // missing, so these never break the game.
+  sprites: { player: { scale: 2.5, yOff: -6 }, bland: { scale: 2.3, yOff: -4 } },
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
@@ -2537,6 +2581,12 @@ function draw() {
       ctx.fill();
       continue; // 1 hp — no health bar
     }
+    // The Bland — authored sprite if loaded, else the procedural wobble blob.
+    const bs = SPRITES.bland;
+    if (bs) {
+      const sp = CONFIG.sprites.bland;
+      drawSprite(bs, e.x, e.y, e.r * 2 * sp.scale, 1, e.flash > 0, sp.yOff);
+    } else {
     // Organic blob: 12-point outline with 3 travelling wobble lobes.
     ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#6e7280";
     ctx.beginPath();
@@ -2563,6 +2613,7 @@ function draw() {
     ctx.beginPath();
     ctx.arc(e.x, e.y + 7, 3.5, Math.PI * 1.15, Math.PI * 1.85);
     ctx.stroke();
+    }
     if (e.hp < e.maxHp) {
       ctx.fillStyle = "#3a3a48";
       ctx.fillRect(e.x - 12, e.y - e.r - 8, 24, 3);
@@ -2581,6 +2632,13 @@ function draw() {
     ctx.globalAlpha = 0.5;
     ctx.drawImage(glowSprite(f.color), player.x - 30, py - 30, 60, 60);
     ctx.globalAlpha = 1;
+    // The Tiffin Runner — authored sprite if loaded, else the procedural blob.
+    // Flavor still reads via the underfoot glow + HUD, so a fixed sprite is fine.
+    const cs = SPRITES.courier;
+    if (cs) {
+      const sp = CONFIG.sprites.player;
+      drawSprite(cs, player.x, py, player.r * 2 * sp.scale, player.face, false, sp.yOff);
+    } else {
     // Body.
     ctx.fillStyle = f.color;
     ctx.beginPath();
@@ -2610,6 +2668,7 @@ function draw() {
     ctx.beginPath();
     ctx.arc(player.x, py, player.r, 0, Math.PI * 2);
     ctx.stroke();
+    }
     if (player.shield > 0) {
       ctx.strokeStyle = FLAVORS.savory.color;
       ctx.lineWidth = 2.5;
@@ -3606,6 +3665,7 @@ window.__mr = {
   triggerSlam() { triggerSlam(); },
   get boonChoices() { return boonChoices; },
   get build() { return { xp, playerLevel, xpNext, pendingLevels, pickKind }; },
+  get sprites() { const o = {}; for (const n in SPRITE_SRC) o[n] = !!SPRITES[n]; return o; },
   get boons() { return boons; },
   get mods() { return mods; },
   // Deterministic step for testing (rAF pauses in background tabs).
