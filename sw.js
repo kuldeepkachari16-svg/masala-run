@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v10";
+const CACHE = "masala-run-v11";
 const ASSETS = [
   "./",
   "index.html",

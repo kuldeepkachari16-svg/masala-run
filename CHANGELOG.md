@@ -1,5 +1,10 @@
 # Masala Run — Changelog
 
+## 2026-06-21 — fix sprite flicker + punchier Bland-touch feedback
+- **Flicker fix.** Sprites were drawn from the raw SVG every frame, so the browser re-decoded the vector each frame → flicker + dropped frames. Now each sprite is **rasterized once** to an offscreen canvas (2× supersample for hi-DPI crispness) and that bitmap is drawn each frame — same pattern as `glowSprite`/`auraSprite`. Hit-flash white silhouette derives from the cached bitmap too.
+- **Bland-touch feedback.** Taking a hit now also: a **haptic buzz** (`navigator.vibrate`, a longer pattern on death), a **20px recoil** shoving the courier away from the Bland, a red impact ring + a "-1 ♥" floater, and bigger shake/flash (0.4 / 0.35). Previously only a small flash+shake — easy to miss on mobile.
+- Verified live: rasterized sprites render crisp, no console errors; forced collision drops HP, sets i-frames, applies the recoil. `sw.js` → `masala-run-v11`.
+
 ## 2026-06-21 — character sprites: the Tiffin Runner + the Bland
 First authored characters land — the player and the basic Bland now render as flat-vector sprites instead of procedural blobs (direction + spec in `docs/sprites.md`).
 - **SVG-on-canvas, no rasterization.** Sprites ship as tight SVG files (`assets/sprites/courier.svg`, `bland.svg`) drawn straight onto the canvas, so they stay crisp at any scale and keep us asset-light. Authored in SVG for exact proportion control (the recurring AI-gen pain).

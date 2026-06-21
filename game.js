@@ -145,11 +145,26 @@ loadThemeImages();
 // they stay crisp at any scale — no rasterization. Until a sprite loads (or if it
 // fails), the procedural blob keeps drawing, so the game never breaks on assets.
 const SPRITE_SRC = { courier: "assets/sprites/courier.svg", bland: "assets/sprites/bland.svg" };
-const SPRITES = {}; // name -> { img, white } once loaded
+const SPRITES = {}; // name -> { base, white, w, h } once loaded
+// Raster supersample: rasterize the vector ABOVE display size so it stays crisp
+// on hi-DPI and if we scale the sprite up later. Drawn down from this each frame.
+const SPRITE_RASTER = 2;
+function rasterizeSprite(img, scale) {
+  const w = (img.naturalWidth || img.width), h = (img.naturalHeight || img.height);
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
 function loadSprites() {
   for (const name in SPRITE_SRC) {
     const im = new Image();
-    im.onload = () => { SPRITES[name] = { img: im, white: null }; };
+    im.onload = () => {
+      const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
+      // Rasterize ONCE to a canvas. Drawing the raw SVG every frame re-decodes
+      // the vector → flicker + dropped frames; a cached bitmap draws cheaply.
+      SPRITES[name] = { base: rasterizeSprite(im, SPRITE_RASTER), white: null, w, h };
+    };
     im.src = SPRITE_SRC[name];
   }
 }
@@ -158,10 +173,9 @@ loadSprites();
 function spriteWhite(s) {
   if (s.white) return s.white;
   const c = document.createElement("canvas");
-  c.width = s.img.naturalWidth || s.img.width;
-  c.height = s.img.naturalHeight || s.img.height;
+  c.width = s.base.width; c.height = s.base.height;
   const g = c.getContext("2d");
-  g.drawImage(s.img, 0, 0, c.width, c.height);
+  g.drawImage(s.base, 0, 0);
   g.globalCompositeOperation = "source-in";
   g.fillStyle = "#ffffff";
   g.fillRect(0, 0, c.width, c.height);
@@ -170,12 +184,11 @@ function spriteWhite(s) {
 }
 // Draw a sprite centered on (x,y), scaled to height h, optionally flipped/flashed.
 function drawSprite(s, x, y, h, faceDir, white, yOff) {
-  const iw = s.img.naturalWidth || s.img.width, ih = s.img.naturalHeight || s.img.height;
-  const w = h * (iw / ih);
+  const w = h * (s.w / s.h);
   ctx.save();
   ctx.translate(x, y + (yOff || 0));
   if (faceDir < 0) ctx.scale(-1, 1);
-  ctx.drawImage(white ? spriteWhite(s) : s.img, -w / 2, -h / 2, w, h);
+  ctx.drawImage(white ? spriteWhite(s) : s.base, -w / 2, -h / 2, w, h);
   ctx.restore();
 }
 function levelBg() {
@@ -2384,16 +2397,24 @@ function update(dt) {
       } else {
         player.hp--;
         player.iframes = 1.2;
-        hitFlash = 0.25;
-        shake = 0.25;
-        hitStop = 0.05;
-        burst(player.x, player.y, "#ff5a3c", 12, 140);
+        hitFlash = 0.35;
+        shake = 0.4;
+        hitStop = 0.06;
+        burst(player.x, player.y, "#ff5a3c", 14, 150);
+        // Recoil: shove the player away from the Bland so the hit reads as impact.
+        const ka = Math.atan2(player.y - e.y, player.x - e.x);
+        player.x = Math.max(player.r, Math.min(W - player.r, player.x + Math.cos(ka) * 20));
+        player.y = Math.max(player.r, Math.min(H - player.r, player.y + Math.sin(ka) * 20));
+        rings.push({ x: player.x, y: player.y, r: 10, maxR: 54, life: 0.3, color: "#ff5a3c" });
+        smallText("-1 ♥", "#ff5a6e", player.x, player.y - 26);
         if (player.hp <= 0) {
           state = "gameover";
           bestTime = Math.max(bestTime, elapsed);
           sfx.death();
+          if (navigator.vibrate) navigator.vibrate([30, 40, 60]);
         } else {
           sfx.hit();
+          if (navigator.vibrate) navigator.vibrate(35); // haptic on every Bland touch
         }
       }
     }
