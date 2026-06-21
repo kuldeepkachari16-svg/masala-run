@@ -1,5 +1,12 @@
 # Masala Run — Changelog
 
+## 2026-06-21 — "B": a run is one continuous build across all zones
+The structural fix behind "level-ups feel like irritating interruptions." Root cause wasn't pick *frequency* — it was that the build **reset at every level boundary**, so every pick bought an upgrade you'd lose in ~3 minutes. Now a run spans all zones with the build intact (the survivor-like model). Picks compound into a real power fantasy, so the interruption becomes a reward.
+- **Split `reset()`** into `resetRun()` (build + courier — XP, level, picked boons, stat mods, HP/maxHp; runs once per run) and `setupStage(n, fresh)` (the transient arena — enemies, waves, backdrop, barriers; runs at every zone, never touches the build). `reset()` now orchestrates both.
+- **`clearLevel()` → continuous advance.** Beating a zone's main boss no longer bounces to the hub; new `advanceStage()` loads the next zone with the same build (+ a small zone-clear reward heal, recentre). The run ends only on death. The old "level clear" screen now means **RUN COMPLETE** (every zone cleared in one build).
+- **Non-intrusive pick pacing.** Curve already decelerates (`xpNext = base + (lvl-1)·step`: 40 → 62 → 84…). Added a hard floor `CONFIG.levelXp.minGap = 26s`: a burst of kills *banks* levels instead of firing a stack of modals. Picks can't spam regardless of kill rate or cache.
+- Verified live (state-stepped): build survives a zone advance (maxHp/mods/boons all intact, level 1→2, arena reset, state stays "playing"); first pick lands at **18.8s / 20 kills** (not the old 2-3s); `xpNext` steps 40→62. `sw.js` → `masala-run-v9`.
+
 ## 2026-06-20 — retro-day backdrops go fully procedural (flat, in-code)
 Closed the backdrop thread. AI image generation fought us on the one thing that matters for a top-down arena: **scale/proportion** — generated stalls were too big, ate the play area, and pulled focus to one side. Code fixes all of that deterministically, so `retro-day` is now drawn entirely in code.
 - **`drawDayStreet`** — a flat POWER-UP-style street built from an element kit (`DAY_ELEMENTS`: stall, cart, crate, pot, plant, dog, cat), all confined to the side-margins (the existing 15% walled zone) so the **center lane stays fully open** by construction. Simple, recognisable shapes — not detailed.

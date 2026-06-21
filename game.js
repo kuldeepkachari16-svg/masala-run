@@ -579,10 +579,12 @@ const CONFIG = {
   waveLength: 20,      // seconds per wave — longer so level-up picks (not wave
                        // breaks) are the rhythm; fewer choppy transitions
   breather: 2,         // pause between waves
-  // XP / level-up cadence. xpNext(level) = base + (level-1)*step XP. Tuned so
-  // the upgrade pick lands every ~20-30s and slows down — NOT every few seconds
-  // (early playtest: it spammed the pick screen). Live-tune: __mr.config.levelXp
-  levelXp: { base: 40, step: 22, killXp: { bland: 2, swarmer: 1 } },
+  // XP / level-up cadence. xpNext(level) = base + (level-1)*step XP, so each pick
+  // costs more (the curve decelerates over a long run). minGap is a HARD floor in
+  // seconds between picks — a burst of kills banks levels, it can't fire a stack
+  // of modals. Together: picks land ~every 25-30s early, rarer late, never spam.
+  // Live-tune: __mr.config.levelXp
+  levelXp: { base: 40, step: 22, minGap: 26, killXp: { bland: 2, swarmer: 1 } },
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
@@ -725,6 +727,7 @@ let boons, mods;          // picked boon ids + derived multipliers
 // the boon modal). pickKind drives the modal copy + post-pick resume.
 let xp, playerLevel, xpNext, pendingLevels;
 let pickKind = null;      // "levelup" | "boss"
+let pickGap = 0;          // hard floor (s) between picks; see CONFIG.levelXp.minGap
 let rushCharge, slamCharge; // power meters: eats / kills since last use
 let rushActive, slowmoT;    // MASALA RUSH duration / THALI SLAM slow-mo timer
 let bestTime = 0;
@@ -736,11 +739,35 @@ let settingsOpen = false;
 let settingsFx = null; // { key, at } — press feedback in the settings panel
 let resumeT = 0; // 3-2-1 countdown after closing settings mid-game
 
-function reset() {
+// Per-RUN state — the build + courier that PERSIST across stages. Reset only at
+// run start (and on death → a fresh run), NEVER between zones. This is what lets
+// the survivor-like build compound (ROADMAP "B": a run = one continuous build,
+// not a chain of resets). Anything a player should KEEP as they clear zones lives
+// here; anything that belongs to a single arena lives in setupStage().
+function resetRun() {
   // Base speed = the old Sweet speed (205 × 1.35): the "jalebi feel" is now
   // the default; flavors no longer buff movement, savory still trades a bit.
   // imx/imy = smoothed INPUT direction (filtered stick), not velocity.
   player = { x: W / 2, y: H / 2, r: 14, hp: 3, maxHp: 3, iframes: 0, speed: 277, shield: 0, face: 1, vx: 0, vy: 0, imx: 0, imy: 0 };
+  elapsed = 0;
+  kills = 0;
+  mixHintShown = false;
+  xp = 0; playerLevel = 1; xpNext = CONFIG.levelXp.base; pendingLevels = 0;
+  pickKind = null; pickGap = 0;
+  boons = [];
+  mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
+  rushCharge = 0;
+  slamCharge = 0;
+  rushActive = 0;
+  slowmoT = 0;
+  nomWon = false;
+}
+
+// Per-STAGE setup — the transient arena. Runs at EVERY zone start, including a
+// continuous advance (advanceStage), so it must not touch the build above.
+// `fresh` is true only on the run's very first zone: it drops the teaching chilli
+// + WAVE 1 beat. Chained zones keep the player's current flavor, HP and build.
+function setupStage(n, fresh) {
   enemies = [];
   bullets = [];
   foods = [];
@@ -753,13 +780,10 @@ function reset() {
   flavor = "none";
   flavorTimer = 0;
   savoryPulse = 0;
-  elapsed = 0;
-  kills = 0;
   wave = 1;
   waveTimer = 0;
   spawnTimer = 0;
   fireTimer = 0;
-  mixHintShown = false;
   hitFlash = 0;
   shake = 0;
   fusionFlash = 0;
@@ -767,28 +791,42 @@ function reset() {
   resumeT = 0;
   bossFight = false;
   bossFoodT = 0;
-  level = nomMode ? 1 : startLevelNum; // play the chosen / resumed level
   endingLevel = false;
-  buildBackdrop(); // per-level backdrop may differ from the previous level
+  level = n; // drives difficulty (CONFIG.levels[n-1]), backdrop and barriers
+  buildBackdrop(); // per-zone backdrop may differ from the previous zone
   buildBarriers();
   lastBossWave = 0;
   boonChoices = null;
-  xp = 0; playerLevel = 1; xpNext = CONFIG.levelXp.base; pendingLevels = 0; pickKind = null;
-  boons = [];
-  mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
-  rushCharge = 0;
-  slamCharge = 0;
-  rushActive = 0;
-  slowmoT = 0;
-  nomWon = false;
-  if (nomMode) nomReset();
-  else {
+  if (fresh) {
     announce("WAVE 1", "#ffffff");
     // Teach-by-doing: one unmissable food right next to the player so the
     // eat → attack link is discovered in the first seconds (chilli reads
     // clearly different from PLAIN — spread shots + 2× damage).
     foods.push({ x: W / 2, y: H / 2 - 46, r: 11, type: FOOD_TYPES[0], life: CONFIG.foodLife });
   }
+}
+
+// Run start: fresh build, then the first zone. NOM mode keeps its own content.
+function reset() {
+  resetRun();
+  if (nomMode) {
+    setupStage(1, false);
+    nomReset();
+  } else {
+    setupStage(startLevelNum, true); // start at the chosen / resumed zone
+  }
+}
+
+// Continuous zone advance (the heart of "B"): load the next arena with the SAME
+// build/courier — no hub bounce, no reset. The boss-defeat beat already gave a
+// ~2s lull, so play flows straight on with a callout + small reward heal.
+function advanceStage() {
+  const n = level + 1;
+  setupStage(n, false);
+  player.hp = Math.min(player.maxHp, player.hp + 1); // zone-clear reward heal
+  player.x = W / 2; player.y = H / 2;
+  announce("ZONE " + n, "#ffd24a", 30);
+  sfx.wave();
 }
 
 // ---------- Settings ----------
@@ -1233,12 +1271,15 @@ function pickBoon(i) {
   // a countdown here reads like the wave restarted (playtest note).
   if (pickKind === "boss") gapT = CONFIG.postBoss.breather;
   pickKind = null;
+  pickGap = CONFIG.levelXp.minGap; // start the floor before the next pick can open
   sfx.ui();
   if (navigator.vibrate) navigator.vibrate(10);
 }
 
-// Main boss down → level complete. Unlock the next level, show the clear
-// screen (no boon — next level starts fresh). New-level content is TBD.
+// Main boss down → zone complete. Unlock the next zone for the hub, then under
+// "B" flow STRAIGHT into it with the build intact (advanceStage). The run only
+// ends on death; the "levelclear" screen now means RUN COMPLETE — every zone
+// cleared in one continuous build.
 function clearLevel() {
   if (level >= unlockedLevel && unlockedLevel < MAX_LEVEL) {
     unlockedLevel = level + 1;
@@ -1246,7 +1287,8 @@ function clearLevel() {
     saveProgress();
   }
   bestTime = Math.max(bestTime, elapsed);
-  state = "levelclear";
+  if (level < MAX_LEVEL) advanceStage(); // keep playing — same build, next zone
+  else state = "levelclear";             // final zone down → run complete
 }
 
 // Start a specific level from the select screen (always the main game).
@@ -1627,7 +1669,9 @@ function addXp(type) {
 // Open a 1-of-3 upgrade pick if one is queued and the field is clear (defers
 // during a boss fight / the level-clear beat). Reuses the boon modal + pool.
 function tryOpenPick() {
-  if (boonChoices || pendingLevels <= 0 || bossFight || endingLevel) return;
+  // pickGap is the anti-spam floor: even with levels banked, the next pick waits
+  // out the cooldown so modals never stack back-to-back (set in pickBoon).
+  if (boonChoices || pendingLevels <= 0 || bossFight || endingLevel || pickGap > 0) return;
   pendingLevels--;
   pickKind = "levelup";
   boonChoices = [...CONFIG.boons].sort(() => Math.random() - 0.5).slice(0, 3);
@@ -2044,6 +2088,7 @@ function update(dt) {
   if (rushActive > 0) rushActive -= dt;
   autoPowers();
   elapsed += dt;
+  if (pickGap > 0) pickGap -= dt; // tick the anti-spam floor only during live play
 
   if (nomMode) {
     updateNom(dt);
@@ -3438,15 +3483,15 @@ function drawLevelClear() {
   grad.addColorStop(1, "#ff9c2c");
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 8;
-  ctx.strokeText("LEVEL " + level + " CLEAR!", 0, 0);
+  ctx.strokeText("RUN COMPLETE!", 0, 0);
   ctx.fillStyle = grad;
-  ctx.fillText("LEVEL " + level + " CLEAR!", 0, 0);
+  ctx.fillText("RUN COMPLETE!", 0, 0);
   ctx.restore();
 
   ctx.textAlign = "center";
   ctx.font = "16px " + COMIC_FONT;
   ctx.fillStyle = "#e8e8f0";
-  ctx.fillText(level < MAX_LEVEL ? "LEVEL " + (level + 1) + " UNLOCKED!" : "you cleared the final level!", W / 2, H * 0.46);
+  ctx.fillText("you cleared every zone — flavor restored!", W / 2, H * 0.46);
   ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tnow * 3);
   ctx.fillStyle = "#ffb347";
   ctx.font = "22px " + COMIC_FONT;
