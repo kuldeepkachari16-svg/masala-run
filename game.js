@@ -182,6 +182,21 @@ function spriteWhite(s) {
   s.white = c;
   return s.white;
 }
+// Flavor-colored silhouette of a sprite (cached per color) — overlaid at low
+// alpha so the CHARACTER carries the flavor tint. No glow disc on the ground.
+function spriteTint(s, color) {
+  s.tints = s.tints || {};
+  if (s.tints[color]) return s.tints[color];
+  const c = document.createElement("canvas");
+  c.width = s.base.width; c.height = s.base.height;
+  const g = c.getContext("2d");
+  g.drawImage(s.base, 0, 0);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = color;
+  g.fillRect(0, 0, c.width, c.height);
+  s.tints[color] = c;
+  return s.tints[color];
+}
 // Draw a sprite centered on (x,y), scaled to height h, optionally flipped/flashed.
 function drawSprite(s, x, y, h, faceDir, white, yOff) {
   const w = h * (s.w / s.h);
@@ -2649,22 +2664,26 @@ function draw() {
   if (!blinking) {
     const bob = player.moving ? Math.sin(now * 14) * 2 : Math.sin(now * 3) * 1;
     const py = player.y + bob;
-    // Flavor aura: a subtle, flat colored glow at the FEET (not a disc over the
-    // body), only while a flavor is active, fading as the meter drains. Flavor
-    // also reads via the HUD + the pulse on eat — this is just ambient tint.
-    if (flavor !== "none") {
-      const fr = Math.max(0, Math.min(1, flavorTimer / FLAVOR_DURATION));
-      const gw = player.r * 3.0, gh = player.r * 1.4;
-      ctx.globalAlpha = 0.16 + 0.18 * fr;
-      ctx.drawImage(glowSprite(f.color), player.x - gw / 2, py + player.r * 0.9 - gh / 2, gw, gh);
-      ctx.globalAlpha = 1;
-    }
     // The Tiffin Runner — authored sprite if loaded, else the procedural blob.
-    // Flavor reads via the foot aura + HUD + eat pulse, so a fixed sprite is fine.
     const cs = SPRITES.courier;
     if (cs) {
       const sp = CONFIG.sprites.player;
-      drawSprite(cs, player.x, py, player.r * 2 * sp.scale, player.face, false, sp.yOff);
+      const h = player.r * 2 * sp.scale, w = h * (cs.w / cs.h);
+      const dy = py + (sp.yOff || 0);
+      ctx.save();
+      ctx.translate(player.x, dy);
+      if (player.face < 0) ctx.scale(-1, 1);
+      ctx.drawImage(cs.base, -w / 2, -h / 2, w, h);
+      // Flavor cue: tint the CHARACTER itself (no ground glow), only while a
+      // flavor is active, fading with the meter. Reads alongside the HUD + eat
+      // pulse without a disc on the floor.
+      if (flavor !== "none") {
+        const fr = Math.max(0, Math.min(1, flavorTimer / FLAVOR_DURATION));
+        ctx.globalAlpha = 0.18 + 0.16 * fr;
+        ctx.drawImage(spriteTint(cs, f.color), -w / 2, -h / 2, w, h);
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
     } else {
     // Body.
     ctx.fillStyle = f.color;
@@ -2697,11 +2716,24 @@ function draw() {
     ctx.stroke();
     }
     if (player.shield > 0) {
-      ctx.strokeStyle = FLAVORS.savory.color;
-      ctx.lineWidth = 2.5;
+      // Shield bubble — sized to the SPRITE (not the small collision radius), so
+      // it encloses the courier instead of slicing through the body. Soft fill +
+      // ring reads as "protected," not a stray circle.
+      const sh = SPRITES.courier ? player.r * 2 * CONFIG.sprites.player.scale : player.r * 2;
+      const sr = sh * 0.5 + 4;
+      const pulse = 0.6 + 0.2 * Math.sin(now * 6);
+      ctx.globalAlpha = 0.10;
+      ctx.fillStyle = FLAVORS.savory.color;
       ctx.beginPath();
-      ctx.arc(player.x, py, player.r + 6, 0, Math.PI * 2);
+      ctx.arc(player.x, py, sr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = FLAVORS.savory.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, py, sr, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -2870,9 +2902,9 @@ function drawHUD() {
   ctx.textAlign = "right";
   ctx.font = "13px sans-serif";
   const NOM_PHASE_NAME = ["", "snack time", "coin toll", "NOM!"];
-  ctx.fillText(nomMode ? "kills " + kills + "  ·  " + NOM_PHASE_NAME[nomPhase] : "kills " + kills + "  ·  L" + level + "-" + wave, W - 92, 28);
+  ctx.fillText(nomMode ? "kills " + kills + "  ·  " + NOM_PHASE_NAME[nomPhase] : "kills " + kills + "  ·  Z" + level + " · W" + wave, W - 92, 28);
 
-  // XP bar (build system): thin gold bar across the very top + level number.
+  // XP bar (build system): thin gold bar across the very top + power level.
   if (!nomMode) {
     const bh = 5;
     ctx.fillStyle = "rgba(20,20,30,0.55)";
@@ -2882,7 +2914,7 @@ function drawHUD() {
     ctx.textAlign = "center";
     ctx.font = "bold 11px sans-serif";
     ctx.fillStyle = "#ffd24a";
-    ctx.fillText("LV " + playerLevel, W / 2, 15);
+    ctx.fillText("PWR " + playerLevel, W / 2, 15);
   }
   drawGear();
 
@@ -3019,7 +3051,7 @@ function drawMenu() {
   ctx.globalAlpha = 0.7 + 0.3 * Math.sin(performance.now() / 1000 * 3);
   ctx.fillStyle = settings.nom === "on" ? "#ffd24a" : "#e8e8f0";
   ctx.font = "22px " + COMIC_FONT;
-  ctx.fillText(settings.nom === "on" ? "🍴 tap to feed NOM" : "tap to choose level", W / 2, H * 0.68);
+  ctx.fillText(settings.nom === "on" ? "🍴 tap to feed NOM" : "tap to choose zone", W / 2, H * 0.68);
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#5a5f70";
   ctx.font = "12px sans-serif";
@@ -3441,7 +3473,7 @@ function drawBoonPick() {
   ctx.textAlign = "center";
   ctx.lineJoin = "round";
   const isLevel = pickKind === "levelup";
-  const title = isLevel ? "LEVEL " + playerLevel + "!" : "BOSS DOWN!";
+  const title = isLevel ? "POWER UP!" : "BOSS DOWN!";
   ctx.font = "34px " + COMIC_FONT;
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 6;
@@ -3450,7 +3482,7 @@ function drawBoonPick() {
   ctx.fillText(title, W / 2, H * 0.3 - 64);
   ctx.font = "16px " + COMIC_FONT;
   ctx.fillStyle = "#e8e8f0";
-  ctx.fillText(isLevel ? "pick an upgrade" : "pick a boon — it lasts this level", W / 2, H * 0.3 - 30);
+  ctx.fillText(isLevel ? "pick an upgrade" : "pick a boon — it lasts this zone", W / 2, H * 0.3 - 30);
 
   for (const r of boonLayout()) {
     const b = boonChoices[r.i];
@@ -3513,12 +3545,12 @@ function drawLevels() {
   ctx.font = "40px " + COMIC_FONT;
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 7;
-  ctx.strokeText("SELECT LEVEL", W / 2, H * 0.18);
+  ctx.strokeText("SELECT ZONE", W / 2, H * 0.18);
   ctx.fillStyle = "#ffb347";
-  ctx.fillText("SELECT LEVEL", W / 2, H * 0.18);
+  ctx.fillText("SELECT ZONE", W / 2, H * 0.18);
   ctx.font = "13px sans-serif";
   ctx.fillStyle = "#8d93a5";
-  ctx.fillText("clear a level to unlock the next", W / 2, H * 0.18 + 26);
+  ctx.fillText("clear a zone to unlock the next", W / 2, H * 0.18 + 26);
 
   for (const r of levelsLayout()) {
     if (r.key === "play") {
@@ -3529,7 +3561,7 @@ function drawLevels() {
       ctx.fillStyle = "#14141c";
       ctx.font = "24px " + COMIC_FONT;
       ctx.textAlign = "center";
-      ctx.fillText((unlockedLevel > 1 ? "RESUME — L" : "PLAY — L") + unlockedLevel, r.x + r.w / 2, r.y + r.h / 2 + 9);
+      ctx.fillText((unlockedLevel > 1 ? "RESUME — Z" : "PLAY — Z") + unlockedLevel, r.x + r.w / 2, r.y + r.h / 2 + 9);
       continue;
     }
     const unlocked = r.n <= unlockedLevel;
@@ -3624,7 +3656,7 @@ function drawGameOver() {
     ctx.font = "16px " + COMIC_FONT;
     ctx.fillText("“…ok now I'm hungry again.” 🪙", W / 2, H * 0.50);
   } else {
-    ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  L" + level + " wave " + wave, W / 2, H * 0.45);
+    ctx.fillText("survived " + elapsed.toFixed(1) + "s  ·  " + kills + " kills  ·  zone " + level + " wave " + wave, W / 2, H * 0.45);
     if (bestTime > 0) ctx.fillText("best " + bestTime.toFixed(1) + "s", W / 2, H * 0.49);
     ctx.fillText("recipes " + discovered.size + "/" + Object.keys(RECIPES).length, W / 2, H * 0.525);
   }

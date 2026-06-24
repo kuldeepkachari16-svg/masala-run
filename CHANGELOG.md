@@ -1,5 +1,10 @@
 # Masala Run — Changelog
 
+## 2026-06-24 — clearer flavor cue + one word per concept
+- **No more "green circle on eating."** Two causes, both fixed: (1) the foot glow disc is gone — flavor now **tints the courier sprite itself** (a flavor-colored silhouette overlaid at low alpha, fading with the meter), so the cue lives on the character, not a disc on the floor; (2) the **savory shield** ring was sized to the old tiny collision radius, so it sliced through the new (5× bigger) sprite's torso and read as a stray circle — it's now a soft **bubble sized to the sprite** that encloses the courier and reads as "protected."
+- **Vocabulary unified to three words.** The UI was mixing *level*, *wave*, and *zone* for different things. Settled on: **ZONE** (the map you're in) · **WAVE** (an enemy spawn batch) · **POWER UP** (the 1-of-3 build upgrade). Renames: pick modal "LEVEL N!" → **"POWER UP!"**; HUD `L1-3` → `Z1 · W1`, `LV n` → `PWR n`; "SELECT LEVEL"/"choose level"/"PLAY — L" → ZONE forms; boss subtitle "lasts this level" → "lasts this zone"; game-over "L1 wave 1" → "zone 1 wave 1". Internal variable names unchanged.
+- Verified live: eating spicy shows only a warm tint (no circle); savory shows the enclosing shield bubble; POWER UP! modal + `PWR · Z · W` HUD render correctly; no console errors. `sw.js` → `masala-run-v13`.
+
 ## 2026-06-21 — flavor cue: subtle foot aura instead of a glow disc
 The full-color glow disc drawn over the courier read as a garish circle (esp. savory green) now that there's a real sprite. Replaced with a small, flat colored aura at the **feet**, shown only while a flavor is active and fading as the meter drains. Flavor still reads loud via the HUD + the bright pulse on eat. `sw.js` → `masala-run-v12`.
 
