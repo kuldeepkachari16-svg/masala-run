@@ -25,6 +25,10 @@ this file owns game-specific context, constraints, and workflow. Treat it as pri
   savory / …). Stats attach to *flavor*, never to "healthiness".
 - **Keep it simple:** the player tracks two things — current flavor + one meter.
 - **Fun-first, not educational.** One new idea on a familiar base.
+- **Vocabulary — three words, one meaning each (don't mix them in UI copy):**
+  **ZONE** = the map you're in (compact `Z`) · **WAVE** = one enemy spawn batch
+  (compact `W`) · **POWER UP** = the 1-of-3 build upgrade (compact `PWR`). Never
+  reuse "level" for any of these in player-facing text.
 
 ## Tech & workflow
 - All difficulty/pacing knobs live in the `CONFIG` block; live-tunable on a
