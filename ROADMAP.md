@@ -55,6 +55,83 @@ Feedback orders Phase 2.
 9. Results screen: run stats + next-unlock teaser
 10. Local high score + daily challenge seed
 
+## Cities & endless difficulty (started 2026-06-26)
+
+> **Scope note:** the north-star "NOT now until P0 passes" line parks more
+> cities/art/enemies until the Gate-1 playtest. PM **knowingly overrode** that to
+> build 2 cities ahead of the gate. Recorded here for honesty, not endorsement.
+
+**The model — two independent tracks. This is the whole design.**
+
+- **Hierarchy:** `CITY → ZONE → WAVE`. A CITY contains **5 ZONES**; a ZONE is
+  **8 WAVES** (wave 5 mini-boss, wave 8 main boss — unchanged). "Level" stays
+  banned in player copy.
+- **Theme track** (`CONFIG → CITIES[]`): cosmetic + one hazard per city —
+  palette, food skins, slam reskin, hazard. Grows linearly, cheap, **infinite**.
+- **Difficulty track** (one global curve in `lvl()`): driven by ZONE index, NOT
+  by city. City 1 and city 80 run the *same* difficulty logic — only the curve
+  input differs. No per-city balancing. This is what makes 50–100 cities
+  authorable instead of a balancing nightmare.
+- **Soft-reset per city:** difficulty eases at each new city's zone 1, but on a
+  **rising floor** — every city's curve sits higher than the last. Gives each
+  city a legible 5-zone arc with a payoff boss, then the world flips.
+
+**How difficulty scales forever with ~one enemy (the levers, combinatorial):**
+1. **Roster — behaviors not stats** (~6–8 Bland variants: splitter, shielded,
+   spitter, exploder, healer, armored). Authored once, reused every city.
+2. **Composition** — the enemy *mix* per wave (free; just data).
+3. **Affixes/elites** — traits layered onto any base enemy (the multiplier;
+   build this before city #3 — it's how a small bestiary yields infinite fights).
+4. **Hazards** — the per-city environmental feature.
+5. **Density & tempo** — gentle global ramp.
+6. **Relative pressure** — enemies scale to the player's compounding build, not
+   to a fixed HP number. The real difficulty meter is "can this build clear the
+   wave in time," not "how big is the HP bar."
+
+> Stat inflation alone dies by ~city 4. Novelty (new behavior/affix/hazard per
+> tier) carries difficulty; numbers only ramp gently. **8 behaviors × 5 affixes ×
+> 4 hazards × composition ≈ tens of thousands of distinct encounters from ~17
+> authored pieces.** Author the levers, not the cities.
+
+**Per-zone variation inside a city:** zones share the city palette but differ
+deterministically (seeded by zone index) — prop layout shifts zone-to-zone, and
+hazards are **gated by `fromZone`** (e.g. Mumbai puddles appear from zone 3,
+Jaisalmer quicksand from zone 2). One system, no hand-authored backdrops.
+
+**City signature power = a reskin of THALI SLAM** (not a 3rd meter — two meters
+is the ceiling). Same screen-clear balance envelope; only name + VFX + bullet
+*pattern* change per city.
+
+**City boss:** the zone-5 main boss is upgraded to a bigger, themed **CITY BOSS**
+— the city finale before the world changes.
+
+### Now (this build): 2 cities
+- **Mumbai** — urban day palette; foods reskinned (Vada Pav / Jalebi / Chai);
+  signature **VADA PAV RAIN** (falling projectiles); hazard **puddles** (slow
+  Blands) from zone 3; city boss.
+- **Jaisalmer** — desert/sand palette; foods reskinned; signature sand slam;
+  hazard **quicksand** (slow + drain) from zone 2; city boss.
+
+### Night zones (decision 2026-06-26)
+- **Deterministic, not random.** PM floated random night zones; we went deterministic
+  instead — random visual states that hurt readability are a fairness/learnability
+  cost for little gain, and you can't tune what you can't predict. Each city lists
+  its night zones (`CITIES[].nightZones`).
+- **1 night zone per city to start** (zone 4 — a darker beat before the zone-5 city
+  boss), not 2. The day look is the established identity (sprites/cues are tuned for
+  it); 2-of-5 night dilutes it. `nightZones` is a config list — bumping to 2 is a
+  one-line change once we want it.
+- **Cheap:** night is just a per-city `night` palette merge + stronger vignette +
+  warm lamp pools. No new system.
+- **Future (the "keep in mind"):** a richer day→dusk→night→dawn *arc* across a
+  city's 5 zones, and/or more night as cities get late (e.g. from city #5). Revisit
+  when there are more cities.
+
+### Deferred to the difficulty track (next, before city #3)
+- 2 new Bland **behaviors** (proof of the roster lever).
+- **Affix system** (the permanent multiplier).
+- A spawn **director** that samples roster/composition/affix/density by intensity.
+
 ## Phase 3 — v1.0 ship quality
 11. Difficulty curve pass (runs 1–10 each feel fair)
 12. First-run onboarding moments (teach by doing)

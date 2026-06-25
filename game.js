@@ -301,7 +301,10 @@ function drawStreet(g, w, h, pal) {
 // outlines, a few RECOGNISABLE (not detailed) stalls/props confined to the
 // outer side-margins so the center lane stays fully open for play. One element
 // kit + a per-level seed = unlimited varied, consistent backdrops, zero assets.
-const DAY = {
+// Base day palette. Cities override a subset of these via applyCityTheme()
+// (see CITIES). DAY is a live object the draw fns read at call-time, so a
+// palette swap is a single Object.assign — no redraw plumbing.
+const DAY_BASE = {
   ground: "#c9b78f", dot: "rgba(120,98,66,0.10)",
   path: "#c1ad83", curb: "#b3996f", shadow: "rgba(74,59,46,0.13)",
   ink: "#4a3b2e",
@@ -309,7 +312,13 @@ const DAY = {
   cream: "#e7dcc0", red: "#b15441", teal: "#43807c", mustard: "#d3a04c",
   leaf: "#6d8c4d", leafDk: "#4f6c39", orange: "#d68a3c", terra: "#b5673f",
   dog: "#d9c39c", dogPatch: "#a87b50", cat: "#574434", steel: "#9aa0a6",
+  // Hazard fills (overridden per city).
+  hazard: "rgba(70,120,150,0.30)", hazardEdge: "rgba(40,80,110,0.45)",
+  // Warm lamp pool — only drawn on night zones.
+  lamp: "rgba(255, 214, 140, 0.12)",
 };
+const DAY = { ...DAY_BASE };
+let zoneNight = false; // is the current zone a night zone? (drives palette + vignette)
 function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -456,8 +465,12 @@ function drawDayStreet(g, w, h) {
 
   const rng = mulberry32((level || 1) * 9301 + 49297);
   const pool = ["stall", "cart", "crate", "pot", "plant"];
-  const s = (mw / 72);                       // scale elements to the margin width
-  const colL = mw * 0.52, colR = w - mw * 0.52;
+  // Prop SIZE is decoupled from the (now narrow) collision margin — scale off the
+  // old propMarginFrac so props stay full-size as the lane widens.
+  const s = ((CONFIG.propMarginFrac || 0.15) * w) / 72;
+  // Center props ON the screen edge so ~half bleeds off — keeps the play lane
+  // open while the visible half reads as a street edge.
+  const colL = 0, colR = w;
   // Deal from a shuffled deck: every type is used before any repeats — variety,
   // never a cluster of identical props.
   const deck = () => { const d = pool.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; [d[i], d[j]] = [d[j], d[i]]; } return d; };
@@ -470,9 +483,46 @@ function drawDayStreet(g, w, h) {
     }
   };
   place(colL); place(colR);
-  // Guarantee one dog + one cat, tucked at the lane edge (visual only).
-  DAY_ELEMENTS.dog(g, colL + mw * 0.18, 0.85 * h, s);
-  DAY_ELEMENTS.cat(g, colR - mw * 0.18, 0.66 * h, s);
+  // Guarantee one dog + one cat, tucked fully inside the (thin) margin so they
+  // read whole, not half-cut like the edge-bleeding props.
+  DAY_ELEMENTS.dog(g, mw * 0.5, 0.85 * h, s);
+  DAY_ELEMENTS.cat(g, w - mw * 0.5, 0.66 * h, s);
+  // Night zones: warm lamp pools down each edge so the dark reads as "night",
+  // not just "dim day". Soft radial gradients, additive-ish over the dark palette.
+  if (zoneNight) {
+    const lr = mw * 1.9;
+    for (let y = 0.18 * h; y < 0.95 * h; y += 0.26 * h) {
+      for (const lx of [mw * 0.6, w - mw * 0.6]) {
+        const grad = g.createRadialGradient(lx, y, 0, lx, y, lr);
+        grad.addColorStop(0, DAY.lamp);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grad;
+        g.beginPath(); g.arc(lx, y, lr, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }
+  // City hazards (puddles / quicksand) — drawn into the cached backdrop. The
+  // runtime effect lives in applyHazards(); `hazards` is built in buildHazards().
+  for (const z of hazards) drawHazard(g, z);
+}
+
+// One hazard patch: a soft filled blob with a darker rim. Visual only — the
+// gameplay effect is applied in applyHazards().
+function drawHazard(g, z) {
+  g.save();
+  g.fillStyle = DAY.hazard;
+  g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = DAY.hazardEdge; g.lineWidth = 2;
+  g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.stroke();
+  // a couple of inner specks for texture (seeded, stable)
+  const r = mulberry32((z.x * 131 + z.y * 977) | 0);
+  g.fillStyle = DAY.hazardEdge;
+  for (let i = 0; i < 4; i++) {
+    g.beginPath();
+    g.ellipse(z.x + (r() - 0.5) * z.rx, z.y + (r() - 0.5) * z.ry, 2 + r() * 2, 1.5 + r() * 1.5, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
 }
 
 // Backdrop + vignette at the current arena size. In landscape the portrait
@@ -497,9 +547,11 @@ function buildBackdrop() {
     }
   });
   vignette = makeSprite(W, H, (g) => {
+    // Night zones darken the edges harder so the lamp pools read.
+    const vig = zoneNight ? 0.5 : theme().vignette;
     const grad = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.72);
     grad.addColorStop(0, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0," + theme().vignette + ")");
+    grad.addColorStop(1, "rgba(0,0,0," + vig + ")");
     g.fillStyle = grad;
     g.fillRect(0, 0, W, H);
   });
@@ -660,7 +712,12 @@ const CONFIG = {
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
-  edgeWalls: { on: true, w: 0.15 },
+  // Narrow margin = a WIDER play lane. Props keep their full size (scale is
+  // decoupled from this in drawDayStreet) and are centered on the screen edge so
+  // ~half bleeds off — more play space, still reads as a street edge.
+  edgeWalls: { on: true, w: 0.08 },
+  propMarginFrac: 0.15, // prop SIZE reference (kept at the old margin so props
+                        // don't shrink when the collision margin narrows)
   scalingCapWave: 5,   // enemy stats & spawn rate stop growing here —
                        // later waves get harder via enemy MIX, not stat sponges
   spawnBase: 0.9,      // spawn interval curve: base - wave*perWave, floored
@@ -689,8 +746,18 @@ const CONFIG = {
   // top of spawnMul) and a little slower (earlySpdMul). New players are still
   // learning; the wave after the mini-boss was spiking too hard.
   postBoss: { easeWaves: 2, spawnMul: 1.8, breather: 4.5, easeLevels: 3, earlySpawnMul: 1.35, earlySpdMul: 0.88 },
-  // A level = 8 waves. Wave 5 = mini-boss, wave 8 = main boss → next level.
+  // A ZONE = 8 waves. Wave 5 = mini-boss, wave 8 = main boss → next zone.
   wavesPerLevel: 8,
+  // Difficulty TRACK (global, drives lvl()). Soft-reset per city: within a city
+  // the curve ramps by zone (1..5); each new city sits on a higher floor. This
+  // single curve scales to unlimited cities — no per-city balancing. Tuned so
+  // city-1/zone-1 ≈ old level 1 (1.00) and city-1/zone-5 ≈ old level 6 (1.40).
+  diffCurve: {
+    hpPerZone: 0.10, spdPerZone: 0.045, spawnPerZone: 0.04,
+    cityFloor: 0.18,   // each city adds this to hp/spd floor (rising soft-reset)
+    spawnMin: 0.74,    // fastest spawn multiplier (floor)
+    cityBossMul: 1.5,  // zone-5 main boss HP boost → CITY BOSS
+  },
   // Per-level difficulty (marginal step-up). TWO levers, both config-driven:
   //  1) enemies — hpMul / spdMul / spawnMul (spawnMul < 1 = faster spawns)
   //  2) barriers — EXTRA static blocks beyond the side stall-walls (which all
@@ -768,6 +835,138 @@ const CONFIG = {
   ],
 };
 
+// ---------- Cities (the THEME track) ----------
+// CITY → ZONE → WAVE. A city = ZONES_PER_CITY zones; each is cosmetic + ONE
+// hazard. Difficulty is NOT here — it's the global curve in lvl(). Adding a city
+// is pure content: palette + food skins + slam reskin + hazard. Infinite-safe.
+const ZONES_PER_CITY = 5;
+const CITIES = [
+  {
+    key: "mumbai", name: "MUMBAI",
+    // palette: keep the warm urban day look (base), nudge a touch greyer/wetter.
+    pal: {
+      ground: "#c4b48d", path: "#bcab82", curb: "#ad9468",
+      red: "#b15441", teal: "#3f7c84", mustard: "#d3a04c",
+      hazard: "rgba(86,132,150,0.30)", hazardEdge: "rgba(46,86,108,0.50)",
+    },
+    // food skins: flavor stays constant; name/color localize. (savory = vada pav)
+    foods: {
+      spicy:  { name: "Misal", color: "#ff5a3c" },
+      sweet:  { name: "Jalebi", color: "#ffb347" },
+      savory: { name: "Vada Pav", color: "#3ecf8e" },
+    },
+    // signature = THALI SLAM reskin. pattern "rain" = vada pavs fall from the top.
+    slam: { name: "VADA PAV RAIN!", colors: ["#caa15a", "#e3c07a", "#9c7144"], pattern: "rain" },
+    // hazard: shallow monsoon puddles that bog Blands down. Appear from zone 3.
+    hazard: { type: "puddle", fromZone: 3, count: 3, slow: 0.5, drain: 0 },
+    boss: { name: "THE VADA MAHARAJA" },
+    // Night zones (deterministic, not random — see ROADMAP). Zone 4 = a darker
+    // beat before the city-boss finale. Bump this list to add more night zones.
+    nightZones: [4],
+    night: {
+      ground: "#2b2733", path: "#262231", curb: "#3a3446", dot: "rgba(255,220,150,0.05)",
+      wood: "#6a4e34", woodDk: "#4d3826", cream: "#d8c79c",
+      red: "#c25a44", teal: "#3f7c84", mustard: "#d6a24e",
+      leaf: "#5f7a45", leafDk: "#46603a", orange: "#d68a3c", terra: "#9a5836",
+      hazard: "rgba(90,140,170,0.32)", hazardEdge: "rgba(40,80,120,0.55)",
+      lamp: "rgba(255, 200, 120, 0.16)",
+    },
+  },
+  {
+    key: "jaisalmer", name: "JAISALMER",
+    // palette: golden desert sand, paler and warmer; sandy hazard tint.
+    pal: {
+      ground: "#d8c594", dot: "rgba(150,120,70,0.10)",
+      path: "#d0bb87", curb: "#bfa66f", shadow: "rgba(120,95,55,0.13)",
+      wood: "#a87b46", woodDk: "#855f34",
+      red: "#bf6a3e", teal: "#b07b3f", mustard: "#dba94e",
+      leaf: "#8a8b4d", leafDk: "#6c6c39", terra: "#c07a44",
+      hazard: "rgba(196,162,96,0.45)", hazardEdge: "rgba(150,116,58,0.55)",
+    },
+    foods: {
+      spicy:  { name: "Mirchi", color: "#ff5a3c" },
+      sweet:  { name: "Ghevar", color: "#ffb347" },
+      savory: { name: "Kachori", color: "#3ecf8e" },
+    },
+    slam: { name: "SANDSTORM!", colors: ["#d8b46a", "#c79a4e", "#a87b46"], pattern: "radial" },
+    // hazard: quicksand — slows AND drains Blands that wander in. From zone 2.
+    hazard: { type: "quicksand", fromZone: 2, count: 4, slow: 0.4, drain: 2.2 },
+    boss: { name: "THE DUNE RAJA" },
+    // Cool desert night (clear-sky blue) — zone 4.
+    nightZones: [4],
+    night: {
+      ground: "#2f2c3a", path: "#2a2736", curb: "#3c3850", dot: "rgba(200,210,255,0.05)",
+      wood: "#6a533a", woodDk: "#4e3c2a",
+      red: "#a85f44", teal: "#5a6a8a", mustard: "#c2a05a",
+      leaf: "#5e6a55", leafDk: "#47503f", terra: "#8a5e3e",
+      hazard: "rgba(150,160,210,0.40)", hazardEdge: "rgba(90,100,150,0.55)",
+      lamp: "rgba(180, 200, 255, 0.12)",
+    },
+  },
+];
+// Hierarchy helpers. `level` is the global 1-based ZONE counter.
+function cityOf(lv) { return Math.min(CITIES.length - 1, Math.floor((lv - 1) / ZONES_PER_CITY)); }
+function zoneInCity(lv) { return ((lv - 1) % ZONES_PER_CITY) + 1; } // 1..ZONES_PER_CITY
+function curCity() { return CITIES[cityOf(level)]; }
+function isCityFinale(lv) { return zoneInCity(lv) === ZONES_PER_CITY; }
+
+// Swap the live palette + food skins to the current city. Cheap: mutates the
+// objects the draw fns + food logic already reference, so nothing else changes.
+function applyCityTheme() {
+  const c = curCity();
+  zoneNight = (c.nightZones || []).includes(zoneInCity(level));
+  // Day = base + city palette. Night = also merge the city's night overrides.
+  Object.assign(DAY, DAY_BASE, c.pal || {}, zoneNight ? (c.night || {}) : {});
+  const skins = curCity().foods || {};
+  for (const f of FOOD_TYPES) {
+    const s = skins[f.flavor];
+    if (s) { f.name = s.name; f.color = s.color; }
+  }
+}
+
+// Build the zone's hazard patches: deterministic per zone, gated by fromZone.
+// Patches sit in the open lane (never under the side stall-walls).
+function buildHazards() {
+  hazards = [];
+  const hz = curCity().hazard;
+  if (!hz || zoneInCity(level) < hz.fromZone) return;
+  const m = laneMargin();
+  const r = mulberry32(level * 2654435761 >>> 0);
+  // Keep a clear bubble around the spawn point (center): the player must never
+  // start a zone/wave already on a hazard. Patches that fall inside retry, then
+  // skip if they can't find clear ground.
+  const cx = W / 2, cy = H / 2;
+  const clearR = Math.min(W, H) * 0.24;
+  for (let i = 0; i < hz.count; i++) {
+    let placed = null;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const rx = (28 + r() * 26) * (Math.min(W, H) / 600 + 0.6);
+      const ry = rx * (0.55 + r() * 0.25);
+      const x = m + rx + r() * (W - 2 * m - 2 * rx);
+      const y = H * (0.16 + r() * 0.66);
+      if (Math.hypot(x - cx, y - cy) > clearR + Math.max(rx, ry)) {
+        placed = { x, y, rx, ry, type: hz.type, slow: hz.slow, drain: hz.drain };
+        break;
+      }
+    }
+    if (placed) hazards.push(placed);
+  }
+}
+
+// Per-enemy hazard effect: returns a speed multiplier; applies drain (quicksand)
+// and kills the enemy if drained out. Called from the enemy movement loop.
+function applyHazards(e, dt) {
+  let mul = 1;
+  for (const z of hazards) {
+    const dx = (e.x - z.x) / z.rx, dy = (e.y - z.y) / z.ry;
+    if (dx * dx + dy * dy <= 1) {
+      mul = Math.min(mul, z.slow);
+      if (z.drain > 0 && !e.boss) e.hp -= z.drain * dt;
+    }
+  }
+  return mul;
+}
+
 // Fusion recipes: eat a DIFFERENT flavor while the meter is above the tick.
 const RECIPES = {
   "spicy+sweet": { name: "Chilli Glaze" },
@@ -791,6 +990,7 @@ let endingLevel; // true while the main boss plays its defeat beat (pauses spawn
 let bossFight, bossFoodT, bossFoodEvery; // boss wave: spawns + wave timer pause
 let level;       // level currently being played (1-based)
 let barriers = []; // active barrier rects (pixels) for the current level
+let hazards = [];  // active hazard patches (pixels) for the current zone (see buildHazards)
 let showBarriers = false; // debug: draw collision rects to author them over the BG art
 let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
@@ -864,8 +1064,10 @@ function setupStage(n, fresh) {
   bossFight = false;
   bossFoodT = 0;
   endingLevel = false;
-  level = n; // drives difficulty (CONFIG.levels[n-1]), backdrop and barriers
-  buildBackdrop(); // per-zone backdrop may differ from the previous zone
+  level = n; // global ZONE counter → drives city, difficulty, backdrop, barriers
+  applyCityTheme();  // swap palette + food skins to this zone's city
+  buildHazards();    // zone hazards (gated by fromZone) — drawn into the backdrop
+  buildBackdrop();   // per-zone backdrop varies (seeded by zone) + city palette
   buildBarriers();
   lastBossWave = 0;
   boonChoices = null;
@@ -893,11 +1095,18 @@ function reset() {
 // build/courier — no hub bounce, no reset. The boss-defeat beat already gave a
 // ~2s lull, so play flows straight on with a callout + small reward heal.
 function advanceStage() {
+  const prevCity = cityOf(level);
   const n = level + 1;
   setupStage(n, false);
   player.hp = Math.min(player.maxHp, player.hp + 1); // zone-clear reward heal
   player.x = W / 2; player.y = H / 2;
-  announce("ZONE " + n, "#ffd24a", 30);
+  if (cityOf(n) !== prevCity) {
+    // Crossing into a new city — the world changes. Announce the city, then zone.
+    announce("WELCOME TO " + curCity().name, "#ffd24a", 28);
+    smallText("zone 1 of " + ZONES_PER_CITY, "#9aa0b0", W / 2, H * 0.44);
+  } else {
+    announce("ZONE " + zoneInCity(n) + "/" + ZONES_PER_CITY, "#ffd24a", 30);
+  }
   sfx.wave();
 }
 
@@ -931,12 +1140,24 @@ function diff() { return DIFFICULTY[settings.difficulty] || DIFFICULTY.normal; }
 
 // ---------- Levels & progress ----------
 const PROGRESS_KEY = "mr_progress";
-const MAX_LEVEL = CONFIG.levels.length;
+const MAX_LEVEL = ZONES_PER_CITY * CITIES.length; // total zones across all cities
 let unlockedLevel = 1; // highest playable level; clearing one unlocks the next
 try { unlockedLevel = Math.min(MAX_LEVEL, Math.max(1, JSON.parse(localStorage.getItem(PROGRESS_KEY) || "1") | 0)); } catch {}
 let startLevelNum = unlockedLevel; // reset() plays this; defaults to the frontier (auto-resume)
 function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, String(unlockedLevel)); } catch {} }
-function lvl() { return CONFIG.levels[Math.min(level - 1, MAX_LEVEL - 1)]; }
+// Difficulty for the current ZONE, computed from the global curve (soft-reset
+// per city on a rising floor). Returns the same shape the old CONFIG.levels did.
+function lvl() {
+  const D = CONFIG.diffCurve;
+  const z = zoneInCity(level) - 1;     // 0..4 within the city
+  const floor = cityOf(level) * D.cityFloor;
+  return {
+    hpMul:   1 + z * D.hpPerZone + floor,
+    spdMul:  1 + z * D.spdPerZone + floor * 0.5,
+    spawnMul: Math.max(D.spawnMin, 1 - z * D.spawnPerZone - floor * 0.3),
+    barriers: [],
+  };
+}
 // Barriers are stored as fractions of W×H; bake to pixel rects per level.
 function buildBarriers() {
   if (!level || nomMode) { barriers = []; return; }
@@ -1650,10 +1871,14 @@ function startBossFight(main) {
   const c = main ? CONFIG.mainBoss : CONFIG.boss;
   bossFoodEvery = c.foodEvery;
   bossFoodT = c.foodEvery;
-  const bhp = Math.round(c.hp * diff().boss * lvl().hpMul);
+  // The zone-5 main boss is the CITY BOSS: bigger + themed (the city finale).
+  const cityBoss = main && isCityFinale(level);
+  const hpMul2 = cityBoss ? CONFIG.diffCurve.cityBossMul : 1;
+  const bhp = Math.round(c.hp * diff().boss * lvl().hpMul * hpMul2);
+  const bname = cityBoss ? curCity().boss.name : (main ? "THE BLAND MAHARAJA" : "THE BLANDFATHER");
   enemies.push({
-    type: "boss", boss: true, main: !!main,
-    x: W / 2, y: c.r, r: c.r,
+    type: "boss", boss: true, main: !!main, cityBoss,
+    x: W / 2, y: c.r, r: c.r * (cityBoss ? 1.18 : 1),
     hp: bhp, maxHp: bhp, speed: c.speed,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
@@ -1663,10 +1888,10 @@ function startBossFight(main) {
     chargeEvery: c.chargeEvery, chargeWindup: c.chargeWindup,
     chargeSpeed: c.chargeSpeed, chargeDur: c.chargeDur, recover: c.recover,
     deathDrops: c.deathDrops,
-    name: main ? "THE BLAND MAHARAJA" : "THE BLANDFATHER",
+    name: bname,
     addEvery: main ? c.addEvery : 0, addT: main ? c.addEvery : 0,
   });
-  announce(main ? "THE BLAND MAHARAJA" : "THE BLANDFATHER", main ? "#ff8c3c" : "#e8e8f0");
+  announce(bname, main ? "#ff8c3c" : "#e8e8f0");
   sfx.fusion();
   shake = main ? 0.4 : 0.25;
 }
@@ -2002,14 +2227,29 @@ function triggerSlam() {
   if (!slamReady()) return;
   slamCharge = 0;
   slowmoT = CONFIG.powers.slam.slowmo > 0 ? CONFIG.powers.slam.slowmoDur : 0;
-  const cols = ["#ff5a3c", "#ffb347", "#3ecf8e"];
+  // City SIGNATURE: same screen-clear balance, city-skinned name/colors/pattern.
+  const sk = curCity().slam;
+  const cols = sk.colors;
+  const dmg = CONFIG.powers.slam.dmg;
   const n = CONFIG.powers.slam.burst;
-  for (let i = 0; i < n; i++) {
-    const ang = (i / n) * Math.PI * 2;
-    bullets.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 460, vy: Math.sin(ang) * 460, r: 7, damage: CONFIG.powers.slam.dmg, color: cols[i % 3], life: 1.4 });
+  const m = laneMargin();
+  if (sk.pattern === "rain") {
+    // Vada-pav rain: projectiles fall from above, staggered across the lane.
+    for (let i = 0; i < n; i++) {
+      const x = m + Math.random() * (W - 2 * m);
+      bullets.push({ x, y: -10 - Math.random() * H * 0.5,
+        vx: (Math.random() - 0.5) * 40, vy: 520 + Math.random() * 120,
+        r: 8, damage: dmg, color: cols[i % cols.length], life: 2.4 });
+    }
+  } else {
+    // Radial burst (e.g. Jaisalmer sandstorm).
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2;
+      bullets.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 460, vy: Math.sin(ang) * 460, r: 7, damage: dmg, color: cols[i % cols.length], life: 1.4 });
+    }
   }
-  rings.push({ x: player.x, y: player.y, r: 20, maxR: 320, life: 0.45, color: "#ffffff" });
-  announce("THALI SLAM!", "#ffffff", 30);
+  rings.push({ x: player.x, y: player.y, r: 20, maxR: 320, life: 0.45, color: cols[0] });
+  announce(sk.name, "#ffffff", 30);
   fusionFlash = 0.3;
   shake = 0.4;
   sfx.bossDown();
@@ -2393,8 +2633,11 @@ function update(dt) {
       let a = Math.atan2(player.y - e.y, player.x - e.x);
       // Swarmers dart in a zig-zag instead of beelining.
       if (e.type === "swarmer") a += Math.sin(e.wobble * 2.2) * CONFIG.enemies.swarmer.weave;
-      e.x += Math.cos(a) * e.speed * dt;
-      e.y += Math.sin(a) * e.speed * dt;
+      // City hazard: slows the Bland (and quicksand drains it).
+      const hz = hazards.length ? applyHazards(e, dt) : 1;
+      e.x += Math.cos(a) * e.speed * hz * dt;
+      e.y += Math.sin(a) * e.speed * hz * dt;
+      if (e.hp <= 0) e.hazardKilled = true; // drained out by quicksand
     }
 
     // They drain the street's color where they walk (coins don't — they float).
@@ -2441,6 +2684,11 @@ function update(dt) {
         }
       }
     }
+  }
+  // Quicksand consumption: enemies drained to 0 hp by a hazard die now (reverse
+  // sweep so killEnemy's splice stays index-safe; awards drops/XP like any kill).
+  for (let j = enemies.length - 1; j >= 0; j--) {
+    if (enemies[j].hazardKilled) killEnemy(j);
   }
   separateEnemies(); // spread the flock so kills don't reveal a stacked Bland
   if (levelDone) { enemies.length = 0; clearLevel(); } // boss defeat beat over
@@ -3716,6 +3964,7 @@ window.__mr = {
   get level() { return level; },
   get unlocked() { return unlockedLevel; },
   get barriers() { return barriers; },
+  get hazards() { return hazards; },
   // Authoring: overlay collision rects on the BG to align them to the art.
   get showBarriers() { return showBarriers; },
   set showBarriers(v) { showBarriers = !!v; },
