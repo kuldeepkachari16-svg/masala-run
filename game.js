@@ -656,7 +656,7 @@ const CONFIG = {
   // yOff nudges the sprite up/down off the entity center. Live-tune in preview
   // via __mr.config.sprites — falls back to the procedural blob if a sprite is
   // missing, so these never break the game.
-  sprites: { player: { scale: 2.5, yOff: -6 }, bland: { scale: 2.3, yOff: -4 } },
+  sprites: { player: { scale: 2.5, yOff: -6 }, bland: { scale: 1.8, yOff: -4 } },
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
@@ -763,7 +763,7 @@ const CONFIG = {
     { id: "shots", name: "DOUBLE TADKA", desc: "+1 shot every volley" },
     { id: "heart", name: "GHEE ARMOR", desc: "+1 heart (now and max)" },
     { id: "drain", name: "CHAAT TIMING", desc: "flavor fades 20% slower" },
-    { id: "speed", name: "MASALA LEGS", desc: "+10% move speed" },
+    { id: "pierce", name: "SKEWER", desc: "shots punch through +1 Bland" },
     { id: "fire", name: "QUICK FRY", desc: "attack 12% faster" },
   ],
 };
@@ -827,7 +827,7 @@ function resetRun() {
   xp = 0; playerLevel = 1; xpNext = CONFIG.levelXp.base; pendingLevels = 0;
   pickKind = null; pickGap = 0;
   boons = [];
-  mods = { shots: 0, drain: 1, speed: 1, fire: 1 };
+  mods = { shots: 0, drain: 1, fire: 1, pierce: 0 };
   rushCharge = 0;
   slamCharge = 0;
   rushActive = 0;
@@ -1621,9 +1621,10 @@ function spawnEnemy(spdMul = 1) {
     const c = CONFIG.enemies.swarmer;
     const n = c.packMin + Math.floor(Math.random() * (c.packMax - c.packMin + 1));
     const p = spawnPoint(c.rMax);
+    const m = laneMargin();
     for (let i = 0; i < n; i++) {
       const e = makeEnemy("swarmer",
-        Math.max(c.rMax, Math.min(W - c.rMax, p.x + (Math.random() - 0.5) * 52)),
+        Math.max(m + c.rMax, Math.min(W - m - c.rMax, p.x + (Math.random() - 0.5) * 52)),
         Math.max(c.rMax, Math.min(H - c.rMax, p.y + (Math.random() - 0.5) * 52)), spdMul);
       enemies.push(e);
     }
@@ -1722,7 +1723,7 @@ function applyBoon(b) {
   if (b.id === "shots") mods.shots += 1;
   else if (b.id === "heart") { player.maxHp += 1; player.hp += 1; }
   else if (b.id === "drain") mods.drain *= 0.8;
-  else if (b.id === "speed") mods.speed *= 1.1;
+  else if (b.id === "pierce") mods.pierce += 1;
   else if (b.id === "fire") mods.fire *= 0.88;
   announce(b.name + "!", "#ffb347", 26);
 }
@@ -1866,7 +1867,7 @@ function shoot(dt) {
   const spd = f.bulletSpeed || 420;
   for (let i = 0; i < shots; i++) {
     const a = base + (i - (shots - 1) / 2) * spread;
-    bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: f.bulletR || 4, damage: f.damage, color: f.color, life: 1.5, pierce: f.pierce || 0 });
+    bullets.push({ x: player.x, y: player.y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: f.bulletR || 4, damage: f.damage, color: f.color, life: 1.5, pierce: (f.pierce || 0) + mods.pierce });
   }
 }
 
@@ -1933,8 +1934,10 @@ function killEnemy(j) {
 // top one off). Eases pairs apart over a few frames; bosses hold their ground.
 function separateEnemies() {
   const n = enemies.length;
-  if (n < 2) return;
-  for (let i = 0; i < n; i++) {
+  // Pairwise de-stacking (O(n²)) — skip when there's nothing to separate. The
+  // barrier + lane clamp below must still run for a lone enemy, so it lives
+  // outside this guard.
+  if (n >= 2) for (let i = 0; i < n; i++) {
     const a = enemies[i];
     if (a.spawning > 0 || a.boss || a.defeated || a.type === "coin" || a.type === "nom") continue;
     for (let j = i + 1; j < n; j++) {
@@ -1958,7 +1961,11 @@ function separateEnemies() {
     // (their despawn depends on it), so never clamp them.
     if (e.boss || e.spawning > 0 || e.type === "coin" || e.type === "nom") continue;
     if (barriers.length) resolveBarriers(e); // obstacles are solid for the Bland too
-    e.x = Math.max(e.r, Math.min(W - e.r, e.x));
+    // Hard-clamp to the open LANE (not full width). The side margins are off-
+    // limits: the separation push could otherwise shove a Bland past the wall
+    // into the margin, where it wedges between the wall and the crowd.
+    const m = laneMargin();
+    e.x = Math.max(m + e.r, Math.min(W - m - e.r, e.x));
     e.y = Math.max(e.r, Math.min(H - e.r, e.y));
   }
 }
@@ -2252,7 +2259,7 @@ function update(dt) {
   player.moving = ml > 0.01;
   if (mx > 0.1) player.face = 1;
   else if (mx < -0.1) player.face = -1;
-  const spd = player.speed * FLAVORS[flavor].speedMult * mods.speed * (rushActive > 0 ? CONFIG.powers.rush.speedMul : 1);
+  const spd = player.speed * FLAVORS[flavor].speedMult * (rushActive > 0 ? CONFIG.powers.rush.speedMul : 1);
   // Smooth the INPUT direction (0..1 vector), not the velocity. Filtering
   // the small normalized stick vector kills touch jitter with far less
   // perceived lag than ramping the full velocity each flick. "off" = raw.
@@ -2261,7 +2268,8 @@ function update(dt) {
   player.imy += (my - player.imy) * k;
   player.vx = player.imx * spd;
   player.vy = player.imy * spd;
-  player.x = Math.max(player.r, Math.min(W - player.r, player.x + player.vx * dt));
+  const pm = laneMargin();
+  player.x = Math.max(pm + player.r, Math.min(W - pm - player.r, player.x + player.vx * dt));
   player.y = Math.max(player.r, Math.min(H - player.r, player.y + player.vy * dt));
   if (barriers.length) resolveBarriers(player);
   if (player.iframes > 0) player.iframes -= dt;
