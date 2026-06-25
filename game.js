@@ -703,7 +703,10 @@ const CONFIG = {
   // seconds between picks — a burst of kills banks levels, it can't fire a stack
   // of modals. Together: picks land ~every 25-30s early, rarer late, never spam.
   // Live-tune: __mr.config.levelXp
-  levelXp: { base: 40, step: 22, minGap: 26, killXp: { bland: 2, swarmer: 1 } },
+  // base/step raised 2026-06-26 so the build MAXES late (not in ~10 min): steeper
+  // step = late level-up picks become a trickle. Mini-boss boons (1/zone) still
+  // give a guaranteed ~10/run, so full-max is a late-run achievement, not early.
+  levelXp: { base: 55, step: 42, minGap: 30, killXp: { bland: 2, swarmer: 1 } },
   // Character sprite sizing (see docs/sprites.md). drawn height = 2*r*scale;
   // yOff nudges the sprite up/down off the entity center. Live-tune in preview
   // via __mr.config.sprites — falls back to the procedural blob if a sprite is
@@ -833,6 +836,11 @@ const CONFIG = {
     { id: "pierce", name: "SKEWER", desc: "shots punch through +1 Bland" },
     { id: "fire", name: "QUICK FRY", desc: "attack 12% faster" },
   ],
+  // Caps so the build PLATEAUS instead of trivialising the game (the "kills
+  // everything standing still" problem). A boon at its cap drops out of the pick
+  // pool, so picks stay meaningful. shots/pierce = max bonus; fire/drain = floor
+  // multipliers (smaller = stronger); maxHp = hard heart ceiling.
+  boonCaps: { shots: 3, pierce: 3, fireFloor: 0.6, drainFloor: 0.55, maxHp: 5 },
 };
 
 // ---------- Cities (the THEME track) ----------
@@ -857,8 +865,9 @@ const CITIES = [
     },
     // signature = THALI SLAM reskin. pattern "rain" = vada pavs fall from the top.
     slam: { name: "VADA PAV RAIN!", colors: ["#caa15a", "#e3c07a", "#9c7144"], pattern: "rain" },
-    // hazard: shallow monsoon puddles that bog Blands down. Appear from zone 3.
-    hazard: { type: "puddle", fromZone: 3, count: 3, slow: 0.5, drain: 0 },
+    // hazard: shallow monsoon puddles — slow whatever wades in (hero AND Blands).
+    // Appear from zone 3.
+    hazard: { type: "puddle", fromZone: 3, count: 3, slow: 0.6, drain: 0 },
     boss: { name: "THE VADA MAHARAJA" },
     // Night zones (deterministic, not random — see ROADMAP). Zone 4 = a darker
     // beat before the city-boss finale. Bump this list to add more night zones.
@@ -889,8 +898,9 @@ const CITIES = [
       savory: { name: "Kachori", color: "#3ecf8e" },
     },
     slam: { name: "SANDSTORM!", colors: ["#d8b46a", "#c79a4e", "#a87b46"], pattern: "radial" },
-    // hazard: quicksand — slows AND drains Blands that wander in. From zone 2.
-    hazard: { type: "quicksand", fromZone: 2, count: 4, slow: 0.4, drain: 2.2 },
+    // hazard: quicksand — slows hero AND Blands; Blands that linger sink (drain).
+    // From zone 2.
+    hazard: { type: "quicksand", fromZone: 2, count: 4, slow: 0.55, drain: 2.2 },
     boss: { name: "THE DUNE RAJA" },
     // Cool desert night (clear-sky blue) — zone 4.
     nightZones: [4],
@@ -932,25 +942,35 @@ function buildHazards() {
   if (!hz || zoneInCity(level) < hz.fromZone) return;
   const m = laneMargin();
   const r = mulberry32(level * 2654435761 >>> 0);
-  // Keep a clear bubble around the spawn point (center): the player must never
-  // start a zone/wave already on a hazard. Patches that fall inside retry, then
-  // skip if they can't find clear ground.
   const cx = W / 2, cy = H / 2;
-  const clearR = Math.min(W, H) * 0.24;
-  for (let i = 0; i < hz.count; i++) {
-    let placed = null;
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const rx = (28 + r() * 26) * (Math.min(W, H) / 600 + 0.6);
-      const ry = rx * (0.55 + r() * 0.25);
-      const x = m + rx + r() * (W - 2 * m - 2 * rx);
-      const y = H * (0.16 + r() * 0.66);
-      if (Math.hypot(x - cx, y - cy) > clearR + Math.max(rx, ry)) {
-        placed = { x, y, rx, ry, type: hz.type, slow: hz.slow, drain: hz.drain };
-        break;
-      }
+  const clearR = Math.min(W, H) * 0.22; // spawn bubble — never start on a hazard
+  const n = hz.count;
+  // Spread evenly: one patch per vertical BAND (no vertical clustering) and
+  // alternate horizontal sides of the lane (no horizontal clustering).
+  const top = 0.12, bot = 0.88, span = (bot - top) / n;
+  for (let i = 0; i < n; i++) {
+    const rx = (26 + r() * 24) * (Math.min(W, H) / 600 + 0.6);
+    const ry = rx * (0.55 + r() * 0.25);
+    const y = H * (top + span * (i + 0.2 + r() * 0.6));
+    const laneL = m + rx, laneR = W - m - rx, half = (laneL + laneR) / 2;
+    let x = (i % 2 === 0) ? laneL + r() * (half - laneL) : half + r() * (laneR - half);
+    // push out of the spawn bubble if a band lands on the center
+    if (Math.hypot(x - cx, y - cy) < clearR + Math.max(rx, ry)) {
+      x = (x < cx) ? Math.max(laneL, cx - clearR - rx) : Math.min(laneR, cx + clearR + rx);
     }
-    if (placed) hazards.push(placed);
+    hazards.push({ x, y, rx, ry, type: hz.type, slow: hz.slow, drain: hz.drain });
   }
+}
+
+// Slow factor for the HERO standing in a hazard (min across overlaps). No drain
+// on the hero — hazards slow you (a real risk to navigate), they don't hurt you.
+function playerHazardSlow() {
+  let mul = 1;
+  for (const z of hazards) {
+    const dx = (player.x - z.x) / z.rx, dy = (player.y - z.y) / z.ry;
+    if (dx * dx + dy * dy <= 1) mul = Math.min(mul, z.slow);
+  }
+  return mul;
 }
 
 // Per-enemy hazard effect: returns a speed multiplier; applies drain (quicksand)
@@ -981,6 +1001,7 @@ catch { discovered = new Set(); }
 // ---------- Game state ----------
 let state = "menu"; // menu | playing | gameover
 let player, enemies, bullets, foods, particles, floaters, rings, drains, dying;
+let storms; // expanding sand-sweep AoEs (Jaisalmer SANDSTORM) — grow + consume Blands
 let hitStop;
 let flavor, flavorTimer, savoryPulse;
 let elapsed, kills, wave, waveTimer, spawnTimer, fireTimer, mixHintShown;
@@ -995,6 +1016,7 @@ let showBarriers = false; // debug: draw collision rects to author them over the
 let lastBossWave; // wave a boss was fought on → next wave(s) ease in
 let boonChoices = null;   // [3 boon defs] while the pick screen is open
 let boons, mods;          // picked boon ids + derived multipliers
+let maxedAnnounced;       // FULLY STOCKED cue shown once per run when fully maxed
 // Build-system spike: XP from kills → level-ups → a 1-of-3 upgrade pick (reuses
 // the boon modal). pickKind drives the modal copy + post-pick resume.
 let xp, playerLevel, xpNext, pendingLevels;
@@ -1028,6 +1050,7 @@ function resetRun() {
   pickKind = null; pickGap = 0;
   boons = [];
   mods = { shots: 0, drain: 1, fire: 1, pierce: 0 };
+  maxedAnnounced = false;
   rushCharge = 0;
   slamCharge = 0;
   rushActive = 0;
@@ -1048,6 +1071,7 @@ function setupStage(n, fresh) {
   rings = [];
   drains = [];
   dying = [];
+  storms = [];
   hitStop = 0;
   flavor = "none";
   flavorTimer = 0;
@@ -1945,12 +1969,36 @@ function updateBoss(e, dt) {
 
 function applyBoon(b) {
   boons.push(b.id);
-  if (b.id === "shots") mods.shots += 1;
-  else if (b.id === "heart") { player.maxHp += 1; player.hp += 1; }
-  else if (b.id === "drain") mods.drain *= 0.8;
-  else if (b.id === "pierce") mods.pierce += 1;
-  else if (b.id === "fire") mods.fire *= 0.88;
+  const cap = CONFIG.boonCaps;
+  if (b.id === "shots") mods.shots = Math.min(cap.shots, mods.shots + 1);
+  else if (b.id === "heart") { player.maxHp = Math.min(cap.maxHp, player.maxHp + 1); player.hp = Math.min(player.maxHp, player.hp + 1); }
+  else if (b.id === "drain") mods.drain = Math.max(cap.drainFloor, mods.drain * 0.8);
+  else if (b.id === "pierce") mods.pierce = Math.min(cap.pierce, mods.pierce + 1);
+  else if (b.id === "fire") mods.fire = Math.max(cap.fireFloor, mods.fire * 0.88);
   announce(b.name + "!", "#ffb347", 26);
+}
+// A boon is "maxed" once its effect hits the cap — drop it from the pick pool.
+function boonAtCap(id) {
+  const c = CONFIG.boonCaps;
+  if (id === "shots") return mods.shots >= c.shots;
+  if (id === "pierce") return mods.pierce >= c.pierce;
+  if (id === "fire") return mods.fire <= c.fireFloor + 1e-6;
+  if (id === "drain") return mods.drain <= c.drainFloor + 1e-6;
+  if (id === "heart") return player.maxHp >= c.maxHp;
+  return false;
+}
+// Shuffled pool of boons that still have headroom.
+function availableBoons() {
+  const pool = CONFIG.boons.filter((b) => !boonAtCap(b.id));
+  return [...(pool.length ? pool : CONFIG.boons)].sort(() => Math.random() - 0.5);
+}
+// True once every boon is at its cap — the build can't improve, so no pick (from
+// XP or a mini-boss) should open a dead modal. Shows a one-time "FULLY STOCKED".
+function buildMaxed() { return !CONFIG.boons.some((b) => !boonAtCap(b.id)); }
+function noteFullyStocked() {
+  if (maxedAnnounced) return;
+  maxedAnnounced = true;
+  announce("FULLY STOCKED!", "#ffd24a", 24);
 }
 
 // ---------- XP & level-ups (build-system spike) ----------
@@ -1970,9 +2018,12 @@ function tryOpenPick() {
   // pickGap is the anti-spam floor: even with levels banked, the next pick waits
   // out the cooldown so modals never stack back-to-back (set in pickBoon).
   if (boonChoices || pendingLevels <= 0 || bossFight || endingLevel || pickGap > 0) return;
+  // Fully-maxed build: every boon is capped, so a pick would be a dead modal.
+  // Drain the banked level-ups (they can never do anything) and skip silently.
+  if (buildMaxed()) { pendingLevels = 0; noteFullyStocked(); return; }
   pendingLevels--;
   pickKind = "levelup";
-  boonChoices = [...CONFIG.boons].sort(() => Math.random() - 0.5).slice(0, 3);
+  boonChoices = availableBoons().slice(0, 3);
   sfx.bossDown();
   if (navigator.vibrate) navigator.vibrate(8);
 }
@@ -2140,9 +2191,8 @@ function killEnemy(j) {
     }
     shake = 0.45; hitStop = 0.12; fusionFlash = 0.2;
     sfx.bossDown();
-    pickKind = "boss";
-    const pool = [...CONFIG.boons].sort(() => Math.random() - 0.5);
-    boonChoices = pool.slice(0, 3);
+    if (buildMaxed()) { noteFullyStocked(); }
+    else { pickKind = "boss"; boonChoices = availableBoons().slice(0, 3); }
     return;
   }
   sfx.kill();
@@ -2234,18 +2284,28 @@ function triggerSlam() {
   const n = CONFIG.powers.slam.burst;
   const m = laneMargin();
   if (sk.pattern === "rain") {
-    // Vada-pav rain: projectiles fall from above, staggered across the lane.
-    for (let i = 0; i < n; i++) {
+    // VADA PAV RAIN — a real downpour: a dense sheet of pavs cascading in from
+    // above over ~2s (big spread in start-y), big and piercing so each pav
+    // consumes a column of Blands. This is a POWER, not a 1-2 shot trickle.
+    const count = Math.round(n * 2.2); // ~50
+    for (let i = 0; i < count; i++) {
       const x = m + Math.random() * (W - 2 * m);
-      bullets.push({ x, y: -10 - Math.random() * H * 0.5,
-        vx: (Math.random() - 0.5) * 40, vy: 520 + Math.random() * 120,
-        r: 8, damage: dmg, color: cols[i % cols.length], life: 2.4 });
+      bullets.push({ x, y: -10 - Math.random() * H * 1.6, // staggered → rains over time
+        vx: (Math.random() - 0.5) * 30, vy: 470 + Math.random() * 110,
+        r: 10 + Math.random() * 2, damage: dmg, color: cols[i % cols.length],
+        life: 4.5, pierce: 3, rain: true }); // rain: exempt from the top off-screen cull
     }
   } else {
-    // Radial burst (e.g. Jaisalmer sandstorm).
-    for (let i = 0; i < n; i++) {
-      const ang = (i / n) * Math.PI * 2;
-      bullets.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 460, vy: Math.sin(ang) * 460, r: 7, damage: dmg, color: cols[i % cols.length], life: 1.4 });
+    // SANDSTORM — an expanding wall of sand that sweeps the arena and CONSUMES
+    // Blands as it passes (not discrete bullets). See updateStorms().
+    storms.push({ x: player.x, y: player.y, r: 24, prevR: 24,
+      maxR: Math.hypot(W, H), grow: Math.hypot(W, H) / 0.85,
+      colors: cols, hit: new Set() });
+    // a thick puff of sand around the player to sell the kick-up
+    for (let i = 0; i < 40; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 260;
+      particles.push({ x: player.x, y: player.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        life: 0.5 + Math.random() * 0.5, color: cols[i % cols.length], r: 2 + Math.random() * 3 });
     }
   }
   rings.push({ x: player.x, y: player.y, r: 20, maxR: 320, life: 0.45, color: cols[0] });
@@ -2254,6 +2314,37 @@ function triggerSlam() {
   shake = 0.4;
   sfx.bossDown();
   if (navigator.vibrate) navigator.vibrate(20);
+}
+
+// SANDSTORM sweep: each storm's radius grows outward; any Bland the leading
+// edge passes is consumed (killed) once. Bosses take chip damage instead of
+// vanishing. Sand particles trail the edge so it reads as a moving wall.
+function updateStorms(dt) {
+  if (!storms || !storms.length) return;
+  for (let s = storms.length - 1; s >= 0; s--) {
+    const st = storms[s];
+    st.prevR = st.r;
+    st.r += st.grow * dt;
+    // damage/consume enemies inside the new edge band
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      if (e.spawning > 0 || st.hit.has(e)) continue;
+      const d = Math.hypot(e.x - st.x, e.y - st.y);
+      if (d <= st.r) {
+        st.hit.add(e);
+        if (e.boss) { e.hp -= CONFIG.powers.slam.dmg; e.flash = 0.1; }
+        else { e.hp = 0; e.hazardKilled = true; } // consumed by the storm
+      }
+    }
+    // trailing sand at the leading edge
+    for (let k = 0; k < 5; k++) {
+      const a = Math.random() * Math.PI * 2, rr = st.r * (0.8 + Math.random() * 0.2);
+      particles.push({ x: st.x + Math.cos(a) * rr, y: st.y + Math.sin(a) * rr,
+        vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, life: 0.3 + Math.random() * 0.3,
+        color: st.colors[k % st.colors.length], r: 2 + Math.random() * 2.5 });
+    }
+    if (st.r >= st.maxR) storms.splice(s, 1);
+  }
 }
 
 // ---------- NOM MODE (temporary easter egg) ----------
@@ -2499,7 +2590,7 @@ function update(dt) {
   player.moving = ml > 0.01;
   if (mx > 0.1) player.face = 1;
   else if (mx < -0.1) player.face = -1;
-  const spd = player.speed * FLAVORS[flavor].speedMult * (rushActive > 0 ? CONFIG.powers.rush.speedMul : 1);
+  const spd = player.speed * FLAVORS[flavor].speedMult * (rushActive > 0 ? CONFIG.powers.rush.speedMul : 1) * (hazards.length ? playerHazardSlow() : 1);
   // Smooth the INPUT direction (0..1 vector), not the velocity. Filtering
   // the small normalized stick vector kills touch jitter with far less
   // perceived lag than ramping the full velocity each flick. "off" = raw.
@@ -2560,7 +2651,7 @@ function update(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
-    if (b.life <= 0 || b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20) {
+    if (b.life <= 0 || b.x < -20 || b.x > W + 20 || (b.y < -20 && !b.rain) || b.y > H + 20) {
       bullets.splice(i, 1);
       continue;
     }
@@ -2685,8 +2776,9 @@ function update(dt) {
       }
     }
   }
-  // Quicksand consumption: enemies drained to 0 hp by a hazard die now (reverse
-  // sweep so killEnemy's splice stays index-safe; awards drops/XP like any kill).
+  updateStorms(dt); // SANDSTORM sweep — marks consumed Blands hazardKilled
+  // Quicksand/sandstorm consumption: enemies drained to 0 hp by a hazard die now
+  // (reverse sweep so killEnemy's splice stays index-safe; awards drops/XP).
   for (let j = enemies.length - 1; j >= 0; j--) {
     if (enemies[j].hazardKilled) killEnemy(j);
   }
@@ -3003,6 +3095,21 @@ function draw() {
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
+
+  // SANDSTORM wall — a translucent sand band at the leading edge, fading inward.
+  if (storms && storms.length) {
+    for (const st of storms) {
+      const band = Math.max(28, st.r - st.prevR + 36);
+      const grad = ctx.createRadialGradient(st.x, st.y, Math.max(0, st.r - band), st.x, st.y, st.r);
+      grad.addColorStop(0, "rgba(0,0,0,0)");
+      grad.addColorStop(0.7, st.colors[0] + "");
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = Math.max(0.15, 1 - st.r / st.maxR) * 0.55;
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // Particles.
   for (const p of particles) {

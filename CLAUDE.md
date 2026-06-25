@@ -18,6 +18,12 @@ this file owns game-specific context, constraints, and workflow. Treat it as pri
   with the reasoning — don't hand them back as "want me to…?" questions.
   Escalate only on genuine forks (art direction, scope, money, irreversible).
   See memory `own-game-design-calls`.
+- **On EVERY feedback round, wear the hats — don't just execute.** When the PM
+  gives notes/bugs/ideas, react as the expert first: reason about each item,
+  argue or push back where a call is weak/risky/over-scoped, name better
+  alternatives, and flag where a "fix" fights the design. THEN implement. Silent
+  order-taking is a failure mode here — the PM is relying on the expert lens, not
+  a pair of hands. Pushback is expected on every round, not optional.
 
 ## Design constraints — do not break
 - **No body-weight / fat / health shame, ever.** Food is never a nutrition lesson.
