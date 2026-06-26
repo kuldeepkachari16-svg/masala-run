@@ -506,23 +506,79 @@ function drawDayStreet(g, w, h) {
   for (const z of hazards) drawHazard(g, z);
 }
 
-// One hazard patch: a soft filled blob with a darker rim. Visual only — the
-// gameplay effect is applied in applyHazards().
+// One hazard patch. Visual only — gameplay lives in applyHazards(). The look
+// branches on type so each city's hurdle reads distinctly:
+//   puddle    — a flat glossy water film (Mumbai monsoon).
+//   quicksand — a SUNKEN sand pit: concentric sink-rings + grain, no gloss, so
+//               it never reads as water (even in a night zone).
 function drawHazard(g, z) {
   g.save();
-  g.fillStyle = DAY.hazard;
-  g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = DAY.hazardEdge; g.lineWidth = 2;
-  g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.stroke();
-  // a couple of inner specks for texture (seeded, stable)
   const r = mulberry32((z.x * 131 + z.y * 977) | 0);
-  g.fillStyle = DAY.hazardEdge;
-  for (let i = 0; i < 4; i++) {
-    g.beginPath();
-    g.ellipse(z.x + (r() - 0.5) * z.rx, z.y + (r() - 0.5) * z.ry, 2 + r() * 2, 1.5 + r() * 1.5, 0, 0, Math.PI * 2);
-    g.fill();
+  if (z.type === "quicksand") {
+    // sunken depression: darker toward the centre (it pulls down)
+    const grad = g.createRadialGradient(z.x, z.y, 1, z.x, z.y, Math.max(z.rx, z.ry));
+    grad.addColorStop(0, DAY.hazardEdge);
+    grad.addColorStop(0.6, DAY.hazard);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grad;
+    g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.fill();
+    // concentric sink-rings — the giveaway that it's a pit, not a spill
+    g.strokeStyle = DAY.hazardEdge; g.lineWidth = 1.5;
+    for (let i = 1; i <= 3; i++) {
+      g.globalAlpha = 0.5 - i * 0.1;
+      g.beginPath(); g.ellipse(z.x, z.y, z.rx * (i / 3.2), z.ry * (i / 3.2), 0, 0, Math.PI * 2); g.stroke();
+    }
+    g.globalAlpha = 1;
+    // grain stipple
+    g.fillStyle = DAY.hazardEdge;
+    for (let i = 0; i < 10; i++) {
+      g.beginPath();
+      g.arc(z.x + (r() - 0.5) * 1.7 * z.rx, z.y + (r() - 0.5) * 1.7 * z.ry, 0.8 + r() * 1.1, 0, Math.PI * 2);
+      g.fill();
+    }
+  } else {
+    // puddle: flat glossy film with a darker rim + a couple of specks
+    g.fillStyle = DAY.hazard;
+    g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = DAY.hazardEdge; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(z.x, z.y, z.rx, z.ry, 0, 0, Math.PI * 2); g.stroke();
+    // a faint highlight streak to sell "wet"
+    g.globalAlpha = 0.5; g.strokeStyle = "rgba(255,255,255,0.5)"; g.lineWidth = 1.5;
+    g.beginPath(); g.ellipse(z.x - z.rx * 0.25, z.y - z.ry * 0.3, z.rx * 0.4, z.ry * 0.25, -0.5, 0, Math.PI); g.stroke();
+    g.globalAlpha = 1;
+    g.fillStyle = DAY.hazardEdge;
+    for (let i = 0; i < 4; i++) {
+      g.beginPath();
+      g.ellipse(z.x + (r() - 0.5) * z.rx, z.y + (r() - 0.5) * z.ry, 2 + r() * 2, 1.5 + r() * 1.5, 0, 0, Math.PI * 2);
+      g.fill();
+    }
   }
   g.restore();
+}
+
+// A falling vada pav: golden bun (bottom), green-chutney bun-top, a little
+// shine — sized to the bullet radius. Used for the VADA PAV RAIN drizzle.
+function drawPav(x, y, r) {
+  ctx.save();
+  ctx.translate(x, y);
+  // soft shadow under the bun
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = "#000";
+  ctx.beginPath(); ctx.ellipse(0, r * 0.55, r * 0.95, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+  // bun body
+  ctx.fillStyle = "#d9a85a";
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+  // top crust (slightly darker dome)
+  ctx.fillStyle = "#c79049";
+  ctx.beginPath(); ctx.ellipse(0, -r * 0.2, r * 0.92, r * 0.7, 0, Math.PI, 0); ctx.fill();
+  // green chutney peeking from the middle seam
+  ctx.fillStyle = "#5fae54";
+  ctx.beginPath(); ctx.ellipse(0, 0, r * 0.85, r * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+  // sesame/shine speck
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.4, r * 0.14, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 }
 
 // Backdrop + vignette at the current arena size. In landscape the portrait
@@ -826,7 +882,11 @@ const CONFIG = {
   // Manual powers, charged by play. Two rhythms: eats vs kills.
   powers: {
     rush: { eats: 10, dur: 6, speedMul: 1.25 },        // MASALA RUSH: freeze Blands + flavor-lock + speed
-    slam: { kills: 28, burst: 24, dmg: 3, slowmo: 0.4, slowmoDur: 1.1 }, // THALI SLAM: slow-mo tri-flavor screen-clear
+    // THALI SLAM (city-skinned): a strong AREA burst that THINS a wave, never a
+    // full clear. rain* = VADA PAV drizzle; storm* = SANDSTORM pits.
+    slam: { kills: 28, dmg: 3, slowmo: 0.4, slowmoDur: 1.1,
+      rainDrops: 12, rainPierce: 1,                 // drizzle: count + pierce-through
+      stormPits: 5, stormRadFrac: 0.16, stormDur: 2.5, stormCapKills: 4 }, // pits: count, size, life, per-pit kill cap
   },
   // Boss-kill boons: pick 1 of 3 (drawn from this pool). Small on purpose.
   boons: [
@@ -890,7 +950,9 @@ const CITIES = [
       wood: "#a87b46", woodDk: "#855f34",
       red: "#bf6a3e", teal: "#b07b3f", mustard: "#dba94e",
       leaf: "#8a8b4d", leafDk: "#6c6c39", terra: "#c07a44",
-      hazard: "rgba(196,162,96,0.45)", hazardEdge: "rgba(150,116,58,0.55)",
+      // darker rim than the sand so the sink-pit reads at a glance (a hazard you
+      // can't see is unfair); center pulls toward deep brown.
+      hazard: "rgba(150,112,58,0.5)", hazardEdge: "rgba(96,66,30,0.7)",
     },
     foods: {
       spicy:  { name: "Mirchi", color: "#ff5a3c" },
@@ -909,7 +971,8 @@ const CITIES = [
       wood: "#6a533a", woodDk: "#4e3c2a",
       red: "#a85f44", teal: "#5a6a8a", mustard: "#c2a05a",
       leaf: "#5e6a55", leafDk: "#47503f", terra: "#8a5e3e",
-      hazard: "rgba(150,160,210,0.40)", hazardEdge: "rgba(90,100,150,0.55)",
+      // warm moonlit sand — never the blue that reads as water at night
+      hazard: "rgba(150,128,86,0.42)", hazardEdge: "rgba(96,76,48,0.6)",
       lamp: "rgba(180, 200, 255, 0.12)",
     },
   },
@@ -1132,6 +1195,15 @@ function advanceStage() {
     announce("ZONE " + zoneInCity(n) + "/" + ZONES_PER_CITY, "#ffd24a", 30);
   }
   sfx.wave();
+}
+
+// Level-select view: -1 = city list; >=0 = showing that city's zone picker.
+let pickedCity = -1;
+function gotoLevels() { state = "levels"; pickedCity = -1; }
+// Global level of a city's first zone, and how many of its zones are unlocked.
+function cityFirstLevel(c) { return c * ZONES_PER_CITY + 1; }
+function cityUnlockedZones(c) {
+  return Math.max(0, Math.min(ZONES_PER_CITY, unlockedLevel - cityFirstLevel(c) + 1));
 }
 
 // ---------- Settings ----------
@@ -1538,7 +1610,7 @@ window.addEventListener("keydown", (e) => {
   keys[e.key.toLowerCase()] = true;
   ensureAudio(); // any key is a gesture — unlock audio
   if (e.key === "Escape" && settingsOpen) { closeSettings(); return; }
-  if (e.key === "Escape" && (state === "gameover" || state === "levelclear")) { state = "levels"; return; }
+  if (e.key === "Escape" && (state === "gameover" || state === "levelclear")) { gotoLevels(); return; }
   if (boonChoices && (e.key === "1" || e.key === "2" || e.key === "3")) { pickBoon(+e.key - 1); return; }
   if (e.key === "m" || e.key === "M") { setMuted(!muted); sfx.ui(); return; }
   if (state === "playing") {
@@ -1546,9 +1618,9 @@ window.addEventListener("keydown", (e) => {
     if (e.key === "e" || e.key === "E") { triggerSlam(); return; }
   }
   if (state !== "playing" && (e.key === " " || e.key === "Enter")) {
-    if (state === "menu") { if (settings.nom === "on") start(); else state = "levels"; }
+    if (state === "menu") { if (settings.nom === "on") start(); else gotoLevels(); }
     else if (state === "levels") startLevel(unlockedLevel);
-    else if (state === "levelclear") state = "levels";
+    else if (state === "levelclear") gotoLevels();
     else start(); // gameover → replay current level
   }
 });
@@ -1671,8 +1743,8 @@ canvas.addEventListener("touchstart", (e) => {
   const p = toLocal(t);
   if (uiPress(p)) return;
   if (state === "gameover") { gameOverPress(p); return; }
-  if (state === "levelclear") { sfx.ui(); state = "levels"; return; }
-  if (state === "menu") { sfx.ui(); if (settings.nom === "on") start(); else state = "levels"; return; }
+  if (state === "levelclear") { sfx.ui(); gotoLevels(); return; }
+  if (state === "menu") { sfx.ui(); if (settings.nom === "on") start(); else gotoLevels(); return; }
   if (state === "levels") { levelsPress(p); return; }
   if (state !== "playing") return;
   // Power buttons (manual mode): a tap on a glowing button fires it.
@@ -1754,8 +1826,8 @@ canvas.addEventListener("mousedown", (e) => {
   const p = { x: e.clientX * dpr, y: e.clientY * dpr };
   if (uiPress(p)) return;
   if (state === "gameover") { gameOverPress(p); return; }
-  if (state === "levelclear") { sfx.ui(); state = "levels"; return; }
-  if (state === "menu") { sfx.ui(); if (settings.nom === "on") start(); else state = "levels"; return; }
+  if (state === "levelclear") { sfx.ui(); gotoLevels(); return; }
+  if (state === "menu") { sfx.ui(); if (settings.nom === "on") start(); else gotoLevels(); return; }
   if (state === "levels") { levelsPress(p); return; }
 });
 
@@ -1776,7 +1848,7 @@ function gameOverPress(p) {
       sfx.ui();
       if (navigator.vibrate) navigator.vibrate(8);
       if (r.key === "replay") start();
-      else state = "levels";
+      else gotoLevels();
       return;
     }
   }
@@ -2277,35 +2349,54 @@ function triggerSlam() {
   if (!slamReady()) return;
   slamCharge = 0;
   slowmoT = CONFIG.powers.slam.slowmo > 0 ? CONFIG.powers.slam.slowmoDur : 0;
-  // City SIGNATURE: same screen-clear balance, city-skinned name/colors/pattern.
+  // City SIGNATURE: a strong AREA burst that THINS the wave — never a full
+  // screen-clear. Both patterns leave survivors by design (the eat→attack loop
+  // dies if one button erases the wave). City-skinned name/colors/pattern.
   const sk = curCity().slam;
   const cols = sk.colors;
   const dmg = CONFIG.powers.slam.dmg;
-  const n = CONFIG.powers.slam.burst;
+  const cfg = CONFIG.powers.slam;
   const m = laneMargin();
   if (sk.pattern === "rain") {
-    // VADA PAV RAIN — a real downpour: a dense sheet of pavs cascading in from
-    // above over ~2s (big spread in start-y), big and piercing so each pav
-    // consumes a column of Blands. This is a POWER, not a 1-2 shot trickle.
-    const count = Math.round(n * 2.2); // ~50
+    // VADA PAV RAIN — a soft drizzle of actual vada pavs falling from the sky,
+    // not a wall. ~12 pavs, low pierce, gentle fall: each pav takes a Bland or
+    // two, scattered. Strong burst, plenty of survivors.
+    const count = cfg.rainDrops; // ~12
     for (let i = 0; i < count; i++) {
       const x = m + Math.random() * (W - 2 * m);
-      bullets.push({ x, y: -10 - Math.random() * H * 1.6, // staggered → rains over time
-        vx: (Math.random() - 0.5) * 30, vy: 470 + Math.random() * 110,
-        r: 10 + Math.random() * 2, damage: dmg, color: cols[i % cols.length],
-        life: 4.5, pierce: 3, rain: true }); // rain: exempt from the top off-screen cull
+      bullets.push({ x, y: -14 - Math.random() * H * 1.1, // staggered → drizzles over time
+        vx: (Math.random() - 0.5) * 24, vy: 300 + Math.random() * 90,
+        r: 11 + Math.random() * 3, damage: dmg, color: cols[0],
+        life: 5, pierce: cfg.rainPierce, rain: true, pav: true }); // pav: drawn as a bun
     }
   } else {
-    // SANDSTORM — an expanding wall of sand that sweeps the arena and CONSUMES
-    // Blands as it passes (not discrete bullets). See updateStorms().
-    storms.push({ x: player.x, y: player.y, r: 24, prevR: 24,
-      maxR: Math.hypot(W, H), grow: Math.hypot(W, H) / 0.85,
-      colors: cols, hit: new Set() });
-    // a thick puff of sand around the player to sell the kick-up
-    for (let i = 0; i < 40; i++) {
-      const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 260;
-      particles.push({ x: player.x, y: player.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 0.5 + Math.random() * 0.5, color: cols[i % cols.length], r: 2 + Math.random() * 3 });
+    // SANDSTORM — several swirling sand pits drop ON random Bland clusters and
+    // GOBBLE them (+ any that wander in) for ~2.5s. Seeding on actual Blands
+    // (jittered) keeps it "random spots" while guaranteeing the power lands;
+    // the per-pit cap means Blands away from a pit always survive. updateStorms().
+    const n = cfg.stormPits;
+    const rad = Math.min(W, H) * cfg.stormRadFrac;
+    const live = enemies.filter((e) => e.spawning <= 0 && !e.boss);
+    for (let i = 0; i < n; i++) {
+      let x, y;
+      if (live.length) {
+        const t = live[(Math.random() * live.length) | 0];
+        x = t.x + (Math.random() - 0.5) * 70; y = t.y + (Math.random() - 0.5) * 70;
+      } else { // no Blands: scatter around the player so it still reads
+        const a = Math.random() * Math.PI * 2, d = Math.random() * 130;
+        x = player.x + Math.cos(a) * d; y = player.y + Math.sin(a) * d;
+      }
+      x = Math.max(m + rad, Math.min(W - m - rad, x));
+      y = Math.max(rad, Math.min(H - rad, y));
+      storms.push({ x, y, r: rad, life: cfg.stormDur, maxLife: cfg.stormDur,
+        spin: Math.random() * Math.PI * 2, colors: cols, hit: new Set(),
+        kills: 0, capKills: cfg.stormCapKills });
+      // a puff of sand kicking up where the pit lands
+      for (let k = 0; k < 14; k++) {
+        const a = Math.random() * Math.PI * 2, sp = 50 + Math.random() * 180;
+        particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: 0.4 + Math.random() * 0.5, color: cols[k % cols.length], r: 2 + Math.random() * 3 });
+      }
     }
   }
   rings.push({ x: player.x, y: player.y, r: 20, maxR: 320, life: 0.45, color: cols[0] });
@@ -2316,34 +2407,33 @@ function triggerSlam() {
   if (navigator.vibrate) navigator.vibrate(20);
 }
 
-// SANDSTORM sweep: each storm's radius grows outward; any Bland the leading
-// edge passes is consumed (killed) once. Bosses take chip damage instead of
-// vanishing. Sand particles trail the edge so it reads as a moving wall.
+// SANDSTORM pits: each is a fixed-radius swirl that lingers ~2.5s and consumes
+// any Bland inside (or who wanders in) up to a per-pit cap, so a wave is thinned
+// in spots, never wiped. Bosses take chip damage while standing in a pit.
 function updateStorms(dt) {
   if (!storms || !storms.length) return;
   for (let s = storms.length - 1; s >= 0; s--) {
     const st = storms[s];
-    st.prevR = st.r;
-    st.r += st.grow * dt;
-    // damage/consume enemies inside the new edge band
+    st.life -= dt;
+    st.spin += dt * 3;
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
-      if (e.spawning > 0 || st.hit.has(e)) continue;
+      if (e.spawning > 0) continue;
       const d = Math.hypot(e.x - st.x, e.y - st.y);
-      if (d <= st.r) {
-        st.hit.add(e);
-        if (e.boss) { e.hp -= CONFIG.powers.slam.dmg; e.flash = 0.1; }
-        else { e.hp = 0; e.hazardKilled = true; } // consumed by the storm
-      }
+      if (d > st.r) continue;
+      if (e.boss) { e.hp -= CONFIG.powers.slam.dmg * dt; e.flash = 0.1; continue; }
+      if (st.hit.has(e) || st.kills >= st.capKills) continue; // already eaten / pit is full
+      st.hit.add(e); st.kills++;
+      e.hp = 0; e.hazardKilled = true; // consumed by the pit
     }
-    // trailing sand at the leading edge
-    for (let k = 0; k < 5; k++) {
-      const a = Math.random() * Math.PI * 2, rr = st.r * (0.8 + Math.random() * 0.2);
+    // swirling sand inside the pit so it reads as a living vortex
+    for (let k = 0; k < 4; k++) {
+      const a = st.spin + Math.random() * Math.PI * 2, rr = st.r * Math.sqrt(Math.random());
       particles.push({ x: st.x + Math.cos(a) * rr, y: st.y + Math.sin(a) * rr,
-        vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, life: 0.3 + Math.random() * 0.3,
+        vx: Math.cos(a + 1.4) * 60, vy: Math.sin(a + 1.4) * 60, life: 0.3 + Math.random() * 0.3,
         color: st.colors[k % st.colors.length], r: 2 + Math.random() * 2.5 });
     }
-    if (st.r >= st.maxR) storms.splice(s, 1);
+    if (st.life <= 0) storms.splice(s, 1);
   }
 }
 
@@ -2900,8 +2990,9 @@ function draw() {
     ctx.drawImage(FOOD_SPRITES[fd.type.flavor], fd.x - 20, fd.y + bob - 20);
   }
 
-  // Bullets: glow sprites.
+  // Bullets: glow sprites — except VADA PAV rain, drawn as little buns.
   for (const b of bullets) {
+    if (b.pav) { drawPav(b.x, b.y, b.r); continue; }
     ctx.drawImage(glowSprite(b.color), b.x - b.r * 2.5, b.y - b.r * 2.5, b.r * 5, b.r * 5);
   }
 
@@ -3096,15 +3187,16 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // SANDSTORM wall — a translucent sand band at the leading edge, fading inward.
+  // SANDSTORM pits — swirling translucent sand discs, denser at the rim, that
+  // fade out over their short life.
   if (storms && storms.length) {
     for (const st of storms) {
-      const band = Math.max(28, st.r - st.prevR + 36);
-      const grad = ctx.createRadialGradient(st.x, st.y, Math.max(0, st.r - band), st.x, st.y, st.r);
-      grad.addColorStop(0, "rgba(0,0,0,0)");
-      grad.addColorStop(0.7, st.colors[0] + "");
+      const fade = Math.max(0, Math.min(1, st.life / st.maxLife));
+      const grad = ctx.createRadialGradient(st.x, st.y, st.r * 0.15, st.x, st.y, st.r);
+      grad.addColorStop(0, st.colors[1] + "");
+      grad.addColorStop(0.65, st.colors[0] + "");
       grad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.globalAlpha = Math.max(0.15, 1 - st.r / st.maxR) * 0.55;
+      ctx.globalAlpha = (0.35 + 0.3 * Math.sin(st.spin * 2)) * (0.4 + 0.6 * fade);
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
     }
@@ -3865,21 +3957,35 @@ function drawBoonPick() {
 }
 
 // ---------- Level select ----------
-// A level is playable only once unlocked (clear the previous one). The
-// frontier (last unfinished level) is highlighted as the resume point.
+// Two-tier select. pickedCity < 0 → CITY list: tap a city to enter it. A city
+// you've never played past zone 1 starts immediately; one you've played opens
+// its ZONE picker. pickedCity >= 0 → that city's zones (+ BACK).
 function levelsLayout() {
-  const n = MAX_LEVEL, cols = 3, rows = Math.ceil(n / cols);
+  const rects = [];
+  if (pickedCity < 0) {
+    // City cards: a centered vertical stack.
+    const cw = Math.min(W - 40, 360), ch = 92, gy = 18;
+    const x0 = (W - cw) / 2, y0 = H * 0.30;
+    for (let c = 0; c < CITIES.length; c++) {
+      rects.push({ x: x0, y: y0 + c * (ch + gy), w: cw, h: ch, c, key: "city" });
+    }
+    const bw = 230, bh = 52, by = y0 + CITIES.length * (ch + gy) + 16;
+    rects.push({ x: (W - bw) / 2, y: by, w: bw, h: bh, key: "resume" });
+    return rects;
+  }
+  // Zone tiles for the picked city.
+  const cols = ZONES_PER_CITY <= 3 ? ZONES_PER_CITY : 3;
+  const rows = Math.ceil(ZONES_PER_CITY / cols);
   const gx = 16, gy = 16;
   const tw = Math.min(96, (Math.min(W - 40, 420) - (cols - 1) * gx) / cols), th = tw;
   const gridW = cols * tw + (cols - 1) * gx;
   const x0 = (W - gridW) / 2, y0 = H * 0.32;
-  const rects = [];
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < ZONES_PER_CITY; i++) {
     const c = i % cols, r = Math.floor(i / cols);
-    rects.push({ x: x0 + c * (tw + gx), y: y0 + r * (th + gy), w: tw, h: th, n: i + 1, key: "tile" });
+    rects.push({ x: x0 + c * (tw + gx), y: y0 + r * (th + gy), w: tw, h: th, z: i + 1, key: "zone" });
   }
-  const bw = 230, bh = 52, by = y0 + rows * (th + gy) + 22;
-  rects.push({ x: (W - bw) / 2, y: by, w: bw, h: bh, key: "play" });
+  const bw = 200, bh = 48, by = y0 + rows * (th + gy) + 22;
+  rects.push({ x: (W - bw) / 2, y: by, w: bw, h: bh, key: "back" });
   return rects;
 }
 
@@ -3887,10 +3993,20 @@ function levelsPress(p) {
   const a = toArena(p);
   for (const r of levelsLayout()) {
     if (a.x < r.x || a.x > r.x + r.w || a.y < r.y || a.y > r.y + r.h) continue;
-    if (r.key === "play") { sfx.ui(); if (navigator.vibrate) navigator.vibrate(8); startLevel(unlockedLevel); return; }
-    if (r.n <= unlockedLevel) { sfx.ui(); if (navigator.vibrate) navigator.vibrate(8); startLevel(r.n); }
-    else sfx.ui(); // locked — no-op blip
-    return;
+    sfx.ui(); if (navigator.vibrate) navigator.vibrate(8);
+    if (r.key === "resume") { startLevel(unlockedLevel); return; }
+    if (r.key === "back") { pickedCity = -1; return; }
+    if (r.key === "city") {
+      const uz = cityUnlockedZones(r.c);
+      if (uz <= 0) return;            // locked city — blip only
+      if (uz === 1) startLevel(cityFirstLevel(r.c)); // brand-new city: just start
+      else pickedCity = r.c;          // already played: open zone picker
+      return;
+    }
+    if (r.key === "zone") {
+      if (r.z <= cityUnlockedZones(pickedCity)) startLevel(cityFirstLevel(pickedCity) + r.z - 1);
+      return;
+    }
   }
 }
 
@@ -3902,49 +4018,87 @@ function drawLevels() {
     ctx.drawImage(glowSprite(s.color), s.x - s.size, sy - s.size, s.size * 2, s.size * 2);
   }
   ctx.globalAlpha = 1;
-
   ctx.textAlign = "center";
   ctx.lineJoin = "round";
+  if (pickedCity < 0) drawCityList(tnow); else drawZonePicker(tnow);
+  drawGear();
+}
+
+function drawHeading(title, sub) {
   ctx.font = "40px " + COMIC_FONT;
-  ctx.strokeStyle = "#14141c";
-  ctx.lineWidth = 7;
-  ctx.strokeText("SELECT ZONE", W / 2, H * 0.18);
+  ctx.strokeStyle = "#14141c"; ctx.lineWidth = 7;
+  ctx.strokeText(title, W / 2, H * 0.18);
   ctx.fillStyle = "#ffb347";
-  ctx.fillText("SELECT ZONE", W / 2, H * 0.18);
+  ctx.fillText(title, W / 2, H * 0.18);
   ctx.font = "13px sans-serif";
   ctx.fillStyle = "#8d93a5";
-  ctx.fillText("clear a zone to unlock the next", W / 2, H * 0.18 + 26);
+  ctx.fillText(sub, W / 2, H * 0.18 + 26);
+}
 
+function drawCityList(tnow) {
+  drawHeading("SELECT CITY", "each city is " + ZONES_PER_CITY + " zones · clear them to travel on");
   for (const r of levelsLayout()) {
-    if (r.key === "play") {
+    if (r.key === "resume") {
       ctx.globalAlpha = 0.9 + 0.1 * Math.sin(tnow * 3);
-      ctx.fillStyle = "#ffb347";
-      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = "#ffb347"; ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.globalAlpha = 1;
-      ctx.fillStyle = "#14141c";
-      ctx.font = "24px " + COMIC_FONT;
-      ctx.textAlign = "center";
-      ctx.fillText((unlockedLevel > 1 ? "RESUME — Z" : "PLAY — Z") + unlockedLevel, r.x + r.w / 2, r.y + r.h / 2 + 9);
+      ctx.fillStyle = "#14141c"; ctx.font = "22px " + COMIC_FONT;
+      ctx.fillText((unlockedLevel > 1 ? "RESUME — Z" : "PLAY — Z") + unlockedLevel, r.x + r.w / 2, r.y + r.h / 2 + 8);
       continue;
     }
-    const unlocked = r.n <= unlockedLevel;
-    const cleared = r.n < unlockedLevel;
-    const frontier = r.n === unlockedLevel;
+    const city = CITIES[r.c];
+    const uz = cityUnlockedZones(r.c);
+    const locked = uz <= 0;
+    const done = uz >= ZONES_PER_CITY && unlockedLevel > cityFirstLevel(r.c) + ZONES_PER_CITY - 1;
+    const accent = city.pal.mustard || "#ffb347";
+    ctx.fillStyle = locked ? "rgba(255,255,255,0.04)" : "rgba(255,179,71,0.12)";
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = locked ? "rgba(120,126,150,0.3)" : accent;
+    ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+    ctx.textAlign = "left";
+    ctx.font = "26px " + COMIC_FONT;
+    ctx.fillStyle = locked ? "#5a5f70" : "#ffe2a6";
+    ctx.fillText(city.name, r.x + 20, r.y + 40);
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = locked ? "#5a5f70" : "#9aa0b0";
+    const prog = locked ? "locked" : (done ? "cleared · " + ZONES_PER_CITY + "/" + ZONES_PER_CITY : "zones " + uz + "/" + ZONES_PER_CITY + " unlocked");
+    ctx.fillText(prog, r.x + 20, r.y + 64);
+    ctx.textAlign = "right";
+    ctx.font = "26px sans-serif";
+    ctx.fillText(locked ? "🔒" : (done ? "✓" : "›"), r.x + r.w - 18, r.y + r.h / 2 + 6);
+    ctx.textAlign = "center";
+  }
+}
+
+function drawZonePicker(tnow) {
+  const city = CITIES[pickedCity];
+  const uz = cityUnlockedZones(pickedCity);
+  drawHeading(city.name, "select a zone");
+  for (const r of levelsLayout()) {
+    if (r.key === "back") {
+      ctx.fillStyle = "rgba(255,255,255,0.08)"; ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,179,71,0.5)";
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.fillStyle = "#ffd24a"; ctx.font = "20px " + COMIC_FONT;
+      ctx.fillText("‹ CITIES", r.x + r.w / 2, r.y + r.h / 2 + 7);
+      continue;
+    }
+    const unlocked = r.z <= uz;
+    const frontierGlobal = cityFirstLevel(pickedCity) + r.z - 1 === unlockedLevel;
     ctx.fillStyle = unlocked ? "rgba(255,179,71,0.14)" : "rgba(255,255,255,0.04)";
     ctx.fillRect(r.x, r.y, r.w, r.h);
-    ctx.lineWidth = frontier ? 3 : 2;
-    ctx.strokeStyle = frontier ? "rgba(255,179,71," + (0.6 + 0.4 * Math.sin(tnow * 4)) + ")" : unlocked ? "rgba(255,179,71,0.5)" : "rgba(120,126,150,0.3)";
+    ctx.lineWidth = frontierGlobal ? 3 : 2;
+    ctx.strokeStyle = frontierGlobal ? "rgba(255,179,71," + (0.6 + 0.4 * Math.sin(tnow * 4)) + ")" : unlocked ? "rgba(255,179,71,0.5)" : "rgba(120,126,150,0.3)";
     ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
-    ctx.textAlign = "center";
     ctx.font = "30px " + COMIC_FONT;
     ctx.fillStyle = unlocked ? "#ffd24a" : "#5a5f70";
-    ctx.fillText(r.n, r.x + r.w / 2, r.y + r.h / 2 + 4);
+    ctx.fillText(r.z, r.x + r.w / 2, r.y + r.h / 2 + 4);
     ctx.font = "16px sans-serif";
-    if (cleared) { ctx.fillStyle = "#7ddf8a"; ctx.fillText("✓", r.x + r.w / 2, r.y + r.h - 12); }
+    if (unlocked && !frontierGlobal) { ctx.fillStyle = "#7ddf8a"; ctx.fillText("✓", r.x + r.w / 2, r.y + r.h - 12); }
     else if (!unlocked) { ctx.fillStyle = "#5a5f70"; ctx.fillText("🔒", r.x + r.w / 2, r.y + r.h - 11); }
-    else if (frontier) { ctx.fillStyle = "#ffb347"; ctx.font = "10px sans-serif"; ctx.fillText("NEXT", r.x + r.w / 2, r.y + r.h - 12); }
+    else if (frontierGlobal) { ctx.fillStyle = "#ffb347"; ctx.font = "10px sans-serif"; ctx.fillText("NEXT", r.x + r.w / 2, r.y + r.h - 12); }
   }
-  drawGear();
 }
 
 // ---------- Level clear ----------
