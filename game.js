@@ -42,6 +42,10 @@ function resize() {
   W = landscape ? 800 : 480;
   H = landscape ? 480 : Math.round(Math.max(760, Math.min(1180, W * vh / vw)));
   if (!bgCanvas || W !== pw || H !== ph) {
+    // Hazards hold absolute coords + are baked into the backdrop, so reposition
+    // them for the new arena BEFORE rebuilding it (mobile URL-bar resize changes
+    // H). Seeded by `level`, so the layout is identical — just re-fit.
+    if ((W !== pw || H !== ph) && player && level >= 1) buildHazards();
     buildBackdrop();
     if ((W !== pw || H !== ph) && player) clampToArena(); // keep entities in bounds
     if (W !== pw || H !== ph) buildBarriers(); // barrier rects are W/H-relative
@@ -2515,7 +2519,7 @@ function updateStorms(dt) {
       if (e.spawning > 0) continue;
       const d = Math.hypot(e.x - st.x, e.y - st.y);
       if (d > st.r) continue;
-      if (e.boss) { e.hp -= CONFIG.powers.slam.dmg * dt; e.flash = 0.1; continue; }
+      if (e.boss) { e.hp -= CONFIG.powers.slam.dmg * dt; e.flash = 0.1; if (e.hp <= 0) e.hazardKilled = true; continue; } // route boss storm-death through the kill sweep
       if (st.hit.has(e) || st.kills >= st.capKills) continue; // already eaten / pit is full
       st.hit.add(e); st.kills++;
       e.hp = 0; e.hazardKilled = true; // consumed by the pit
@@ -4197,8 +4201,11 @@ function drawCityList(tnow) {
       ctx.globalAlpha = 0.9 + 0.1 * Math.sin(tnow * 3);
       ctx.fillStyle = "#ffb347"; ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.globalAlpha = 1;
-      ctx.fillStyle = "#14141c"; ctx.font = "22px " + COMIC_FONT;
-      ctx.fillText((unlockedLevel > 1 ? "RESUME — Z" : "PLAY — Z") + unlockedLevel, r.x + r.w / 2, r.y + r.h / 2 + 8);
+      ctx.fillStyle = "#14141c"; ctx.font = "18px " + COMIC_FONT;
+      // Show CITY + LOCAL zone (Z1..Z5), not the global level — Jaisalmer z1 is
+      // "JAISALMER Z1", not "Z6", so it matches the picker + locked vocabulary.
+      const verb = unlockedLevel > 1 ? "RESUME" : "PLAY";
+      ctx.fillText(verb + " · " + CITIES[cityOf(unlockedLevel)].name + " Z" + zoneInCity(unlockedLevel), r.x + r.w / 2, r.y + r.h / 2 + 7);
       continue;
     }
     const city = CITIES[r.c];

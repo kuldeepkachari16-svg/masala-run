@@ -1,5 +1,12 @@
 # Masala Run — Changelog
 
+## 2026-06-27 — review fixes: sandstorm boss-kill, hazard resize, resume label
+Three issues from an external static code review of `42bf340` — all confirmed and fixed.
+- **Sandstorm could leave a boss at ≤0 HP still alive.** `updateStorms` chipped boss HP but never checked for death, so if a pit landed the final tick the boss kept fighting (a zone-clear could stall). Now marks `hazardKilled` at ≤0 HP → routed through the same `killEnemy` sweep as bullet kills. Verified: boss 4 HP → -3.9 → `defeated:true`.
+- **Hazards weren't re-fit on viewport resize.** `buildHazards` only ran at stage setup; a mobile URL-bar collapse changes `H`, leaving puddles/quicksand stale (could sit off the new arena). `resize()` now rebuilds hazards (same `level` seed → identical layout, re-fit) before re-baking the backdrop. Verified: H 1039→760 moved a patch from y811 (off-arena) to y593 (in bounds).
+- **Resume button showed the global zone number.** `drawCityList` printed `Z{unlockedLevel}` → Jaisalmer zone 1 read "Z6" while the picker said 1–5. Now shows `RESUME · <CITY> Z<localzone>` (e.g., "RESUME · JAISALMER Z1"), matching the locked ZONE vocabulary. Verified live.
+- `sw.js` → `masala-run-v23`.
+
 ## 2026-06-26 — playtest round 4: flicker fix, equal power buttons, per-zone variety, city food + boss sprites
 - **Hero no longer flickers.** The i-frame feedback was a hard on/off strobe that hid the whole hero (and shield) every 0.1s — worst with the shield up and moving. Replaced with a smooth alpha **shimmer that never reaches 0** (`ifa = 0.5 + 0.45·|sin|`); the shield bubble stays full-alpha.
 - **Power buttons are equal size.** Discs were always the same radius — the mismatch was the glyphs: measured ✦ rendered **41px** vs ❄ **29px**. Added per-glyph `gscale` (✦ 0.85, ❄ 1.0) → both now **35px**, plus a constant full-circle rim so a charging button never looks smaller than a ready one. Verified by pixel measurement.
