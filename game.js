@@ -474,19 +474,22 @@ function drawDayStreet(g, w, h) {
   // Deal from a shuffled deck: every type is used before any repeats — variety,
   // never a cluster of identical props.
   const deck = () => { const d = pool.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; [d[i], d[j]] = [d[j], d[i]]; } return d; };
-  const place = (cx) => {
-    let y = 0.10 * h, d = deck();
+  const place = (cx, startPhase) => {
+    let y = (0.07 + startPhase) * h, d = deck();
     while (y < 0.9 * h) {
       if (!d.length) d = deck();
       DAY_ELEMENTS[d.pop()](g, cx, y, s, rng);
-      y += (0.17 + rng() * 0.13) * h;          // sparse vertical gaps
+      y += (0.15 + rng() * 0.15) * h;          // sparse, per-zone-varied gaps
     }
   };
-  place(colL); place(colR);
-  // Guarantee one dog + one cat, tucked fully inside the (thin) margin so they
-  // read whole, not half-cut like the edge-bleeding props.
-  DAY_ELEMENTS.dog(g, mw * 0.5, 0.85 * h, s);
-  DAY_ELEMENTS.cat(g, w - mw * 0.5, 0.66 * h, s);
+  // Independent vertical phase per side so left & right never line up row-for-row
+  // (the two edges read as different streets, and it re-shuffles every zone).
+  place(colL, rng() * 0.12); place(colR, rng() * 0.12);
+  // One dog + one cat, tucked inside the (thin) margin. Side + height shuffle per
+  // zone — they were the only fixed props, which made every zone feel identical.
+  const dogLeft = rng() < 0.5;
+  DAY_ELEMENTS.dog(g, dogLeft ? mw * 0.5 : w - mw * 0.5, (0.55 + rng() * 0.33) * h, s);
+  DAY_ELEMENTS.cat(g, dogLeft ? w - mw * 0.5 : mw * 0.5, (0.5 + rng() * 0.33) * h, s);
   // Night zones: warm lamp pools down each edge so the dark reads as "night",
   // not just "dim day". Soft radial gradients, additive-ish over the dark palette.
   if (zoneNight) {
@@ -697,6 +700,70 @@ const FOOD_SPRITES = {
   }),
 };
 
+// Jaisalmer food skins — DISTINCT procedural sprites so the name matches the art
+// (Kachori isn't a vada pav, Ghevar isn't a jalebi). Same flavor system; the
+// drop just LOOKS like the desert dish. Picked per city in foodSpriteFor().
+const JAISALMER_FOOD_SPRITES = {
+  // Mirchi — a battered fried green-chilli (mirchi bada): golden fritter, pointy
+  // tip, little green stem.
+  spicy: makeSprite(40, 40, (g) => {
+    g.translate(20, 20); g.rotate(0.3);
+    g.fillStyle = "#d6a052";
+    g.beginPath();
+    g.moveTo(0, -10);
+    g.quadraticCurveTo(8, -7, 6, 3);
+    g.quadraticCurveTo(4, 12, 0, 15);
+    g.quadraticCurveTo(-4, 12, -6, 3);
+    g.quadraticCurveTo(-8, -7, 0, -10);
+    g.closePath(); g.fill();
+    g.strokeStyle = "rgba(20,20,28,0.45)"; g.lineWidth = 1.4; g.stroke();
+    g.strokeStyle = "rgba(255,255,255,0.22)"; g.lineWidth = 1.1;
+    g.beginPath(); g.moveTo(-2, -5); g.lineTo(-3, 7); g.stroke();
+    g.fillStyle = "#5fae54"; // green stem
+    g.beginPath(); g.ellipse(0, -11, 2, 4, 0, 0, Math.PI * 2); g.fill();
+  }),
+  // Ghevar — a golden honeycomb-disc cake with a cream dollop + pistachio.
+  sweet: makeSprite(40, 40, (g) => {
+    g.translate(20, 21);
+    g.fillStyle = "#caa050"; // side/height
+    g.beginPath(); g.ellipse(0, 5, 13, 5, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#e2b65f"; // golden top
+    g.beginPath(); g.ellipse(0, 1, 13, 9, 0, 0, Math.PI * 2); g.fill();
+    const hr = mulberry32(91);
+    g.fillStyle = "rgba(120,78,28,0.5)"; // honeycomb holes
+    for (let i = 0; i < 16; i++) {
+      const a = hr() * Math.PI * 2, rad = hr() * 11;
+      g.beginPath(); g.arc(Math.cos(a) * rad, 1 + Math.sin(a) * rad * 0.65, 1 + hr() * 1.1, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = "#fff3df"; // cream
+    g.beginPath(); g.arc(-1, -2, 4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#7bbf5a"; // pistachio specks
+    g.beginPath(); g.arc(-3, -3, 1, 0, Math.PI * 2); g.arc(1, -1, 1, 0, Math.PI * 2); g.fill();
+  }),
+  // Kachori — a round, puffy, flaky fried ball.
+  savory: makeSprite(40, 40, (g) => {
+    g.translate(20, 20);
+    g.fillStyle = "#b9823f"; // fried underside
+    g.beginPath(); g.ellipse(0, 5, 12, 5, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#d9a35a"; // puffy dome
+    g.beginPath(); g.ellipse(0, 0, 13, 11, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = "rgba(20,20,28,0.4)"; g.lineWidth = 1.4; g.stroke();
+    g.strokeStyle = "rgba(140,90,40,0.5)"; g.lineWidth = 1; // flaky crinkles
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2;
+      g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(Math.cos(a) * 6, Math.sin(a) * 5, Math.cos(a) * 11, Math.sin(a) * 8); g.stroke();
+    }
+    g.fillStyle = "rgba(255,255,255,0.28)"; // highlight
+    g.beginPath(); g.ellipse(-4, -4, 4, 2.4, -0.4, 0, Math.PI * 2); g.fill();
+  }),
+};
+// Per-city sprite lookup: Mumbai (and any unlisted city) uses the default set.
+const CITY_FOOD_SPRITES = { jaisalmer: JAISALMER_FOOD_SPRITES };
+function foodSpriteFor(flavor) {
+  const set = CITY_FOOD_SPRITES[curCity().key] || FOOD_SPRITES;
+  return set[flavor] || FOOD_SPRITES[flavor];
+}
+
 // ---------- Flavor definitions ----------
 const FLAVORS = {
   none: {
@@ -881,7 +948,7 @@ const CONFIG = {
   },
   // Manual powers, charged by play. Two rhythms: eats vs kills.
   powers: {
-    rush: { eats: 10, dur: 6, speedMul: 1.25 },        // MASALA RUSH: freeze Blands + flavor-lock + speed
+    rush: { eats: 10, dur: 6, speedMul: 1.15 },        // MASALA RUSH: freeze Blands + flavor-lock + a light speed burst (freeze is the real payload)
     // THALI SLAM (city-skinned): a strong AREA burst that THINS a wave, never a
     // full clear. rain* = VADA PAV drizzle; storm* = SANDSTORM pits.
     slam: { kills: 28, dmg: 3, slowmo: 0.4, slowmoDur: 1.1,
@@ -1007,20 +1074,23 @@ function buildHazards() {
   const r = mulberry32(level * 2654435761 >>> 0);
   const cx = W / 2, cy = H / 2;
   const clearR = Math.min(W, H) * 0.22; // spawn bubble — never start on a hazard
-  const n = hz.count;
-  // Spread evenly: one patch per vertical BAND (no vertical clustering) and
-  // alternate horizontal sides of the lane (no horizontal clustering).
-  const top = 0.12, bot = 0.88, span = (bot - top) / n;
-  for (let i = 0; i < n; i++) {
-    const rx = (26 + r() * 24) * (Math.min(W, H) / 600 + 0.6);
+  // Per-zone SHUFFLE: free placement (random x in lane + random y), varied count
+  // (±1), rejection-sampled so patches don't overlap, the spawn bubble, or repeat
+  // a rigid pattern. Seeded by `level`, so every zone's layout is visibly its own.
+  const n = Math.max(2, hz.count + ((r() * 3) | 0) - 1); // count-1 .. count+1
+  let tries = 0;
+  while (hazards.length < n && tries < 240) {
+    tries++;
+    const rx = (24 + r() * 26) * (Math.min(W, H) / 600 + 0.6);
     const ry = rx * (0.55 + r() * 0.25);
-    const y = H * (top + span * (i + 0.2 + r() * 0.6));
-    const laneL = m + rx, laneR = W - m - rx, half = (laneL + laneR) / 2;
-    let x = (i % 2 === 0) ? laneL + r() * (half - laneL) : half + r() * (laneR - half);
-    // push out of the spawn bubble if a band lands on the center
-    if (Math.hypot(x - cx, y - cy) < clearR + Math.max(rx, ry)) {
-      x = (x < cx) ? Math.max(laneL, cx - clearR - rx) : Math.min(laneR, cx + clearR + rx);
-    }
+    const laneL = m + rx, laneR = W - m - rx;
+    const x = laneL + r() * (laneR - laneL);
+    const y = H * (0.1 + r() * 0.8);
+    if (Math.hypot(x - cx, y - cy) < clearR + Math.max(rx, ry)) continue; // spawn-safe
+    let ok = true;
+    for (const z of hazards)
+      if (Math.hypot(x - z.x, y - z.y) < (Math.max(rx, ry) + Math.max(z.rx, z.ry)) * 0.95) { ok = false; break; }
+    if (!ok) continue;
     hazards.push({ x, y, rx, ry, type: hz.type, slow: hz.slow, chip: hz.chip || 0, hit: new Set() });
   }
 }
@@ -1366,11 +1436,12 @@ function drawPowerButtons() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const tnow = performance.now() / 1000;
   const defs = [
-    // gscale normalizes the optical size of each glyph (❄ renders larger than ✦
-    // at the same px) so both buttons read as the SAME size.
-    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄", gscale: 0.82,
+    // gscale normalizes the OPTICAL size of each glyph so both buttons read the
+    // same. Measured rendered widths: ✦ ~41px @1.0, ❄ ~29px @1.0 — so ✦ is shrunk
+    // and ❄ left full to land both near ~35px.
+    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄", gscale: 1.0,
       active: rushActive > 0, activeFrac: rushActive > 0 ? rushActive / CONFIG.powers.rush.dur : 0 },
-    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦", gscale: 1.0,
+    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦", gscale: 0.85,
       active: false, activeFrac: 0 },
   ];
   const btns = powerButtons();
@@ -3027,7 +3098,7 @@ function draw() {
     ctx.globalAlpha = 0.8 + Math.sin(now * 6 + fd.y) * 0.2;
     ctx.drawImage(glowSprite(fd.type.color), fd.x - 24, fd.y + bob - 24, 48, 48);
     ctx.globalAlpha = 1;
-    ctx.drawImage(FOOD_SPRITES[fd.type.flavor], fd.x - 20, fd.y + bob - 20);
+    ctx.drawImage(foodSpriteFor(fd.type.flavor), fd.x - 20, fd.y + bob - 20);
   }
 
   // Bullets: glow sprites — except VADA PAV rain, drawn as little buns.
@@ -3139,8 +3210,11 @@ function draw() {
 
   // Player — colored by current flavor.
   const f = FLAVORS[flavor];
-  const blinking = player.iframes > 0 && Math.floor(player.iframes * 10) % 2 === 0;
-  if (!blinking) {
+  // During i-frames the hero SHIMMERS (smooth alpha pulse, never fully hidden)
+  // instead of the old hard on/off blink, which read as flicker — worst with the
+  // shield up and moving. The shield bubble itself always stays at full alpha.
+  const ifa = player.iframes > 0 ? 0.5 + 0.45 * Math.abs(Math.sin(now * 18)) : 1;
+  {
     const bob = player.moving ? Math.sin(now * 14) * 2 : Math.sin(now * 3) * 1;
     const py = player.y + bob;
     // The Tiffin Runner — authored sprite if loaded, else the procedural blob.
@@ -3152,18 +3226,21 @@ function draw() {
       ctx.save();
       ctx.translate(player.x, dy);
       if (player.face < 0) ctx.scale(-1, 1);
+      ctx.globalAlpha = ifa;
       ctx.drawImage(cs.base, -w / 2, -h / 2, w, h);
       // Flavor cue: tint the CHARACTER itself (no ground glow), only while a
       // flavor is active, fading with the meter. Reads alongside the HUD + eat
       // pulse without a disc on the floor.
       if (flavor !== "none") {
         const fr = Math.max(0, Math.min(1, flavorTimer / FLAVOR_DURATION));
-        ctx.globalAlpha = 0.18 + 0.16 * fr;
+        ctx.globalAlpha = ifa * (0.18 + 0.16 * fr);
         ctx.drawImage(spriteTint(cs, f.color), -w / 2, -h / 2, w, h);
         ctx.globalAlpha = 1;
       }
       ctx.restore();
     } else {
+    ctx.save();
+    ctx.globalAlpha = ifa;
     // Body.
     ctx.fillStyle = f.color;
     ctx.beginPath();
@@ -3193,6 +3270,7 @@ function draw() {
     ctx.beginPath();
     ctx.arc(player.x, py, player.r, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
     }
     if (player.shield > 0) {
       // Shield bubble — sized to the SPRITE (not the small collision radius), so
@@ -3786,9 +3864,11 @@ function drawBoss(e) {
   const jx = windup ? (Math.random() - 0.5) * 5 : 0;
   const jy = windup ? (Math.random() - 0.5) * 5 : 0;
   const x = e.x + jx, y = e.y + jy;
-  // Main boss (Maharaja) wears a regal purple-grey; mini-boss stays grey.
+  // City boss body tints per city (Mumbai regal purple-grey, Jaisalmer desert
+  // sand-grey); mini-boss stays plain grey.
+  const cityKey = curCity().key, deser = cityKey === "jaisalmer";
   if (e.flash > 0) ctx.fillStyle = "#ffffff";
-  else if (e.main) ctx.fillStyle = windup ? "#8c7280" : "#5e4a54";
+  else if (e.main) ctx.fillStyle = deser ? (windup ? "#9c8160" : "#6e5740") : (windup ? "#8c7280" : "#5e4a54");
   else ctx.fillStyle = windup ? "#8a8ea0" : "#5a5e6c";
   ctx.beginPath();
   for (let i = 0; i < 14; i++) {
@@ -3803,18 +3883,43 @@ function drawBoss(e) {
   ctx.strokeStyle = e.bossState === "recover" ? "rgba(255, 179, 71, 0.9)" : e.main ? "rgba(255, 140, 60, 0.55)" : "rgba(20, 20, 28, 0.7)";
   ctx.lineWidth = e.bossState === "recover" ? 4 : 3;
   ctx.stroke();
-  // Crown — gold for the Maharaja, dull grey for the Blandfather.
-  ctx.fillStyle = e.main ? "#ffd24a" : "#8d93a5";
-  ctx.beginPath();
-  ctx.moveTo(x - 16, y - e.r + 4);
-  ctx.lineTo(x - 12, y - e.r - 12);
-  ctx.lineTo(x - 6, y - e.r + 1);
-  ctx.lineTo(x, y - e.r - 15);
-  ctx.lineTo(x + 6, y - e.r + 1);
-  ctx.lineTo(x + 12, y - e.r - 12);
-  ctx.lineTo(x + 16, y - e.r + 4);
-  ctx.closePath();
-  ctx.fill();
+  // Headgear by RANK + CITY: mini-boss gets a dented goon cap; the city boss
+  // gets regalia — Mumbai a tall gold crown (Vada Maharaja), Jaisalmer a layered
+  // desert turban (Dune Raja). Reads rank + locale at a glance.
+  const top = y - e.r;
+  if (!e.main) {
+    ctx.fillStyle = "#6c7180"; // squat dented cap
+    ctx.beginPath(); ctx.ellipse(x, top + 3, 15, 6, 0, Math.PI, 0); ctx.fill();
+    ctx.fillRect(x - 15, top + 2, 30, 3);
+    ctx.fillStyle = "#565b68";
+    ctx.beginPath(); ctx.ellipse(x + 5, top + 1, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+  } else if (deser) {
+    // Dune Raja — layered turban + cloth tail + jewel.
+    ctx.fillStyle = "#e8b86d";
+    ctx.beginPath(); ctx.ellipse(x, top + 6, 18, 11, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#d89a4a";
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.ellipse(x + i * 6, top + 4, 7, 5, 0, Math.PI, 0); ctx.fill(); }
+    ctx.fillStyle = "#c9783a";
+    ctx.beginPath(); ctx.moveTo(x + 15, top + 4); ctx.quadraticCurveTo(x + 27, top + 6, x + 22, top + 17); ctx.quadraticCurveTo(x + 18, top + 10, x + 13, top + 8); ctx.fill();
+    ctx.fillStyle = "#ff5a3c";
+    ctx.beginPath(); ctx.arc(x, top + 1, 3, 0, Math.PI * 2); ctx.fill();
+  } else {
+    // Vada Maharaja — tall gold crown with jewels.
+    ctx.fillStyle = "#ffd24a";
+    ctx.beginPath();
+    ctx.moveTo(x - 16, top + 4);
+    ctx.lineTo(x - 12, top - 12);
+    ctx.lineTo(x - 6, top + 1);
+    ctx.lineTo(x, top - 15);
+    ctx.lineTo(x + 6, top + 1);
+    ctx.lineTo(x + 12, top - 12);
+    ctx.lineTo(x + 16, top + 4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#ff5a3c";
+    ctx.beginPath(); ctx.arc(x, top - 4, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#3ecf8e";
+    ctx.beginPath(); ctx.arc(x - 12, top - 6, 1.8, 0, Math.PI * 2); ctx.arc(x + 12, top - 6, 1.8, 0, Math.PI * 2); ctx.fill();
+  }
   // Angry face: brows, eyes, wide frown.
   ctx.strokeStyle = "#14141c";
   ctx.lineWidth = 2.5;
@@ -3833,6 +3938,16 @@ function drawBoss(e) {
   ctx.beginPath();
   ctx.arc(x, y + 15, 7, Math.PI * 1.1, Math.PI * 1.9);
   ctx.stroke();
+  // A city boss is a KING — a big curled mustache over the frown sells the rank.
+  if (e.main) {
+    ctx.strokeStyle = "#14141c"; ctx.lineWidth = 3; ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x, y + 7);
+    ctx.quadraticCurveTo(x - 9, y + 9, x - 15, y + 1);
+    ctx.moveTo(x, y + 7);
+    ctx.quadraticCurveTo(x + 9, y + 9, x + 15, y + 1);
+    ctx.stroke(); ctx.lineCap = "butt";
+  }
 }
 
 // Defeated main boss: greyed-out, tilted slump with X eyes and a toppling
