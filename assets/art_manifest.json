@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "updated": "2026-06-27",
+  "about": "Single source of truth for AI-generated art (ChatGPT web). The import script (tools/import_art.py) reads this to validate, rename, optimize and place every downloaded image. Keep it in sync with game.js: CITIES (cities + nightZones), THEMES (background seam), SPRITE_SRC (sprite seam). Adding a city/sprite = add a defaults-shaped entry here, write its prompt in prompts/chatgpt_image_batches.md, regenerate.",
+  "art_direction": {
+    "style": "Flat clean illustration, Survivors.io-grade polish. Bold simple shapes, limited flat color fills, soft cel shading, thin restrained dark outlines on characters only. NOT painterly, NOT photoreal, NOT pixel-art, NOT 3D render.",
+    "palette_intent": "Warm, saturated Indian street-food palette for FOOD/HERO; the world recedes (muted, slightly desaturated) so gameplay objects pop. Night zones cool down but keep warm lamp pools.",
+    "readability_law": "This is a top-down survivors-like. Backgrounds must read as a calm, low-contrast surface a grey enemy and a bright food token can sit ON TOP of and remain instantly legible. Busy, high-contrast, or noisy art that hides a grey blob = reject.",
+    "consistency": "All assets in a batch share one art direction so the cities feel like one game. Same outline weight, same shading logic, same horizon/lighting language across a city's day+night pair.",
+    "forbidden_global": "No text, letters, numbers, logos, watermarks, signatures, UI, frames/borders, or signage with readable words. No real brand marks. No body-shape/health/diet messaging of any kind (hard brand rule)."
+  },
+  "defaults": {
+    "background": {
+      "gen_dimensions": "1024x1536",
+      "gen_aspect_ratio": "2:3",
+      "final_aspect_ratio": "9:16",
+      "fit": "cover-crop (game cover-fits the master to the 9:16 arena; safe-zone the scene so cropping the sides/top loses nothing critical)",
+      "master_width": 720,
+      "format": "png",
+      "transparent": false,
+      "aspect_tolerance": 0.12,
+      "min_short_edge": 1024
+    },
+    "sprite": {
+      "gen_dimensions": "1024x1024",
+      "gen_aspect_ratio": "1:1",
+      "format": "png",
+      "transparent": true,
+      "master_max": 512,
+      "trim_alpha": true,
+      "min_short_edge": 768,
+      "require_alpha": true
+    }
+  },
+  "assets": [
+    {
+      "asset_id": "bg-mumbai-day",
+      "kind": "background",
+      "city": "mumbai",
+      "phase": "day",
+      "level_scope": "MUMBAI zones 1-3 & 5 (the day zones)",
+      "incoming_label": "mumbai-day",
+      "target_filename": "mumbai-day.png",
+      "target_path": "assets/backgrounds/mumbai-day.png",
+      "gen_dimensions": "1024x1536",
+      "aspect_ratio": "2:3 portrait",
+      "scene": "Top-down / steep three-quarter view of a wide-open Mumbai street-food lane. A big EMPTY central road running top-to-bottom (this is the play lane). Sides lined with small chaiwala stalls, a vada-pav cart, stacked crates, a clay matka pot, potted tulsi plants, a parked black-and-yellow Padmini taxi tucked at the very edge. Monsoon-damp warm tarmac. Faint kerb lines down both margins.",
+      "mood_lighting": "Warm overcast monsoon daylight, soft diffuse shadows, gently wet sheen on the road. Inviting, lived-in, slightly muted so it recedes.",
+      "readability": "Central 60% vertical band must be near-empty, low-contrast, low-detail road — a grey blob and a glowing food token must pop instantly on it. All props confined to the left/right margins. No strong highlights or busy texture in the play lane.",
+      "style": "Flat clean illustration, Survivors.io polish. Limited warm palette (sand/ochre road, terracotta + teal + mustard stall accents). Soft cel shading, no harsh outlines on environment.",
+      "negative": "NO puddles, NO water patches, NO quicksand, NO sand pits, NO hazards of any kind on the road (these are drawn by the game on top). No people/characters. No text, signs with words, logos, watermarks. No heavy clutter in the centre lane. No top-down grid/tile seams. No frame or border.",
+      "acceptance": [
+        "Empty readable central lane spanning top-to-bottom; props only in side margins",
+        "Reads as Mumbai (taxi / stalls / monsoon-warm) at a glance",
+        "Aspect ~2:3, short edge >= 1024px, no transparency",
+        "Zero hazards, zero text/logos, no human characters"
+      ]
+    },
+    {
+      "asset_id": "bg-mumbai-night",
+      "kind": "background",
+      "city": "mumbai",
+      "phase": "night",
+      "level_scope": "MUMBAI zone 4 (the night beat before the city boss)",
+      "incoming_label": "mumbai-night",
+      "target_filename": "mumbai-night.png",
+      "target_path": "assets/backgrounds/mumbai-night.png",
+      "gen_dimensions": "1024x1536",
+      "aspect_ratio": "2:3 portrait",
+      "scene": "The SAME Mumbai lane as bg-mumbai-day, at night. Same layout: empty central road, stalls/cart/crates/taxi in the margins, now lit by warm sodium street lamps and small stall bulbs casting pools of warm light down the edges. Deep blue-grey night road in the centre.",
+      "mood_lighting": "Night: cool deep blue-grey base, warm orange lamp pools hugging the side margins, the central lane darker but still clearly readable. Calm, slightly moody, not black.",
+      "readability": "Central lane stays the lightest-relative, low-detail readable surface despite the dark — a grey blob must still pop. Keep lamp pools and bright accents in the margins, never across the play lane.",
+      "style": "Same flat clean illustration + palette family as bg-mumbai-day, shifted to night. Identical layout and prop placement so day/night feel like one place.",
+      "negative": "NO puddles/water/hazards on the road (game-drawn). No people. No text/signs-with-words/logos/watermarks. No pitch-black unreadable centre. No neon-sign lettering. No frame/border.",
+      "acceptance": [
+        "Clearly the same lane as the day version, at night",
+        "Central lane remains readable (not black); lamp pools only at margins",
+        "Aspect ~2:3, short edge >= 1024px, no transparency",
+        "Zero hazards, zero text/logos, no human characters"
+      ]
+    },
+    {
+      "asset_id": "bg-jaisalmer-day",
+      "kind": "background",
+      "city": "jaisalmer",
+      "phase": "day",
+      "level_scope": "JAISALMER zones 1-3 & 5 (the day zones)",
+      "incoming_label": "jaisalmer-day",
+      "target_filename": "jaisalmer-day.png",
+      "target_path": "assets/backgrounds/jaisalmer-day.png",
+      "gen_dimensions": "1024x1536",
+      "aspect_ratio": "2:3 portrait",
+      "scene": "Top-down / steep three-quarter view of a wide-open sandstone lane in Jaisalmer (the Golden City). A big EMPTY central sandy path top-to-bottom (the play lane). Margins lined with carved golden-sandstone stall fronts, a wooden ghevar/kachori cart, woven baskets, stacked clay pots, a couple of potted desert shrubs, a resting camel tucked at the far edge. Pale golden desert daylight.",
+      "mood_lighting": "Hot, bright golden-hour desert daylight, warm sand tones, soft long shadows, slightly hazy. Muted enough to recede.",
+      "readability": "Central 60% vertical band must be near-empty pale-sand road, low-contrast — a grey blob and bright food pop on it. Props only in left/right margins. Avoid busy carved-stone detail spilling into the lane.",
+      "style": "Flat clean illustration, Survivors.io polish. Golden-sand + warm-stone palette with terracotta and dull-teal accents. Soft cel shading, no harsh environment outlines.",
+      "negative": "NO quicksand, NO sand pits, NO sinkholes, NO puddles, NO hazards on the path (game-drawn on top). No people. No text/Hindi-or-English signage/logos/watermarks. No clutter in centre lane. No tile seams. No frame/border.",
+      "acceptance": [
+        "Empty readable central sand lane top-to-bottom; props only in margins",
+        "Reads as Jaisalmer (golden sandstone / desert / camel) at a glance",
+        "Aspect ~2:3, short edge >= 1024px, no transparency",
+        "Zero hazards, zero text/logos, no human characters"
+      ]
+    },
+    {
+      "asset_id": "bg-jaisalmer-night",
+      "kind": "background",
+      "city": "jaisalmer",
+      "phase": "night",
+      "level_scope": "JAISALMER zone 4 (the night beat before the city boss)",
+      "incoming_label": "jaisalmer-night",
+      "target_filename": "jaisalmer-night.png",
+      "target_path": "assets/backgrounds/jaisalmer-night.png",
+      "gen_dimensions": "1024x1536",
+      "aspect_ratio": "2:3 portrait",
+      "scene": "The SAME Jaisalmer lane as bg-jaisalmer-day, under a clear desert night sky. Same layout: empty central sand path, sandstone stalls/cart/baskets/camel in the margins, lit by warm lantern glow at the stalls and a cool deep-blue moonlit sky. Sandstone catches faint warm lantern light at the edges.",
+      "mood_lighting": "Clear desert night: cool deep blue base, crisp moonlight, warm amber lantern pools hugging the margins. Calm and atmospheric, never pitch black.",
+      "readability": "Central sand lane stays the lightest-relative readable surface; a grey blob must still pop. Lantern warmth and detail stay in the margins.",
+      "style": "Same flat clean illustration + palette family as bg-jaisalmer-day, shifted to a cool desert night. Identical layout and prop placement.",
+      "negative": "NO quicksand/sand-pit/puddle/hazard on the path (game-drawn). No people. No text/signage/logos/watermarks. No pitch-black centre. No lantern lettering. No frame/border.",
+      "acceptance": [
+        "Clearly the same lane as the day version, at night",
+        "Central lane remains readable; lantern pools only at margins",
+        "Aspect ~2:3, short edge >= 1024px, no transparency",
+        "Zero hazards, zero text/logos, no human characters"
+      ]
+    },
+    {
+      "asset_id": "sprite-courier",
+      "kind": "sprite",
+      "entity": "hero",
+      "sprite_key": "courier",
+      "level_scope": "Player hero (all cities)",
+      "incoming_label": "courier",
+      "target_filename": "courier.png",
+      "target_path": "assets/sprites/courier.png",
+      "gen_dimensions": "1024x1024",
+      "aspect_ratio": "1:1, transparent background",
+      "scene": "A single chibi Indian street-food courier, 'The Tiffin Runner'. Steep three-quarter top-down view (seen slightly from above and front, matching a survivors-like). Big head, small body (chibi, reads at small size). Red delivery cap with a saffron band, dark hair peeking out, warm brown skin, mustard shirt, tied cream apron (neck straps + waist bow + pocket), navy trousers. Holds a small 2-tier steel tiffin/dabba at the side (kept SMALL, must not dominate). Friendly, plucky. Facing toward the viewer / slightly down-screen.",
+      "mood_lighting": "Bright, warm, even lighting. Vibrant and saturated so the hero pops against muted streets. Soft single drop of cel shading.",
+      "readability": "Must read clearly at ~50px tall in-game. Bold silhouette, thin dark outline, minimal interior detail. Centered in frame with even margins.",
+      "style": "Flat clean mascot illustration, Survivors.io-grade. Bold simple shapes, thin dark outline, flat fills + one soft shade. Chibi proportions.",
+      "negative": "NO background, NO scene, NO ground, NO shadow on ground — fully TRANSPARENT background. No text/logo. No oversized props (tiffin stays small). No multiple characters. No weapon. No extra limbs. Not cropped — whole character with margin. No drop shadow baked in.",
+      "acceptance": [
+        "Single centered chibi courier on transparent background (has alpha)",
+        "Cap + apron + small tiffin all present and correctly proportioned (tiffin small)",
+        "Bold readable silhouette at small scale",
+        "Aspect ~1:1, short edge >= 768px, transparent, no text/scene"
+      ]
+    },
+    {
+      "asset_id": "sprite-bland",
+      "kind": "sprite",
+      "entity": "enemy-grunt",
+      "sprite_key": "bland",
+      "level_scope": "The Bland grunt (standard enemy, all cities)",
+      "incoming_label": "bland",
+      "target_filename": "bland.png",
+      "target_path": "assets/sprites/bland.png",
+      "gen_dimensions": "1024x1024",
+      "aspect_ratio": "1:1, transparent background",
+      "scene": "A single 'Bland' — a smug grey lumpy blob creature. Fully desaturated grey (the anti-flavor). Smug face: angled brows, low beady pupils, a smug closed mouth with a tiny tongue, a couple of small drips. Slightly cute, love-to-hate. Standing, facing viewer. Chibi, simple.",
+      "mood_lighting": "Flat, slightly dull lighting — it is the colour-draining enemy, so it stays grey and matte while everything else is warm.",
+      "readability": "Must read as a distinct grey threat at ~40px against both warm day and dark night streets. Bold rounded silhouette, thin dark outline, clear face. Centered with margin.",
+      "style": "Flat clean mascot illustration matching the courier's outline/shading language, but fully grey and desaturated.",
+      "negative": "NO background/scene/ground — fully TRANSPARENT. No colour (keep it grey/desaturated). No text/logo. No multiple blobs. Not cropped. No baked ground shadow.",
+      "acceptance": [
+        "Single centered grey smug blob on transparent background (has alpha)",
+        "Desaturated grey, clear smug face, readable silhouette at small scale",
+        "Aspect ~1:1, short edge >= 768px, transparent, no text/scene"
+      ]
+    },
+    {
+      "asset_id": "sprite-swarmer",
+      "kind": "sprite",
+      "entity": "enemy-swarmer",
+      "sprite_key": "swarmer",
+      "level_scope": "Swarmer (small fast zig-zag enemy, waves 3+)",
+      "incoming_label": "swarmer",
+      "target_filename": "swarmer.png",
+      "target_path": "assets/sprites/swarmer.png",
+      "gen_dimensions": "1024x1024",
+      "aspect_ratio": "1:1, transparent background",
+      "scene": "A single small spiky grey wisp — a fast little cousin of the Bland. Smaller, sharper, a few spiky points around a grey body, two tiny angry eyes, faint motion-energy. Reads as quick and aggressive. Same grey desaturated family. Centered, facing viewer.",
+      "mood_lighting": "Flat dull grey lighting, same anti-flavor look, with a slightly sharper/edgier read than the round grunt.",
+      "readability": "Tiny in-game (~24px). Silhouette must read as 'small + spiky + fast' and clearly distinct from the round grunt. Bold simple spikes, thin outline.",
+      "style": "Flat clean mascot illustration, same language as the Bland grunt, but small, spiky and edgier. Grey/desaturated.",
+      "negative": "NO background/scene — fully TRANSPARENT. No colour. No text/logo. No multiple wisps. Not cropped. No baked shadow. Don't make it round like the grunt — keep it spiky/distinct.",
+      "acceptance": [
+        "Single centered small spiky grey wisp on transparent background (has alpha)",
+        "Clearly distinct from the round grunt (spiky, smaller, edgier)",
+        "Aspect ~1:1, short edge >= 768px, transparent, no text/scene"
+      ]
+    },
+    {
+      "asset_id": "sprite-blandfather",
+      "kind": "sprite",
+      "entity": "miniboss",
+      "sprite_key": "blandfather",
+      "level_scope": "THE BLANDFATHER (wave-5 mini-boss, shared across cities)",
+      "incoming_label": "blandfather",
+      "target_filename": "blandfather.png",
+      "target_path": "assets/sprites/blandfather.png",
+      "gen_dimensions": "1024x1024",
+      "aspect_ratio": "1:1, transparent background",
+      "scene": "A single bigger, meaner Bland mob-boss — 'The Blandfather'. Same grey blob family but larger and tougher, wearing a dented grey mobster fedora/goon cap and sporting a grey mustache. Smug menacing read, slight scowl. Standing, facing viewer. Chibi-but-imposing.",
+      "mood_lighting": "Flat dull grey, faintly more contrast/shading than the grunt to feel weightier. Still desaturated anti-flavor grey.",
+      "readability": "Reads as 'boss version of the Bland' at ~70px — bigger silhouette, hat + mustache are the instant tells. Bold outline, clear hat shape.",
+      "style": "Flat clean mascot illustration, same language as the Bland grunt, scaled up with goon-hat + mustache regalia. Grey.",
+      "negative": "NO background/scene — fully TRANSPARENT. No colour (grey only, hat may be a slightly darker grey). No text/logo. No multiple figures. Not cropped. No baked shadow. No weapons.",
+      "acceptance": [
+        "Single centered grey mobster-blob with dented hat + mustache (has alpha)",
+        "Clearly a bigger 'boss' Bland, hat + mustache legible",
+        "Aspect ~1:1, short edge >= 768px, transparent, no text/scene"
+      ]
+    },
+    {
+      "asset_id": "sprite-vada-maharaja",
+      "kind": "sprite",
+      "entity": "citaboss",
+      "sprite_key": "vada-maharaja",
+      "level_scope": "THE VADA MAHARAJA (Mumbai city boss, wave 8 of zone 5)",
+      "incoming_label": "vada-maharaja",
+      "target_filename": "vada-maharaja.png",
+      "target_path": "assets/sprites/vada-maharaja.png",
+      "gen_dimensions": "1024x1024",
+      "aspect_ratio": "1:1, transparent background",
+      "scene": "A single grand Bland city-boss — 'The Vada Maharaja', ruler of bland Mumbai. Big purple-grey blob body, a tall ornate gold crown, a curled royal mustache, an imperious smug expression. Largest and most decorated of the Bland bosses. Standing, facing viewer. Imposing but comic.",
+      "mood_lighting": "Mostly desaturated body with a regal purple-grey tint; the GOLD crown is the one warm accent (it pops as the prize/threat). Soft cel shading for weight.",
+      "readability": "Reads as the finale boss at ~90px. Gold crown is the instant tell against the grey body. Bold silhouette, clear crown.",
+      "style": "Flat clean mascot illustration, same Bland family, scaled biggest with gold-crown + mustache regalia and a faint purple-grey royal tint.",
+      "negative": "NO background/scene — fully TRANSPARENT. Body stays grey/purple-grey (only the crown is gold). No text/logo. No throne/scene props. No multiple figures. Not cropped. No baked shadow.",
+      "acceptance": [
+        "Single centered purple-grey blob with tall GOLD crown + royal mustache (has alpha)",
+        "Reads as the biggest, most decorated boss; crown legible",
+        "Aspect ~1:1, short edge >= 768px, transparent, no text/scene"
+      ]
+    },
+    {
+      "asset_id": "sprite-dune-raja",
+      "kind": "sprite",
+      "entity": "cityboss",
+      "sprite_key": "dune-raja",
+      "level_scope": "THE DUNE RAJA (Jaisalmer city boss, wave 8 of zone 5)",
+      "incoming_label": "dune-raja",
+      "target_filename": "dune-raja.png",
+      "target_path": "assets/sprites/dune-raja.png",
+      "gen_dimensions": "1024x1024",
+      "aspect_ratio": "1:1, transparent background",
+      "scene": "A single grand Bland city-boss — 'The Dune Raja', desert ruler of bland Jaisalmer. Big sand-grey blob body, a layered desert turban (pagari) as the crown, an imperious smug expression. Largest desert boss. Standing, facing viewer. Imposing but comic.",
+      "mood_lighting": "Mostly desaturated body with a faint warm sand-grey tint; the layered turban carries warm desert ochre as the one accent. Soft cel shading.",
+      "readability": "Reads as the finale boss at ~90px. The tall layered turban is the instant tell. Bold silhouette, clear turban.",
+      "style": "Flat clean mascot illustration, same Bland family, scaled biggest with a layered desert-turban headpiece and sand-grey body.",
+      "negative": "NO background/scene — fully TRANSPARENT. Body stays sand-grey/desaturated (turban may carry warm ochre). No text/logo. No scene props. No multiple figures. Not cropped. No baked shadow.",
+      "acceptance": [
+        "Single centered sand-grey blob with a layered desert turban (has alpha)",
+        "Reads as the biggest desert boss; turban legible and distinct from the Vada Maharaja's crown",
+        "Aspect ~1:1, short edge >= 768px, transparent, no text/scene"
+      ]
+    }
+  ]
+}

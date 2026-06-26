@@ -116,6 +116,25 @@ const THEMES = {
       crate: "#a8895f", crosswalk: "rgba(255, 255, 255, 0.18)",
     },
   },
+  // City-flavored AI art (flat clean illustration — see ART_PIPELINE.md). Unlike
+  // the level-keyed themes above, backgrounds resolve by CURRENT CITY + day/night
+  // (assets/backgrounds/<city>-<day|night>.png), so one small image set scales to
+  // every zone. Falls back to the procedural day street whenever a city's image is
+  // missing, so the game never breaks on an absent file. Preview live in the dev
+  // console: __mr.setTheme("city-art"). Ship it by setting ACTIVE_THEME below.
+  "city-art": {
+    vignette: 0.14,
+    cityArt: true,               // resolve bg by city + day/night, not level number
+    fallbackDraw: drawDayStreet, // procedural fallback when a city image is absent
+    bg: {},
+    pal: {
+      baseTop: "#cdbb95", baseBot: "#c1ad84",
+      path: "#b8a37c", curb: "#dccdb0", dash: "#e9ddc2",
+      lamp: "rgba(255, 236, 170, 0.10)",
+      stall: "#9c7a52", awningA: "#c2543f", awningB: "#d98a3a",
+      crate: "#a8895f", crosswalk: "rgba(255, 255, 255, 0.18)",
+    },
+  },
 };
 const ACTIVE_THEME = "retro-day"; // <-- the only switch. Edit to revert/migrate.
 // Migration note: retro-day ships bg-1 only so far; levels 2–4 fall back to the
@@ -131,9 +150,25 @@ function theme() { return THEMES[curThemeName] || THEMES["night-v1"]; }
 // next loads.
 let LEVEL_BG_SRC = theme().bg;
 let bgImgs = {};
+let CITY_BG = {}; // city-art theme: "<city>-<day|night>" -> Image (loaded on theme switch)
 function loadThemeImages() {
   bgImgs = {};
   LEVEL_BG_SRC = theme().bg;
+  if (theme().cityArt) {
+    // Preload every city's day + night master. A missing file just never loads
+    // (levelBg falls back to the procedural street), so nothing breaks on absence.
+    CITY_BG = {};
+    for (const c of CITIES) {
+      for (const phase of ["day", "night"]) {
+        const key = c.key + "-" + phase;
+        const im = new Image();
+        im.onload = () => { if (bgCanvas) buildBackdrop(); };
+        im.src = "assets/backgrounds/" + key + ".png";
+        CITY_BG[key] = im;
+      }
+    }
+    return;
+  }
   if (theme().draw) return; // procedural theme — no images to preload
   for (const n in LEVEL_BG_SRC) {
     const im = new Image();
@@ -148,7 +183,18 @@ loadThemeImages();
 // Authored flat-vector sprites (see docs/sprites.md). Drawn straight from SVG so
 // they stay crisp at any scale — no rasterization. Until a sprite loads (or if it
 // fails), the procedural blob keeps drawing, so the game never breaks on assets.
-const SPRITE_SRC = { courier: "assets/sprites/courier.svg", bland: "assets/sprites/bland.svg" };
+// Each key resolves to assets/sprites/<key>.png FIRST (the AI-import target — see
+// ART_PIPELINE.md); the value here is the authored fallback used until that PNG
+// lands. courier/bland keep their SVG fallback so the game looks finished today;
+// the rest are PNG-only and stay procedural until imported.
+const SPRITE_SRC = {
+  courier: "assets/sprites/courier.svg",
+  bland: "assets/sprites/bland.svg",
+  swarmer: "assets/sprites/swarmer.png",
+  blandfather: "assets/sprites/blandfather.png",
+  "vada-maharaja": "assets/sprites/vada-maharaja.png",
+  "dune-raja": "assets/sprites/dune-raja.png",
+};
 const SPRITES = {}; // name -> { base, white, w, h } once loaded
 // Raster supersample: rasterize the vector ABOVE display size so it stays crisp
 // on hi-DPI and if we scale the sprite up later. Drawn down from this each frame.
@@ -162,14 +208,24 @@ function rasterizeSprite(img, scale) {
 }
 function loadSprites() {
   for (const name in SPRITE_SRC) {
-    const im = new Image();
-    im.onload = () => {
-      const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
-      // Rasterize ONCE to a canvas. Drawing the raw SVG every frame re-decodes
-      // the vector → flicker + dropped frames; a cached bitmap draws cheaply.
-      SPRITES[name] = { base: rasterizeSprite(im, SPRITE_RASTER), white: null, w, h };
+    // Prefer an imported PNG (assets/sprites/<name>.png); fall back to the authored
+    // source (SVG) if that PNG is absent. So dropping a new PNG via the import
+    // script overrides the procedural/SVG art with zero code changes, and a missing
+    // PNG never regresses the current look.
+    const png = "assets/sprites/" + name + ".png";
+    const fallback = SPRITE_SRC[name];
+    const load = (src, onFail) => {
+      const im = new Image();
+      im.onload = () => {
+        const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
+        // Rasterize ONCE to a canvas. Drawing the raw SVG every frame re-decodes
+        // the vector → flicker + dropped frames; a cached bitmap draws cheaply.
+        SPRITES[name] = { base: rasterizeSprite(im, SPRITE_RASTER), white: null, w, h };
+      };
+      im.onerror = onFail || null;
+      im.src = src;
     };
-    im.src = SPRITE_SRC[name];
+    load(png, fallback && fallback !== png ? () => load(fallback) : null);
   }
 }
 loadSprites();
@@ -211,6 +267,11 @@ function drawSprite(s, x, y, h, faceDir, white, yOff) {
   ctx.restore();
 }
 function levelBg() {
+  if (theme().cityArt) {
+    const key = curCity().key + "-" + (zoneNight ? "night" : "day");
+    const im = CITY_BG[key];
+    return im && im.complete && im.naturalWidth ? im : null;
+  }
   const im = bgImgs[level || 1];
   return im && im.complete && im.naturalWidth ? im : null;
 }
@@ -603,10 +664,12 @@ function buildBackdrop() {
       // Portrait procedural theme (retro-day): drawn to exact proportions.
       drawFn(g, W, H);
     } else if (bg) {
-      // Portrait: per-level backdrop master, cover-fit.
+      // Portrait: per-level / per-city backdrop master, cover-fit.
       coverDraw(g, bg, W, H);
     } else {
-      drawStreet(g, W, H);
+      // No image (missing/loading): use the theme's procedural fallback if it has
+      // one (city-art → drawDayStreet), else the palette street.
+      (theme().fallbackDraw || drawStreet)(g, W, H);
     }
   });
   vignette = makeSprite(W, H, (g) => {
@@ -838,7 +901,13 @@ const CONFIG = {
   // yOff nudges the sprite up/down off the entity center. Live-tune in preview
   // via __mr.config.sprites — falls back to the procedural blob if a sprite is
   // missing, so these never break the game.
-  sprites: { player: { scale: 2.5, yOff: -6 }, bland: { scale: 1.8, yOff: -4 } },
+  // Per-sprite draw scale (× entity diameter) + vertical nudge. player/bland are
+  // tuned to the shipped art; swarmer/miniboss/boss are starting points to fine-
+  // tune once the AI sprites land (live-tunable via __mr.config.sprites).
+  sprites: {
+    player: { scale: 2.5, yOff: -6 }, bland: { scale: 1.8, yOff: -4 },
+    swarmer: { scale: 2.2, yOff: -2 }, miniboss: { scale: 1.7, yOff: -6 }, boss: { scale: 1.7, yOff: -8 },
+  },
   bossDefeat: 1.9,     // main boss lingers (defeated) this long before LEVEL CLEAR
   // Solid stall walls down each side (fraction of W per side). The painted
   // shops become impassable; player + Bland stay in the open center lane.
@@ -1000,6 +1069,7 @@ const CITIES = [
     // no HP chip. Appear from zone 3.
     hazard: { type: "puddle", fromZone: 3, count: 3, slow: 0.5, chip: 0 },
     boss: { name: "THE VADA MAHARAJA" },
+    bossSprite: "vada-maharaja", // AI sprite key (assets/sprites/vada-maharaja.png)
     // Night zones (deterministic, not random — see ROADMAP). Zone 4 = a darker
     // beat before the city-boss finale. Bump this list to add more night zones.
     nightZones: [4],
@@ -1035,6 +1105,7 @@ const CITIES = [
     // softened ONCE (loses `chip` of its current HP) but never killed. From zone 2.
     hazard: { type: "quicksand", fromZone: 2, count: 4, slow: 0.45, chip: 0.5 },
     boss: { name: "THE DUNE RAJA" },
+    bossSprite: "dune-raja", // AI sprite key (assets/sprites/dune-raja.png)
     // Cool desert night (clear-sky blue) — zone 4.
     nightZones: [4],
     night: {
@@ -3149,6 +3220,12 @@ function draw() {
     if (e.type === "nom") { drawNom(e); continue; }
     if (e.type === "coin") { drawCoin(e); continue; }
     if (e.type === "swarmer" || e.type === "nibbler") {
+      const ss = SPRITES.swarmer;
+      if (ss) {
+        const sp = CONFIG.sprites.swarmer;
+        drawSprite(ss, e.x, e.y, e.r * 2 * sp.scale, 1, e.flash > 0, sp.yOff);
+        continue; // 1 hp — no health bar
+      }
       // Swarmer / nibbler: small spiky wisp — angular 7-point shape, beady eyes.
       ctx.fillStyle = e.flash > 0 ? "#ffffff" : "#7e8294";
       ctx.beginPath();
@@ -3871,6 +3948,20 @@ function drawBoss(e) {
   // City boss body tints per city (Mumbai regal purple-grey, Jaisalmer desert
   // sand-grey); mini-boss stays plain grey.
   const cityKey = curCity().key, deser = cityKey === "jaisalmer";
+  // Authored boss sprite if loaded (mini-boss = Blandfather; city boss = the
+  // current city's). Telegraph cues (windup jitter via x/y, recover weak-window
+  // ring) stay drawn on top so gameplay readability survives the art swap.
+  const bossSprite = e.main ? SPRITES[curCity().bossSprite] : SPRITES.blandfather;
+  if (bossSprite) {
+    const sp = e.main ? CONFIG.sprites.boss : CONFIG.sprites.miniboss;
+    drawSprite(bossSprite, x, y, e.r * 2 * sp.scale, 1, e.flash > 0, sp.yOff);
+    if (e.bossState === "recover" || e.main) {
+      ctx.strokeStyle = e.bossState === "recover" ? "rgba(255,179,71,0.9)" : "rgba(255,140,60,0.45)";
+      ctx.lineWidth = e.bossState === "recover" ? 4 : 3;
+      ctx.beginPath(); ctx.arc(x, y, e.r * 1.05, 0, Math.PI * 2); ctx.stroke();
+    }
+    return;
+  }
   if (e.flash > 0) ctx.fillStyle = "#ffffff";
   else if (e.main) ctx.fillStyle = deser ? (windup ? "#9c8160" : "#6e5740") : (windup ? "#8c7280" : "#5e4a54");
   else ctx.fillStyle = windup ? "#8a8ea0" : "#5a5e6c";

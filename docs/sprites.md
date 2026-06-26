@@ -4,7 +4,20 @@
 glance (try-rate driver, per `ROADMAP.md` commercial north-star). Scope is
 deliberately **two characters** for the test phase — not the whole cast.
 
-## Decisions (locked 2026-06-21)
+## Method reversal (2026-06-27) — now AI-generated for the commercial pivot
+The 2026-06-21 decision below locked sprites as **SVG→PNG, NOT AI-generated**,
+because AI image-gen kept making props too big / pulling focus. That is **reversed**
+for the commercial direction (Survivors.io-grade art): hero, Bland, swarmer, and
+all three bosses are now **AI-generated via ChatGPT web** through the art pipeline
+(`ART_PIPELINE.md`, `assets/art_manifest.json`). The old proportion-control risk is
+mitigated in the prompts, not the tool: every sprite prompt forces a single centered
+character, fixed chibi proportions, deliberately **small** props, a transparent
+background, and no scene. The authored SVGs (`courier.svg`, `bland.svg`) remain as
+the **fallback** — the loader prefers `assets/sprites/<key>.png` and falls back to
+the SVG/procedural blob, so nothing breaks before the art lands. Backgrounds also
+move to AI art (the `city-art` theme); other props stay procedural.
+
+## Decisions (locked 2026-06-21 — method since superseded; see reversal above)
 - **Method:** *hybrid* — authored sprites for the hero/villain, everything else
   (props, backdrops) stays procedural. Sprites are **authored in SVG and
   rasterized to PNG**, not AI-generated. Why SVG: exact proportion control (the

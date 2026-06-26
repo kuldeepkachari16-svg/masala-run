@@ -1,5 +1,37 @@
 # Masala Run — Changelog
 
+## 2026-06-27 — art pipeline: ChatGPT-generated city backgrounds + character sprites
+Stood up a manual-generation / automated-ingestion art pipeline so the game can move
+off pure procedural art toward Survivors.io-grade flat illustration, **city-flavored**
+(Mumbai vs Jaisalmer read distinctly). Manual ChatGPT web generation by hand — no
+OpenAI API, no browser automation; scripts only touch local assets.
+- **Manifest** `assets/art_manifest.json` — source of truth for 4 backgrounds
+  (`<city>-day/night`) + 6 sprites (courier, bland, swarmer, blandfather,
+  vada-maharaja, dune-raja): scene / mood / readability / style / negative prompt /
+  acceptance / target path, derived from the real `CITIES` + `SPRITE_SRC`.
+- **Prompts** `prompts/chatgpt_image_batches.md` — copy-paste batches (style bible +
+  numbered prompts + `SAVE AS` labels). Backgrounds forbid baked-in hazards (the game
+  draws puddles/sand on top, per-zone); sprites force single centered character +
+  transparent bg + small props (kills the old AI "props too big" failure).
+- **Import** `tools/import_art.py` (Python + Pillow, matches `tools/process-bg.py`
+  convention) — scans `assets/incoming/`, matches to the manifest, validates
+  dims/aspect/transparency, optimizes (bg → 720 flat master; sprite → trim alpha +
+  downscale), renames + places to target, archives raws, reports missing/unexpected,
+  won't overwrite approved assets without `--force`. Dry-run by default. Verified
+  end-to-end on synthetic fixtures (valid/invalid/missing/unexpected all handled).
+- **Game seams (additive, non-breaking — procedural stays the live default until art
+  lands):** new `city-art` theme resolves backgrounds by **city + day/night** with a
+  procedural fallback; sprite loader now **prefers `assets/sprites/<key>.png`** and
+  falls back to the SVG/blob, so dropping a PNG overrides art with zero code change;
+  swarmer + both bosses got the same image-or-procedural draw seam (telegraph cues
+  preserved); `CONFIG.sprites` gained per-entity scale/yOff knobs. Verified live: game
+  boots clean, `__mr.setTheme("city-art")` switches + falls back with no error.
+- **Docs** new `ART_PIPELINE.md`; `docs/sprites.md` records the AI-gen reversal of the
+  2026-06-21 SVG-only decision.
+- Roadmap note acknowledged: art was flagged "not until P0 (fun) passes" — the
+  *pipeline* is cheap reusable infra, so v1 is kept lean (4 bg + 6 sprites), not a
+  full art push.
+
 ## 2026-06-27 — review fixes: sandstorm boss-kill, hazard resize, resume label
 Three issues from an external static code review of `42bf340` — all confirmed and fixed.
 - **Sandstorm could leave a boss at ≤0 HP still alive.** `updateStorms` chipped boss HP but never checked for death, so if a pit landed the final tick the boss kept fighting (a zone-clear could stall). Now marks `hazardKilled` at ≤0 HP → routed through the same `killEnemy` sweep as bullet kills. Verified: boss 4 HP → -3.9 → `defeated:true`.
