@@ -925,9 +925,9 @@ const CITIES = [
     },
     // signature = THALI SLAM reskin. pattern "rain" = vada pavs fall from the top.
     slam: { name: "VADA PAV RAIN!", colors: ["#caa15a", "#e3c07a", "#9c7144"], pattern: "rain" },
-    // hazard: shallow monsoon puddles — slow whatever wades in (hero AND Blands).
-    // Appear from zone 3.
-    hazard: { type: "puddle", fromZone: 3, count: 3, slow: 0.6, drain: 0 },
+    // hazard: shallow monsoon puddles — slow whatever wades in (hero AND Blands),
+    // no HP chip. Appear from zone 3.
+    hazard: { type: "puddle", fromZone: 3, count: 3, slow: 0.5, chip: 0 },
     boss: { name: "THE VADA MAHARAJA" },
     // Night zones (deterministic, not random — see ROADMAP). Zone 4 = a darker
     // beat before the city-boss finale. Bump this list to add more night zones.
@@ -960,9 +960,9 @@ const CITIES = [
       savory: { name: "Kachori", color: "#3ecf8e" },
     },
     slam: { name: "SANDSTORM!", colors: ["#d8b46a", "#c79a4e", "#a87b46"], pattern: "radial" },
-    // hazard: quicksand — slows hero AND Blands; Blands that linger sink (drain).
-    // From zone 2.
-    hazard: { type: "quicksand", fromZone: 2, count: 4, slow: 0.55, drain: 2.2 },
+    // hazard: quicksand — slows hero AND Blands; a Bland that wades through is
+    // softened ONCE (loses `chip` of its current HP) but never killed. From zone 2.
+    hazard: { type: "quicksand", fromZone: 2, count: 4, slow: 0.45, chip: 0.5 },
     boss: { name: "THE DUNE RAJA" },
     // Cool desert night (clear-sky blue) — zone 4.
     nightZones: [4],
@@ -1021,30 +1021,42 @@ function buildHazards() {
     if (Math.hypot(x - cx, y - cy) < clearR + Math.max(rx, ry)) {
       x = (x < cx) ? Math.max(laneL, cx - clearR - rx) : Math.min(laneR, cx + clearR + rx);
     }
-    hazards.push({ x, y, rx, ry, type: hz.type, slow: hz.slow, drain: hz.drain });
+    hazards.push({ x, y, rx, ry, type: hz.type, slow: hz.slow, chip: hz.chip || 0, hit: new Set() });
   }
 }
 
-// Slow factor for the HERO standing in a hazard (min across overlaps). No drain
-// on the hero — hazards slow you (a real risk to navigate), they don't hurt you.
+// Slow factor for the HERO standing in a hazard (min across overlaps), and the
+// hazard they're in (strongest), stashed in `heroHazard` so the movement loop
+// can throw up a friction cue. No HP loss on the hero — hazards slow you (a real
+// risk to navigate), they don't hurt you.
+let heroHazard = null;
 function playerHazardSlow() {
-  let mul = 1;
+  let mul = 1; heroHazard = null;
   for (const z of hazards) {
     const dx = (player.x - z.x) / z.rx, dy = (player.y - z.y) / z.ry;
-    if (dx * dx + dy * dy <= 1) mul = Math.min(mul, z.slow);
+    if (dx * dx + dy * dy <= 1 && z.slow < mul) { mul = z.slow; heroHazard = z; }
   }
   return mul;
 }
 
-// Per-enemy hazard effect: returns a speed multiplier; applies drain (quicksand)
-// and kills the enemy if drained out. Called from the enemy movement loop.
+// Per-enemy hazard effect: returns a speed multiplier, and softens a Bland ONCE
+// per pass — it loses `chip` of its CURRENT hp on entry (halving never kills, so
+// the hazard weakens Blands for your shots instead of doing the killing). The
+// per-hazard `hit` set is cleared when the Bland leaves, so a fresh pass re-chips.
 function applyHazards(e, dt) {
   let mul = 1;
   for (const z of hazards) {
     const dx = (e.x - z.x) / z.rx, dy = (e.y - z.y) / z.ry;
-    if (dx * dx + dy * dy <= 1) {
+    const inside = dx * dx + dy * dy <= 1;
+    if (inside) {
       mul = Math.min(mul, z.slow);
-      if (z.drain > 0 && !e.boss) e.hp -= z.drain * dt;
+      if (z.chip > 0 && !e.boss && !z.hit.has(e)) {
+        z.hit.add(e);
+        e.hp *= (1 - z.chip); // 50% chip → halve; can't reach 0, never kills
+        e.flash = 0.1;
+      }
+    } else if (z.hit.has(e)) {
+      z.hit.delete(e); // left the patch — next pass softens again
     }
   }
   return mul;
@@ -1354,16 +1366,18 @@ function drawPowerButtons() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const tnow = performance.now() / 1000;
   const defs = [
-    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄",
+    // gscale normalizes the optical size of each glyph (❄ renders larger than ✦
+    // at the same px) so both buttons read as the SAME size.
+    { key: "rush", frac: Math.min(1, rushCharge / CONFIG.powers.rush.eats), ready: rushReady(), color: "#ffd24a", glyph: "❄", gscale: 0.82,
       active: rushActive > 0, activeFrac: rushActive > 0 ? rushActive / CONFIG.powers.rush.dur : 0 },
-    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦",
+    { key: "slam", frac: Math.min(1, slamCharge / CONFIG.powers.slam.kills), ready: slamReady(), color: "#ff5a3c", glyph: "✦", gscale: 1.0,
       active: false, activeFrac: 0 },
   ];
   const btns = powerButtons();
   for (const b of btns) {
     const d = defs.find((x) => x.key === b.key);
     ctx.textAlign = "center";
-    ctx.font = Math.round(b.r * 0.9) + "px sans-serif";
+    ctx.font = Math.round(b.r * 0.9 * (d.gscale || 1)) + "px sans-serif";
 
     if (d.active) {
       // ACTIVE/running: filled tint + DEPLETING timer arc. Reads as "ON",
@@ -1393,6 +1407,15 @@ function drawPowerButtons() {
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+    // Constant full-circle rim, same in EVERY state — anchors the button size so
+    // a charging button never looks smaller than a ready one (the charge arc
+    // below only fills part-way while charging).
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = "rgba(232, 232, 240, 0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.stroke();
     // Charge arc (fills as it charges).
     ctx.strokeStyle = d.ready ? d.color : "rgba(232, 232, 240, 0.4)";
     ctx.lineWidth = 4;
@@ -2695,6 +2718,24 @@ function update(dt) {
   if (barriers.length) resolveBarriers(player);
   if (player.iframes > 0) player.iframes -= dt;
 
+  // Hazard FRICTION cue: wading through a puddle/quicksand already slows you
+  // (playerHazardSlow), but make it FELT — kick up splashes/sand opposite your
+  // motion and pulse a ripple at your feet, so the drag reads, not just registers.
+  if (heroHazard) {
+    player.hazFx = (player.hazFx || 0) - dt;
+    if (player.hazFx <= 0) {
+      player.hazFx = 0.06;
+      const edge = heroHazard.type === "quicksand" ? "rgba(120,86,40,0.9)" : "rgba(150,170,190,0.85)";
+      const sp = 30 + Math.random() * 50;
+      const aw = Math.atan2(-player.vy, -player.vx) + (Math.random() - 0.5) * 1.2;
+      particles.push({ x: player.x + (Math.random() - 0.5) * player.r, y: player.y + player.r * 0.6,
+        vx: Math.cos(aw) * sp, vy: Math.sin(aw) * sp - 20, life: 0.3 + Math.random() * 0.25,
+        color: edge, r: 1.6 + Math.random() * 2 });
+      if (player.moving && Math.random() < 0.4)
+        rings.push({ x: player.x, y: player.y + player.r * 0.5, r: player.r * 0.5, maxR: player.r * 1.4, life: 0.35, color: edge });
+    }
+  }
+
   // Motion trail: small flavor-tinted dust puffs lag behind while moving, so
   // movement reads as kinetic instead of a sprite sliding on glass.
   if (player.moving) {
@@ -2818,7 +2859,6 @@ function update(dt) {
       const hz = hazards.length ? applyHazards(e, dt) : 1;
       e.x += Math.cos(a) * e.speed * hz * dt;
       e.y += Math.sin(a) * e.speed * hz * dt;
-      if (e.hp <= 0) e.hazardKilled = true; // drained out by quicksand
     }
 
     // They drain the street's color where they walk (coins don't — they float).
