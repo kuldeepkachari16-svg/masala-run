@@ -139,10 +139,11 @@ const THEMES = {
     },
   },
 };
-const ACTIVE_THEME = "city-art"; // <-- the only switch. Edit to revert/migrate.
-// Shipping city-art: per-city procedural road + AI prop strips pinned to the live
-// arena edges (assets/props/, drawCityEdges) — device-agnostic, no crop. A missing
-// strip just shows the bare road. Revert with "retro-day" or "night-v1".
+const ACTIVE_THEME = "retro-day"; // <-- the only switch. Edit to revert/migrate.
+// city-art is PARKED pending a rework: the edge-prop strips render far too large and
+// busy (props dwarf the hero, sticker-halo shadows, obvious tiling, player overlaps
+// them) — it violates the manifest's own readability_law. Re-enable only after the
+// drawCityEdges scale/kerb/halo fixes land. Preview meanwhile: __mr.setTheme("city-art").
 
 let curThemeName = ACTIVE_THEME; // mutable so __mr.setTheme() can preview live
 function theme() { return THEMES[curThemeName] || THEMES["night-v1"]; }
