@@ -13,83 +13,83 @@ all numbered prompts), generate, then **download each image and rename it to the
 
 ---
 
-## BATCH 1 — Mumbai backgrounds (2 images)
+## BATCH 1 — Mumbai prop strips (2 images, TRANSPARENT)
+
+> These are NOT full backgrounds. The game draws the road procedurally and tiles
+> these transparent prop columns down BOTH arena edges (so they work on every
+> device size with no crop). You're drawing ONE curb's worth of props on a clear
+> background — nothing else.
 
 ```
-You are generating game backgrounds for a mobile top-down survivors-like set in
-Indian street-food cities. I need a consistent SET, so apply this STYLE BIBLE to
-every image in this batch:
+You are generating game art for a mobile top-down survivors-like set in Indian
+street-food cities. I need transparent PROP STRIPS. Apply this STYLE BIBLE to every
+image in this batch:
 
 STYLE BIBLE
 - Flat clean illustration, Survivors.io-grade polish. Bold simple shapes, limited
   flat color fills, soft cel shading. NOT painterly, NOT photoreal, NOT pixel-art,
   NOT a 3D render.
-- Top-down / steep three-quarter view of a street lane.
-- CRITICAL LAYOUT: a big EMPTY central road/lane runs top-to-bottom. All props
-  (stalls, carts, crates, pots, plants, vehicles) sit ONLY in the left & right
-  margins. The centre ~60% must stay near-empty, low-contrast and low-detail —
-  game characters are drawn on top of it and must stay readable.
-- Warm Indian street-food palette, but MUTED so the background recedes.
-- Portrait 2:3 aspect (1024x1536).
+- Top-down / steep three-quarter view of the props.
+- FULLY TRANSPARENT background (PNG alpha). NO road, NO ground, NO pavement, NO
+  kerb — only the objects and a soft contact shadow directly under each.
+- CRITICAL LAYOUT: arrange the props in ONE tall, narrow VERTICAL COLUMN, evenly
+  spaced top-to-bottom with small gaps. Do NOT spread them horizontally.
+- Warm Indian street-food palette, but MUTED so the props recede behind gameplay.
+- Portrait 2:3 canvas (1024x1536); the column sits down the middle, rest transparent.
 - ABSOLUTELY NO: text, letters, numbers, signage with words, logos, watermarks,
-  signatures, UI, frames or borders. No people/characters. No water puddles, no
-  sand pits, no hazards of any kind on the road (the game draws those itself).
-- The day and night image must be the SAME lane with the SAME prop layout, only
-  the lighting changes.
+  signatures, UI, frames or borders. No people/characters. No hazards.
+- The day and night image must be the SAME props in the SAME order, only the
+  lighting changes.
 
 Generate image 1 of 2:
-1. [SAVE AS: mumbai-day] Mumbai street-food lane, warm overcast MONSOON DAYLIGHT.
-   Empty central road top-to-bottom. Margins: small chaiwala stalls, a vada-pav
-   cart, stacked crates, a clay matka pot, potted tulsi plants, a black-and-yellow
-   Padmini taxi tucked at the far edge. Damp warm tarmac with a soft wet sheen.
-   Soft diffuse shadows. Muted so it recedes. Inviting, lived-in. No hazards on
-   the road, no text, no people.
+1. [SAVE AS: mumbai-day] A vertical column of Mumbai street-food curb props, warm
+   overcast MONSOON DAYLIGHT, on a fully transparent background: a blue-tarp
+   chaiwala stall, a wooden vada-pav cart, a crate of oranges and greens, a
+   green/yellow auto-rickshaw, a red-striped-awning snack stall, a clay matka pot,
+   a black-and-yellow Padmini taxi. Soft diffuse contact shadow under each. Muted.
+   No road, no background, no text, no people.
 ```
 
 Then, in the SAME chat, send:
 
 ```
-Generate image 2 of 2 — keep the EXACT same lane and prop layout as the previous
-image, change only the lighting to night:
-2. [SAVE AS: mumbai-night] The SAME Mumbai lane at NIGHT. Same empty central road,
-   same stalls/cart/crates/taxi in the margins. Lit by warm sodium street lamps and
-   small stall bulbs casting warm orange light pools that hug the side margins only.
-   Deep blue-grey night road in the centre, still clearly readable (NOT pitch
-   black). Calm, moody. No hazards on the road, no glowing sign lettering, no text,
-   no people.
+Generate image 2 of 2 — keep the EXACT same props in the same order, change only
+the lighting to night:
+2. [SAVE AS: mumbai-night] The SAME Mumbai prop column at NIGHT, transparent
+   background. Each stall lit by warm sodium bulbs with a soft warm glow pool baked
+   UNDER it; cooler blue-grey ambient on the bodies. Same props, same order. No
+   road, no background, no glowing sign lettering, no text, no people.
 ```
 
 ---
 
-## BATCH 2 — Jaisalmer backgrounds (2 images)
+## BATCH 2 — Jaisalmer prop strips (2 images, TRANSPARENT)
 
 ```
 Same game, same STYLE BIBLE as before (flat clean Survivors.io illustration,
-top-down lane, EMPTY readable central lane, props only in the margins, muted,
-portrait 2:3, NO text/logos/people, NO hazards on the path). New city: Jaisalmer,
-the golden sandstone desert city. Day and night must be the SAME lane, only the
+top-down props in ONE vertical column, FULLY TRANSPARENT background, NO road/ground,
+muted, portrait 2:3 canvas, NO text/logos/people, NO hazards). New city: Jaisalmer,
+the golden sandstone desert city. Day and night must be the SAME props, only the
 lighting changes.
 
 Generate image 1 of 2:
-1. [SAVE AS: jaisalmer-day] Jaisalmer (Golden City) sandstone street-food lane,
-   bright golden DESERT DAYLIGHT, slightly hazy. Empty central pale-sand path
-   top-to-bottom. Margins: carved golden-sandstone stall fronts, a wooden sweets
-   cart, woven baskets, stacked clay pots, a couple of potted desert shrubs, a
-   resting camel tucked at the far edge. Warm long soft shadows. Muted so it
-   recedes. No hazards on the path, no text, no people.
+1. [SAVE AS: jaisalmer-day] A vertical column of Jaisalmer desert-town curb props,
+   bright golden DESERT DAYLIGHT, on a fully transparent background: carved
+   golden-sandstone stall fronts, a wooden ghevar/kachori cart, a brass-pot vendor,
+   woven baskets, a low sandstone bench, a potted desert shrub, a resting camel.
+   Warm long soft contact shadow under each. Muted. No ground, no background, no
+   text, no people.
 ```
 
 Then, in the SAME chat, send:
 
 ```
-Generate image 2 of 2 — keep the EXACT same lane and prop layout, change only the
-lighting to a clear desert night:
-2. [SAVE AS: jaisalmer-night] The SAME Jaisalmer lane at NIGHT under a clear desert
-   sky. Same empty central sand path, same sandstone stalls/cart/baskets/camel in
-   the margins. Warm amber lantern glow pooling at the stalls in the margins, cool
-   deep-blue moonlit sky, crisp moonlight. Central sand lane stays readable (NOT
-   pitch black). Atmospheric, calm. No hazards on the path, no lantern lettering,
-   no text, no people.
+Generate image 2 of 2 — keep the EXACT same props in the same order, change only
+the lighting to a clear desert night:
+2. [SAVE AS: jaisalmer-night] The SAME Jaisalmer prop column at NIGHT, transparent
+   background. Each stall lit by warm amber lantern glow pooling UNDER it; cool
+   deep-blue ambient on the bodies. Same props, same order. No ground, no
+   background, no lantern lettering, no text, no people.
 ```
 
 ---
@@ -189,7 +189,7 @@ read clearly DIFFERENT from the Vada Maharaja's gold crown:
 
 - [ ] Each file renamed to its `SAVE AS` label (e.g. `mumbai-day.png`,
       `courier.png`) — extension `.png`.
-- [ ] Backgrounds: portrait, no text, no hazards on the road, readable empty centre.
+- [ ] Prop strips: TRANSPARENT background, one vertical column of props, no road/ground, no text.
 - [ ] Sprites: transparent background, one centered character, no text.
 - [ ] All files dropped into `assets/incoming/`.
 - [ ] Run `python3 tools/import_art.py` (add `--apply` to actually move them).

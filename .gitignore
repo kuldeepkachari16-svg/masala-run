@@ -1,1 +1,10 @@
 .DS_Store
+
+# AI-art ingestion scratch — raw drops + archived originals are regenerable,
+# kept out of the repo. Only the optimized outputs (assets/props, assets/sprites)
+# are committed.
+assets/incoming/*.png
+assets/incoming/*.jpg
+assets/incoming/*.jpeg
+assets/incoming/*.webp
+assets/incoming/_processed/

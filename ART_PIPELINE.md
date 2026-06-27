@@ -13,7 +13,7 @@ art_manifest.json  ──►  batch prompts  ──►  ChatGPT web (you)  ─�
        └──────────  import_art.py (validate/optimize/place)  ◄─────────────┘
                                      │
                                      ▼
-                 assets/backgrounds/ + assets/sprites/  ──►  game reads it
+                   assets/props/ + assets/sprites/  ──►  game reads it
 ```
 
 ## Files at a glance
@@ -24,16 +24,19 @@ art_manifest.json  ──►  batch prompts  ──►  ChatGPT web (you)  ─�
 | `prompts/chatgpt_image_batches.md` | Copy-paste-ready ChatGPT batches (style bible + numbered prompts + `SAVE AS` labels). |
 | `tools/import_art.py` | Local validate / rename / optimize / place script (Python + Pillow). |
 | `assets/incoming/` | Drop your downloaded images here. |
-| `assets/backgrounds/` | Final background masters (`<city>-<day|night>.png`). |
+| `assets/props/` | Final transparent edge-prop strips (`<city>-<day|night>.png`) — tiled down both arena edges by the game. |
+| `assets/backgrounds/` | Legacy full-bleed masters (unused by city-art; kept for cover-fit themes). |
 | `assets/sprites/` | Final character sprites (`<key>.png`). |
 | `assets/reference/` | Optional: style refs you want to keep around. |
 
 ## The v1 asset set (2 cities)
 
-- **Backgrounds (4):** `mumbai-day`, `mumbai-night`, `jaisalmer-day`, `jaisalmer-night`.
-  One day + one night image per city; the game uses the day image for zones 1–3 & 5
-  and the night image for the night zone (zone 4). Hazards (puddles / sand) are
-  **not** in the art — the game draws them on top, at varying positions per zone.
+- **Prop strips (4):** `mumbai-day`, `mumbai-night`, `jaisalmer-day`, `jaisalmer-night`.
+  TRANSPARENT vertical columns of a city's curb props (no road baked in). The game
+  draws the road procedurally and tiles each strip down **both** arena edges
+  (`drawCityEdges`), so they show on every device aspect with **no crop**. Day strip
+  for zones 1–3 & 5, night strip for the night zone (zone 4). Hazards (puddles /
+  sand) are **not** in the art — the game draws them on top, per zone.
 - **Sprites (6):** `courier` (hero), `bland` (grunt), `swarmer`, `blandfather`
   (mini-boss), `vada-maharaja` (Mumbai boss), `dune-raja` (Jaisalmer boss).
   Transparent PNGs. Food stays procedural by design (it's a power token, not a
@@ -76,8 +79,9 @@ import script matches on.
    ```
    python3 tools/import_art.py --apply
    ```
-   This optimizes each file (backgrounds → 720-wide flat master; sprites → trimmed,
-   downscaled, transparency preserved), writes it to its `target_path`, and archives
+   This optimizes each file (prop strips → trimmed to the prop column on a thresholded
+   alpha, transparency preserved; sprites → trimmed + downscaled, transparency kept),
+   writes it to its `target_path`, and archives
    the raw source to `assets/incoming/_processed/`.
 
 Flags: `--force` overwrites an already-approved asset (otherwise it's kept and
@@ -133,9 +137,9 @@ prints this reminder.)
 
 ## Acceptance bar (what "good" means)
 
-- **Backgrounds:** portrait, empty readable central lane (a grey Bland must pop on
-  it), props only in the margins, **no hazards / no text / no people**, day & night
-  are the same lane.
+- **Prop strips:** TRANSPARENT background, ONE vertical column of curb props, **no
+  road/ground baked in**, **no hazards / no text / no people**, day & night are the
+  same props in the same order.
 - **Sprites:** one centered character, **transparent background**, no text, correct
   proportions (small props), reads clearly at small size.
 

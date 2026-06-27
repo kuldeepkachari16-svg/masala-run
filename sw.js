@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v23";
+const CACHE = "masala-run-v25";
 const ASSETS = [
   "./",
   "index.html",
@@ -12,12 +12,13 @@ const ASSETS = [
   // Character sprites (see docs/sprites.md).
   "assets/sprites/courier.svg",
   "assets/sprites/bland.svg",
-  // Active theme's backdrops (see THEMES.md). Network-first means a theme swap
-  // just needs this list updated; un-listed images still cache on first fetch.
-  "assets/themes/night-v1/bg-street.jpg",
-  "assets/themes/night-v1/bg-street-2.jpg",
-  "assets/themes/night-v1/bg-street-3.jpg",
-  "assets/themes/night-v1/bg-street-4.jpg",
+  // Active theme (city-art): procedural road + these transparent edge-prop strips
+  // (tools/import_art.py). Network-first means a theme swap just needs this list
+  // updated; un-listed images still cache on first fetch.
+  "assets/props/mumbai-day.png",
+  "assets/props/mumbai-night.png",
+  "assets/props/jaisalmer-day.png",
+  "assets/props/jaisalmer-night.png",
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",

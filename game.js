@@ -54,9 +54,8 @@ function resize() {
   offX = (canvas.width - W * scale) / 2;
   offY = (canvas.height - H * scale) / 2;
 }
-window.addEventListener("resize", resize);
-window.addEventListener("orientationchange", resize);
-if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
+// resize listeners are registered at the BOTTOM, after first init — a resize event
+// must never run resize() before CITIES/player exist (curCity/clampToArena → TDZ).
 
 // ---------- Pre-rendered art (procedural, zero asset files) ----------
 function makeSprite(w, h, drawFn) {
@@ -124,8 +123,12 @@ const THEMES = {
   // console: __mr.setTheme("city-art"). Ship it by setting ACTIVE_THEME below.
   "city-art": {
     vignette: 0.14,
-    cityArt: true,               // resolve bg by city + day/night, not level number
-    fallbackDraw: drawDayStreet, // procedural fallback when a city image is absent
+    cityArt: true,               // resolve art by city + day/night, not level number
+    edgeProps: true,             // device-agnostic: a procedural road BASE + AI prop
+                                 // strips pinned to the REAL arena edges at runtime
+                                 // (drawCityEdges). No full-bleed master, so nothing
+                                 // ever crops — works identically on any screen size.
+    fallbackDraw: drawDayStreet, // the road base (per-city palette via applyCityTheme)
     bg: {},
     pal: {
       baseTop: "#cdbb95", baseBot: "#c1ad84",
@@ -136,9 +139,10 @@ const THEMES = {
     },
   },
 };
-const ACTIVE_THEME = "retro-day"; // <-- the only switch. Edit to revert/migrate.
-// Migration note: retro-day ships bg-1 only so far; levels 2–4 fall back to the
-// day procedural street until their masters land. Revert with "night-v1".
+const ACTIVE_THEME = "city-art"; // <-- the only switch. Edit to revert/migrate.
+// Shipping city-art: per-city procedural road + AI prop strips pinned to the live
+// arena edges (assets/props/, drawCityEdges) — device-agnostic, no crop. A missing
+// strip just shows the bare road. Revert with "retro-day" or "night-v1".
 
 let curThemeName = ACTIVE_THEME; // mutable so __mr.setTheme() can preview live
 function theme() { return THEMES[curThemeName] || THEMES["night-v1"]; }
@@ -150,21 +154,25 @@ function theme() { return THEMES[curThemeName] || THEMES["night-v1"]; }
 // next loads.
 let LEVEL_BG_SRC = theme().bg;
 let bgImgs = {};
-let CITY_BG = {}; // city-art theme: "<city>-<day|night>" -> Image (loaded on theme switch)
+let CITY_BG = {}; // city-art full-bleed master: "<city>-<day|night>" -> Image
+let CITY_PROPS = {}; // edge-props mode: "<city>-<day|night>" -> transparent side strip
 function loadThemeImages() {
   bgImgs = {};
   LEVEL_BG_SRC = theme().bg;
   if (theme().cityArt) {
-    // Preload every city's day + night master. A missing file just never loads
-    // (levelBg falls back to the procedural street), so nothing breaks on absence.
-    CITY_BG = {};
+    // Preload every city's day + night art. A missing file just never loads, so
+    // the procedural road shows alone — nothing breaks on absence. edgeProps mode
+    // loads transparent prop strips (assets/props/); legacy mode loads full-bleed
+    // masters (assets/backgrounds/).
+    CITY_BG = {}; CITY_PROPS = {};
+    const edge = theme().edgeProps;
     for (const c of CITIES) {
       for (const phase of ["day", "night"]) {
         const key = c.key + "-" + phase;
         const im = new Image();
         im.onload = () => { if (bgCanvas) buildBackdrop(); };
-        im.src = "assets/backgrounds/" + key + ".png";
-        CITY_BG[key] = im;
+        im.src = (edge ? "assets/props/" : "assets/backgrounds/") + key + ".png";
+        (edge ? CITY_PROPS : CITY_BG)[key] = im;
       }
     }
     return;
@@ -177,7 +185,8 @@ function loadThemeImages() {
     bgImgs[n] = im;
   }
 }
-loadThemeImages();
+// loadThemeImages() is called at the BOTTOM, after CITIES is defined — the city-art
+// branch iterates CITIES (a const declared later → TDZ crash if called here).
 
 // ---------- Character sprites (SVG → canvas) ----------
 // Authored flat-vector sprites (see docs/sprites.md). Drawn straight from SVG so
@@ -274,6 +283,31 @@ function levelBg() {
   }
   const im = bgImgs[level || 1];
   return im && im.complete && im.naturalWidth ? im : null;
+}
+// Edge-props (city-art): the transparent street-furniture strip for the current
+// city + day/night, or null until it loads / if absent.
+function cityProps() {
+  const im = CITY_PROPS[curCity().key + "-" + (zoneNight ? "night" : "day")];
+  return im && im.complete && im.naturalWidth ? im : null;
+}
+// Draw a prop strip pinned to each TRUE arena edge. The strip is scaled to a fixed
+// edge width (uniform — no squish) and TILED down the height, so it shows identically
+// on any device aspect — never crops, never stretches. Width is capped so it never
+// eats the central play lane. Right side is mirrored + phase-shifted half a tile so
+// it doesn't read as a 1:1 mirror.
+function drawCityEdges(g, img, w, h) {
+  const sw = Math.min(w * 0.26, img.width);   // edge-band width
+  const scale = sw / img.width;
+  const th = img.height * scale;              // one tile's drawn height
+  const step = th * 1.04;                     // tiny gap between repeats
+  const col = (mirror, phase) => {
+    g.save();
+    if (mirror) { g.translate(w, 0); g.scale(-1, 1); }
+    for (let y = phase; y < h; y += step) g.drawImage(img, 0, y, sw, th);
+    g.restore();
+  };
+  col(false, 0);
+  col(true, -th * 0.5);
 }
 
 // Soft glow blobs, cached per color — used for bullets and food halos.
@@ -660,6 +694,12 @@ function buildBackdrop() {
       g.translate(W, 0);
       g.rotate(Math.PI / 2);
       (drawFn || drawStreet)(g, H, W);
+    } else if (theme().edgeProps) {
+      // Procedural road base + AI prop strips pinned to the live edges. Resolution-
+      // independent: the props sit at the real edge on every device aspect.
+      (theme().fallbackDraw || drawStreet)(g, W, H);
+      const strip = cityProps();
+      if (strip) drawCityEdges(g, strip, W, H);
     } else if (drawFn) {
       // Portrait procedural theme (retro-day): drawn to exact proportions.
       drawFn(g, W, H);
@@ -1122,7 +1162,7 @@ const CITIES = [
 // Hierarchy helpers. `level` is the global 1-based ZONE counter.
 function cityOf(lv) { return Math.min(CITIES.length - 1, Math.floor((lv - 1) / ZONES_PER_CITY)); }
 function zoneInCity(lv) { return ((lv - 1) % ZONES_PER_CITY) + 1; } // 1..ZONES_PER_CITY
-function curCity() { return CITIES[cityOf(level)]; }
+function curCity() { return CITIES[cityOf(level || 1)]; } // level||1: menu/boot has no level yet (mirrors levelBg's bgImgs[level||1])
 function isCityFinale(lv) { return zoneInCity(lv) === ZONES_PER_CITY; }
 
 // Swap the live palette + food skins to the current city. Cheap: mutates the
@@ -4515,9 +4555,14 @@ window.__mr = {
 };
 
 // ---------- Main loop ----------
-// First sizing happens here, after all state exists (clampToArena touches
-// player/enemies/foods, which would be TDZ errors at the top of the file).
+// First theme load + sizing happen here, after all state exists. loadThemeImages
+// (city-art branch) reads CITIES, and resize()/clampToArena touch player/foods —
+// all const/let declared above, which would be TDZ errors at the top of the file.
+loadThemeImages();
 resize();
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
 let last = performance.now();
 let smoothDt = 1 / 60; // low-passed dt — rAF intervals jitter frame-to-frame
 let fpsEMA = 60;

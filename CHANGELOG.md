@@ -1,5 +1,30 @@
 # Masala Run — Changelog
 
+## 2026-06-27 — city art SHIPPED: device-agnostic edge-prop strips (`city-art` is now the default)
+Replaced the full-bleed background approach with **procedural road + transparent
+edge-prop strips**, and flipped `ACTIVE_THEME` to `city-art`. The full-bleed masters
+cover-cropped 30–40% of width on tall phones — exactly where all the city detail sat —
+so the generated flavor was invisible in play. The new model is resolution-independent.
+- **Why the change:** a single fixed-aspect master can't keep props on-screen across
+  all device aspects AND keep a top-down game's centre open. Decoupled them: the road
+  is procedural (already per-city palettized, day/night via the existing palette), and
+  the props are transparent vertical strips the engine pins to the **live** arena edges.
+- **Engine** (`game.js`): `city-art` theme gains `edgeProps`; `loadThemeImages` loads
+  `assets/props/<city>-<day|night>.png`; new `cityProps()` + `drawCityEdges()` scale a
+  strip to a capped edge width (no squish) and **tile it down both edges**, right side
+  mirrored + phase-shifted. No crop math, works on any aspect incl. landscape fallback.
+- **Crash fix:** `__mr.setTheme("city-art")` / booting on city-art threw at the menu —
+  `curCity()` read `.key` of an undefined city when no zone was active. Now defaults to
+  `level || 1` (mirrors the procedural branch's `bgImgs[level || 1]`).
+- **Pipeline:** new manifest `kind: "prop"` (transparent, trimmed, height-capped) →
+  `assets/props/`; the 4 manifest entries retargeted; `import_art.py` gains
+  `process_prop` (thresholded-alpha trim so AI halo doesn't widen the bbox; keeps
+  transparency); prompts rewritten to transparent single-column strips. Imported all 4.
+- **Verified live** across Mumbai/Jaisalmer × day/night and three device aspects
+  (0.41 / 0.46 / 0.58): props track the true edges every time, no crop, seamless over
+  the procedural road. `sw.js` → `v25`, precaches the 4 strips; raw archives gitignored.
+- **Revert** with one line: `ACTIVE_THEME = "retro-day"` (or `"night-v1"`).
+
 ## 2026-06-27 — art pipeline: ChatGPT-generated city backgrounds + character sprites
 Stood up a manual-generation / automated-ingestion art pipeline so the game can move
 off pure procedural art toward Survivors.io-grade flat illustration, **city-flavored**

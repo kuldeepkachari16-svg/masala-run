@@ -105,8 +105,8 @@ def validate(img, asset, defaults):
         # backgrounds get cover-cropped, so a near miss is only a warning
         (warns if kind == "background" else errs).append(msg)
 
-    if kind == "sprite" and d.get("require_alpha") and not has_real_alpha(img):
-        errs.append("no transparency — sprite needs a transparent background")
+    if kind in ("sprite", "prop") and d.get("require_alpha") and not has_real_alpha(img):
+        errs.append("no transparency — needs a transparent background")
     if kind == "background" and has_real_alpha(img):
         warns.append("background has transparency (will be flattened on a black field)")
 
@@ -140,6 +140,27 @@ def process_sprite(img, defaults):
     if max(img.size) > m:
         s = m / max(img.size)
         img = img.resize((round(img.width * s), round(img.height * s)), Image.LANCZOS)
+    return img
+
+
+def process_prop(img, defaults):
+    # Edge-prop strip: trim to the prop column, keep transparency, downscale tall
+    # masters. The engine (game.js drawCityEdges) scales width-to-edge and tiles
+    # vertically, so only a height cap matters here. Trim on a THRESHOLDED alpha so
+    # faint AI halo/noise (which reaches the canvas edge) doesn't widen the bbox; a
+    # small pad keeps each prop's soft contact shadow.
+    img = img.convert("RGBA")
+    mask = img.getchannel("A").point(lambda v: 255 if v > 32 else 0)
+    bbox = mask.getbbox()
+    if bbox:
+        pad = 8
+        l, t, r, b = bbox
+        img = img.crop((max(0, l - pad), max(0, t - pad),
+                        min(img.width, r + pad), min(img.height, b + pad)))
+    cap = defaults["prop"]["master_max_height"]
+    if img.height > cap:
+        s = cap / img.height
+        img = img.resize((max(1, round(img.width * s)), cap), Image.LANCZOS)
     return img
 
 
@@ -199,6 +220,8 @@ def main():
 
         if a["kind"] == "background":
             out = process_background(img, defaults)
+        elif a["kind"] == "prop":
+            out = process_prop(img, defaults)
         else:
             out = process_sprite(img, defaults)
         print(f"      optimized → {out.size[0]}x{out.size[1]}")
