@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://masala-run.local/schemas/asset.schema.json",
+  "title": "Masala Run Asset Metadata",
+  "description": "Reusable metadata contract for production assets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "city",
+    "category",
+    "dimensions",
+    "collision",
+    "placementWeight",
+    "placementRules",
+    "anchor",
+    "lightingCompatibility",
+    "biomeCompatibility",
+    "tags"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable asset identifier. Prefer the filename stem without extension.",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+    },
+    "city": {
+      "type": "string",
+      "description": "City key, or global for shared assets.",
+      "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+    },
+    "category": {
+      "type": "string",
+      "description": "Broad asset category.",
+      "enum": ["bg", "prop", "sprite", "fx", "ui", "audio", "font", "other"]
+    },
+    "sourceFile": {
+      "type": "string",
+      "description": "Optional source or raw asset path."
+    },
+    "outputFile": {
+      "type": "string",
+      "description": "Optional optimized game asset path."
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "unit"],
+      "properties": {
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string", "enum": ["px", "tile", "world"] }
+      }
+    },
+    "collision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "solid"],
+      "properties": {
+        "type": { "type": "string", "enum": ["none", "rect", "circle", "polygon", "custom"] },
+        "solid": { "type": "boolean" },
+        "bounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number", "minimum": 0 },
+            "height": { "type": "number", "minimum": 0 },
+            "radius": { "type": "number", "minimum": 0 },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["x", "y"],
+                "properties": {
+                  "x": { "type": "number" },
+                  "y": { "type": "number" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "placementWeight": {
+      "type": "number",
+      "description": "Relative procedural placement weight. Zero means disabled.",
+      "minimum": 0
+    },
+    "placementRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowedZones", "blockedZones", "minSpacing"],
+      "properties": {
+        "allowedZones": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blockedZones": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "minSpacing": { "type": "number", "minimum": 0 },
+        "alignTo": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "origin"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "origin": {
+          "type": "string",
+          "enum": ["center", "top_left", "top_center", "bottom_center", "custom"]
+        }
+      }
+    },
+    "lightingCompatibility": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "biomeCompatibility": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "review", "approved", "deprecated", "archived"]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

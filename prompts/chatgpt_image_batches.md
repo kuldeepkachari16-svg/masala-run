@@ -13,83 +13,92 @@ all numbered prompts), generate, then **download each image and rename it to the
 
 ---
 
-## BATCH 1 — Mumbai prop strips (2 images, TRANSPARENT)
+## BATCH 1 — Mumbai prop strips (2 images, TRANSPARENT, SEPARATED)
 
-> These are NOT full backgrounds. The game draws the road procedurally and tiles
-> these transparent prop columns down BOTH arena edges (so they work on every
-> device size with no crop). You're drawing ONE curb's worth of props on a clear
-> background — nothing else.
+> These are NOT full backgrounds. The game slices each column into individual props
+> and scatters them down the street edges — so the props MUST be clearly separated
+> by big empty transparent gaps, with NO ground/shadow/glow connecting them. (The
+> last batch baked a ground-glow under the night props, which fused them into one
+> blob and broke the auto-slicer. The rules below fix that.)
 
 ```
 You are generating game art for a mobile top-down survivors-like set in Indian
-street-food cities. I need transparent PROP STRIPS. Apply this STYLE BIBLE to every
-image in this batch:
+street-food cities. I need transparent PROP STRIPS that a program will SLICE into
+separate props, so separation is critical. Apply this STYLE BIBLE to every image:
 
 STYLE BIBLE
 - Flat clean illustration, Survivors.io-grade polish. Bold simple shapes, limited
   flat color fills, soft cel shading. NOT painterly, NOT photoreal, NOT pixel-art,
   NOT a 3D render.
 - Top-down / steep three-quarter view of the props.
-- FULLY TRANSPARENT background (PNG alpha). NO road, NO ground, NO pavement, NO
-  kerb — only the objects and a soft contact shadow directly under each.
-- CRITICAL LAYOUT: arrange the props in ONE tall, narrow VERTICAL COLUMN, evenly
-  spaced top-to-bottom with small gaps. Do NOT spread them horizontally.
-- Warm Indian street-food palette, but MUTED so the props recede behind gameplay.
+- FULLY TRANSPARENT background (PNG alpha). Render ONLY the objects. NO road, NO
+  ground, NO pavement, NO platform, NO baked drop-shadow, NO glow pool, NO halo —
+  nothing on the "floor" at all. Each object floats on pure transparency.
+- SEPARATION IS CRITICAL: one vertical column of ~7 props, each prop ISOLATED with a
+  LARGE EMPTY TRANSPARENT GAP above and below it — each gap at least as tall as a
+  prop. The props must NEVER touch, overlap, or be connected by any shadow, ground,
+  or light. Picture each prop alone in its own row with lots of empty space.
+- All ~7 props roughly the same modest size. One compact object per row.
+- Warm Indian street-food palette, MUTED so the props recede behind gameplay.
 - Portrait 2:3 canvas (1024x1536); the column sits down the middle, rest transparent.
 - ABSOLUTELY NO: text, letters, numbers, signage with words, logos, watermarks,
   signatures, UI, frames or borders. No people/characters. No hazards.
-- The day and night image must be the SAME props in the SAME order, only the
-  lighting changes.
+- Day and night = the SAME props, SAME order, SAME spacing — only the lighting on the
+  OBJECTS changes. For night, light the props THEMSELVES (lit interiors, warm bulbs
+  on the stall, warm rim light) but keep ALL light tight to the object — NO glow
+  spilling below, NO halo, and the transparent gaps stay COMPLETELY EMPTY.
 
 Generate image 1 of 2:
-1. [SAVE AS: mumbai-day] A vertical column of Mumbai street-food curb props, warm
-   overcast MONSOON DAYLIGHT, on a fully transparent background: a blue-tarp
-   chaiwala stall, a wooden vada-pav cart, a crate of oranges and greens, a
-   green/yellow auto-rickshaw, a red-striped-awning snack stall, a clay matka pot,
-   a black-and-yellow Padmini taxi. Soft diffuse contact shadow under each. Muted.
-   No road, no background, no text, no people.
+1. [SAVE AS: mumbai-day] A vertical column of ~7 Mumbai street-food curb props in
+   warm overcast MONSOON DAYLIGHT, big empty transparent gaps between each: a
+   blue-tarp chaiwala stall, a wooden vada-pav cart, a crate of oranges & greens, a
+   green/yellow auto-rickshaw, a red-striped-awning snack stall, a clay matka pot, a
+   black-and-yellow Padmini taxi. Objects only, pure transparency around and between
+   them. No ground, no shadow, no glow, no text, no people.
 ```
 
 Then, in the SAME chat, send:
 
 ```
-Generate image 2 of 2 — keep the EXACT same props in the same order, change only
-the lighting to night:
-2. [SAVE AS: mumbai-night] The SAME Mumbai prop column at NIGHT, transparent
-   background. Each stall lit by warm sodium bulbs with a soft warm glow pool baked
-   UNDER it; cooler blue-grey ambient on the bodies. Same props, same order. No
-   road, no background, no glowing sign lettering, no text, no people.
+Generate image 2 of 2 — keep the EXACT same props, same order, same spacing and same
+big transparent gaps, change ONLY the lighting to night:
+2. [SAVE AS: mumbai-night] The SAME Mumbai prop column at NIGHT. Light comes from the
+   props themselves — lit interiors and warm bulbs ON each stall, warm rim light,
+   cooler ambient on the bodies. Keep ALL light tight to each object: NO glow pool,
+   NO halo, NO light on the ground (there is no ground). The transparent gaps between
+   props stay completely empty. Same props, same order, no text, no people.
 ```
 
 ---
 
-## BATCH 2 — Jaisalmer prop strips (2 images, TRANSPARENT)
+## BATCH 2 — Jaisalmer prop strips (2 images, TRANSPARENT, SEPARATED)
 
 ```
-Same game, same STYLE BIBLE as before (flat clean Survivors.io illustration,
-top-down props in ONE vertical column, FULLY TRANSPARENT background, NO road/ground,
-muted, portrait 2:3 canvas, NO text/logos/people, NO hazards). New city: Jaisalmer,
-the golden sandstone desert city. Day and night must be the SAME props, only the
-lighting changes.
+Same game, same STYLE BIBLE as before — and the SAME hard rules: objects ONLY on full
+transparency, NO ground/shadow/glow, ~7 props in one vertical column each ISOLATED by
+a big empty transparent gap (at least a prop tall), props never touching or connected,
+muted, portrait 2:3, NO text/logos/people, NO hazards. New city: Jaisalmer, the golden
+sandstone desert city. Day and night = same props, same spacing, only lighting changes.
 
 Generate image 1 of 2:
-1. [SAVE AS: jaisalmer-day] A vertical column of Jaisalmer desert-town curb props,
-   bright golden DESERT DAYLIGHT, on a fully transparent background: carved
+1. [SAVE AS: jaisalmer-day] A vertical column of ~7 Jaisalmer desert-town curb props
+   in bright golden DESERT DAYLIGHT, big empty transparent gaps between each: carved
    golden-sandstone stall fronts, a wooden ghevar/kachori cart, a brass-pot vendor,
    woven baskets, a low sandstone bench, a potted desert shrub, a resting camel.
-   Warm long soft contact shadow under each. Muted. No ground, no background, no
-   text, no people.
+   Objects only, pure transparency around and between them. No ground, no shadow, no
+   glow, no text, no people.
 ```
 
 Then, in the SAME chat, send:
 
 ```
-Generate image 2 of 2 — keep the EXACT same props in the same order, change only
-the lighting to a clear desert night:
-2. [SAVE AS: jaisalmer-night] The SAME Jaisalmer prop column at NIGHT, transparent
-   background. Each stall lit by warm amber lantern glow pooling UNDER it; cool
-   deep-blue ambient on the bodies. Same props, same order. No ground, no
-   background, no lantern lettering, no text, no people.
+Generate image 2 of 2 — keep the EXACT same props, same order, same spacing and gaps,
+change ONLY the lighting to a clear desert night:
+2. [SAVE AS: jaisalmer-night] The SAME Jaisalmer prop column at NIGHT. Light comes from
+   the props themselves — warm lantern light ON each stall, warm rim light, cool
+   deep-blue ambient on the bodies. Keep ALL light tight to each object: NO glow pool,
+   NO halo, NO light on the ground. The transparent gaps stay completely empty. Same
+   props, same order, no text, no people.
 ```
 
 ---

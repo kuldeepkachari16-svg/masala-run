@@ -143,6 +143,42 @@ def process_sprite(img, defaults):
     return img
 
 
+def count_prop_bands(img):
+    # How many separate props the strip will slice into (mirrors game.js sliceStrip):
+    # rows with solid pixels grouped into bands, splitting on 8+ empty rows. Lets the
+    # import warn when a strip's props are fused (no gaps / baked ground-glow).
+    img = img.convert("RGBA")
+    W, H = img.size
+    px = img.load()
+    AT = 120
+
+    def row_solid(y):
+        n = 0
+        for x in range(0, W, 2):
+            if px[x, y][3] >= AT:
+                n += 1
+                if n > 3:
+                    return True
+        return False
+
+    bands, y = 0, 0
+    while y < H:
+        if not row_solid(y):
+            y += 1
+            continue
+        y0, gap = y, 0
+        while y < H:
+            if row_solid(y):
+                gap = 0; y += 1
+            elif gap < 8:
+                gap += 1; y += 1
+            else:
+                break
+        if (y - gap) - y0 >= 20:
+            bands += 1
+    return bands
+
+
 def process_prop(img, defaults):
     # Edge-prop strip: trim to the prop column, keep transparency, downscale tall
     # masters. The engine (game.js drawCityEdges) scales width-to-edge and tiles
@@ -225,6 +261,12 @@ def main():
         else:
             out = process_sprite(img, defaults)
         print(f"      optimized → {out.size[0]}x{out.size[1]}")
+        if a["kind"] == "prop":
+            n = count_prop_bands(out)
+            print("      " + col(f"{n} separate props detected", "g" if n >= 4 else "r"))
+            if n < 4:
+                print("      " + col("warn: props look FUSED — need clear transparent gaps and NO baked "
+                                     "ground/shadow/glow between them. Regenerate (see prompts/).", "y"))
 
         if args.apply:
             os.makedirs(os.path.dirname(target), exist_ok=True)
