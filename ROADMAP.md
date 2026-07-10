@@ -11,9 +11,13 @@ courier; waves are distance-gated; bosses lock the camera into one-screen duels)
 Decided with the PM after the OpenAI art-direction review — the corridor is what the
 Art Bible's edge/road system is designed for, and it serves the courier fantasy.
 Pre-pivot game preserved on branch `arena-classic` (+ live flag `__mr.setCorridor`).
-**Owed next:** corridor balance retune (old arena numbers untouched) · playtest the
-new feel (Gate-1 now tests the CORRIDOR loop) · Technical Asset Contract for
-ChatGPT/Codex written against the corridor game (edge band %, tile heights, camera).
+**Feel round 1 (2026-07-11): PASSED** — street > box, pacing right, no camping
+exploit felt, boss camera-lock reads natural; delivery bar defect fixed (`40f307d`).
+**Technical Asset Contract written** (`docs/art-production/TECHNICAL_ASSET_CONTRACT.md`)
+— includes the playable-width ruling (84% collision lane; env presence via edge
+bleed) + the in-game approval gate. **Owed next:** Gate-1 playtest with FRESH
+players on the corridor loop · corridor retune only if Gate-1 demands it · segment
+composer for asset-fed edge clusters (engine work, when approved art exists).
 
 ---
 
