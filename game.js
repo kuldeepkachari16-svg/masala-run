@@ -1544,6 +1544,9 @@ function setupStage(n, fresh) {
   boonChoices = null;
   if (fresh) {
     announce("WAVE 1", "#ffffff");
+    // Corridor: teach the goal + direction once — the route strip alone didn't
+    // land in playtest without it.
+    if (corridorOn()) announce("head UP to deliver! ↑", "#7ddf8a", 18);
     // Teach-by-doing: one unmissable food right next to the player so the
     // eat → attack link is discovered in the first seconds (chilli reads
     // clearly different from PLAIN — spread shots + 2× damage).
@@ -3860,15 +3863,39 @@ function drawHUD() {
     ctx.fillStyle = "#ffd24a";
     ctx.fillText("PWR " + playerLevel, W / 2, 15);
   }
-  // Delivery progress (corridor): a slim route bar with the gate tick at the end.
-  if (!nomMode && corridorOn()) {
-    const pw = 130, px = (W - pw) / 2, py = 34;
+  // Delivery route strip (corridor): courier dot moving toward a finish flag,
+  // a notch at the mini-boss gate, labeled — it must read as a ROUTE at a
+  // glance (playtest: the unlabeled bar read as "no clue"). Hidden during boss
+  // duels: progress is frozen and the boss HP bar owns that band.
+  if (!nomMode && corridorOn() && !bossFight) {
+    const pw = 150, px = (W - pw) / 2, py = 36, ph = 6;
+    const p = routeProgress();
     ctx.fillStyle = "rgba(20,20,30,0.55)";
-    ctx.fillRect(px, py, pw, 5);
+    ctx.fillRect(px, py, pw, ph);
     ctx.fillStyle = "#7ddf8a";
-    ctx.fillRect(px, py, pw * routeProgress(), 5);
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.fillRect(px + pw - 2, py - 2, 2, 9);
+    ctx.fillRect(px, py, pw * p, ph);
+    // Mini-boss gate notch (route fraction of wave gate 5).
+    if (waveGates[CONFIG.boss.wave]) {
+      const gf = (startY - waveGates[CONFIG.boss.wave]) / (startY - goalY);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillRect(px + pw * gf - 1, py - 1, 2, ph + 2);
+    }
+    // Finish flag at the end of the route.
+    ctx.strokeStyle = "#e8e8f0";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px + pw + 4, py + ph + 1); ctx.lineTo(px + pw + 4, py - 6); ctx.stroke();
+    ctx.fillStyle = "#ffd24a";
+    ctx.beginPath(); ctx.moveTo(px + pw + 4, py - 6); ctx.lineTo(px + pw + 12, py - 3.5); ctx.lineTo(px + pw + 4, py - 1); ctx.closePath(); ctx.fill();
+    // The courier: a dot riding the fill head.
+    ctx.fillStyle = "#ffb347";
+    ctx.beginPath(); ctx.arc(px + pw * p, py + ph / 2, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(20,20,28,0.8)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#7ddf8a";
+    ctx.fillText("DELIVERY", W / 2, py + ph + 12);
   }
   drawGear();
 
