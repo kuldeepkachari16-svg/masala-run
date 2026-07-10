@@ -1,5 +1,32 @@
 # Masala Run — Changelog
 
+## 2026-07-11 — THE PIVOT: fixed arena → scrolling corridor street (delivery routes)
+The game is now what the name promises: the courier **runs a route**. A zone is a
+vertical street ~6 screens long — pickup at the bottom, DELIVERY gate at the top —
+with a camera that follows the courier. Backed up first: the complete pre-pivot game
+lives on branch **`arena-classic`** (also: `__mr.setCorridor(false)` restores it live).
+- **World model:** world-space Y / screen-space X. The corridor is one screen wide, so
+  all lane/wall/joystick logic survives untouched; the camera scroll is a single
+  `translate(0, -cam.y)` in `draw()`. Everything gates on `CONFIG.corridor.on`.
+- **Player-paced waves:** wave gates sit at even DISTANCES up the route (no wave
+  timer) — you trigger the next wave by advancing. Mini-boss at gate 5, city/main
+  boss guarding the delivery gate. Spawns come from off-screen, 70% from ahead;
+  enemies left >1.6 screens behind are re-fielded at a fresh spawn point.
+- **Boss duels lock the camera** into a one-screen window — every arena boss behavior
+  and its tuning (charge ranges, recovery, food cadence) holds verbatim.
+- **Street rendering:** seeded per-segment tiles (W×800) with the existing prop kit,
+  deck-shuffled per segment + occasional crosswalks — variety per segment, so no
+  visible tiling (the failure that killed the first city-art attempt). Cached, ~2-3
+  tiles drawn/frame. Hazards pre-render to sprites and draw as world objects.
+- **HUD:** slim green DELIVERY progress bar (with gate tick) under the XP bar.
+- **Verified headless in Chrome** (Playwright, portrait 390×844): full route run —
+  gates 2→8, mini-boss camera lock/unlock + boon pick, main-boss duel at 99.5%
+  progress, kill → auto-advance to zone 2 with a fresh route; death path; live
+  arena flip; tile-seam fix confirmed by screenshot. Zero page errors.
+- **Known prototype gaps** (accepted, listed for tuning): camping farms XP with no
+  time pressure; a pacifist sprint can skip trash waves (bosses still gate); balance
+  is untouched arena numbers — the corridor retuning pass is still owed.
+
 ## 2026-06-27 — city art SHIPPED: device-agnostic edge-prop strips (`city-art` is now the default)
 Replaced the full-bleed background approach with **procedural road + transparent
 edge-prop strips**, and flipped `ACTIVE_THEME` to `city-art`. The full-bleed masters

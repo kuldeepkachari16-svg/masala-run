@@ -606,7 +606,8 @@ function drawDayStreet(g, w, h) {
   }
   // City hazards (puddles / quicksand) — drawn into the cached backdrop. The
   // runtime effect lives in applyHazards(); `hazards` is built in buildHazards().
-  for (const z of hazards) drawHazard(g, z);
+  // Corridor mode draws them per-frame in world space instead (route ≫ screen).
+  if (!corridorOn()) for (const z of hazards) drawHazard(g, z);
 }
 
 // One hazard patch. Visual only — gameplay lives in applyHazards(). The look
@@ -616,7 +617,8 @@ function drawDayStreet(g, w, h) {
 //               it never reads as water (even in a night zone).
 function drawHazard(g, z) {
   g.save();
-  const r = mulberry32((z.x * 131 + z.y * 977) | 0);
+  // Seed off the WORLD position (sx/sy when pre-rendered to a local sprite).
+  const r = mulberry32(((z.sx ?? z.x) * 131 + (z.sy ?? z.y) * 977) | 0);
   if (z.type === "quicksand") {
     // sunken depression: darker toward the centre (it pulls down)
     const grad = g.createRadialGradient(z.x, z.y, 1, z.x, z.y, Math.max(z.rx, z.ry));
@@ -657,6 +659,117 @@ function drawHazard(g, z) {
     }
   }
   g.restore();
+}
+
+// ---------- Corridor world rendering (the pivot) ----------
+// The route is drawn as W×tileH SEGMENT TILES, each seeded by (zone, segment
+// index) and cached — per-segment variety so the street never reads as an
+// obvious repeat (the exact failure that got the city-art strips reverted).
+// Only the two/three tiles intersecting the camera band draw each frame.
+function drawCorridorSegment(g, w, h, idx) {
+  const rng = mulberry32((level * 7349 + idx * 101159) >>> 0);
+  g.fillStyle = DAY.ground; g.fillRect(0, 0, w, h);
+  const mw = (CONFIG.edgeWalls.w || 0.15) * w;
+  g.fillStyle = DAY.dot;
+  for (let y = 0; y < h; y += 22) for (let x = 0; x < w; x += 22)
+    g.fillRect(x + rng() * 18, y + rng() * 18, 2, 2);
+  // Side bands + curbs — same geometry every tile, so seams are invisible.
+  g.fillStyle = DAY.path; g.fillRect(0, 0, mw, h); g.fillRect(w - mw, 0, mw, h);
+  g.fillStyle = DAY.curb; g.fillRect(mw - 2, 0, 2, h); g.fillRect(w - mw, 0, 2, h);
+  // Centre dashes: step divides tileH, so the rhythm carries across seams.
+  g.fillStyle = DAY.dash;
+  for (let y = 20; y < h; y += 80) g.fillRect(w / 2 - 3, y, 6, 34);
+  // Occasional crosswalk — passive, low-contrast street furniture.
+  if (idx % 3 === 1) {
+    g.fillStyle = "rgba(255,255,255,0.14)";
+    const cwY = h * (0.3 + rng() * 0.4), lane = w - 2 * mw - 28, seg = lane / 6;
+    for (let i = 0; i < 6; i++) g.fillRect(mw + 14 + i * seg, cwY, seg - 10, 40);
+  }
+  // Edge props: same deck-shuffle kit as the arena street, seeded per segment.
+  const s = ((CONFIG.propMarginFrac || 0.15) * w) / 72;
+  const pool = ["stall", "cart", "crate", "pot", "plant"];
+  const deck = () => { const d = pool.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; [d[i], d[j]] = [d[j], d[i]]; } return d; };
+  const place = (cx, startPhase) => {
+    let y = (0.05 + startPhase) * h, d = deck();
+    while (y < 0.95 * h) {
+      if (!d.length) d = deck();
+      DAY_ELEMENTS[d.pop()](g, cx, y, s, rng);
+      y += (0.16 + rng() * 0.16) * h;
+    }
+  };
+  place(0, rng() * 0.12);
+  place(w, rng() * 0.12);
+  if (rng() < 0.45) DAY_ELEMENTS.dog(g, rng() < 0.5 ? mw * 0.5 : w - mw * 0.5, (0.2 + rng() * 0.7) * h, s);
+  if (rng() < 0.45) DAY_ELEMENTS.cat(g, rng() < 0.5 ? mw * 0.5 : w - mw * 0.5, (0.2 + rng() * 0.7) * h, s);
+  if (zoneNight) {
+    const lr = mw * 1.9;
+    for (let y = 0.14 * h; y < h; y += 0.3 * h) {
+      for (const lx of [mw * 0.6, w - mw * 0.6]) {
+        const grad = g.createRadialGradient(lx, y, 0, lx, y, lr);
+        grad.addColorStop(0, DAY.lamp);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = grad;
+        g.beginPath(); g.arc(lx, y, lr, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }
+}
+function corridorSegSprite(idx) {
+  const key = level + ":" + idx + ":" + W + ":" + (zoneNight ? "n" : "d");
+  let c = segCache.get(key);
+  if (!c) {
+    c = makeSprite(W, CONFIG.corridor.tileH, (g) => drawCorridorSegment(g, W, CONFIG.corridor.tileH, idx));
+    if (segCache.size > 8) segCache.delete(segCache.keys().next().value);
+    segCache.set(key, c);
+  }
+  return c;
+}
+
+// Route base + furniture + hazard patches for the camera band. Runs inside the
+// world transform (draw() has already translated by -cam.y).
+function drawCorridorWorld() {
+  const th = CONFIG.corridor.tileH;
+  const first = Math.max(0, Math.floor(cam.y / th));
+  const last = Math.floor((cam.y + H) / th);
+  // Ground under-fill: any sub-pixel gap at a tile joint shows ground, not the
+  // dark page background — belt-and-braces against seam lines on scaled canvases.
+  ctx.fillStyle = DAY.ground;
+  ctx.fillRect(0, cam.y - 2, W, H + 4);
+  for (let i = first; i <= last; i++) ctx.drawImage(corridorSegSprite(i), 0, i * th);
+  const m = laneMargin() || CONFIG.edgeWalls.w * W;
+  // Delivery gate: pennant string + chalk finish line at the route's top.
+  if (goalY > cam.y - 80 && goalY < cam.y + H + 80) {
+    ctx.strokeStyle = "#4a3b2e"; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(m - 6, goalY - 46); ctx.lineTo(m - 6, goalY + 4);
+    ctx.moveTo(W - m + 6, goalY - 46); ctx.lineTo(W - m + 6, goalY + 4);
+    ctx.moveTo(m - 6, goalY - 44); ctx.lineTo(W - m + 6, goalY - 44);
+    ctx.stroke();
+    const nfl = 8, span = (W - 2 * m + 12) / nfl;
+    for (let i = 0; i < nfl; i++) {
+      ctx.fillStyle = i % 2 ? DAY.red : DAY.mustard;
+      const fx = m - 6 + i * span;
+      ctx.beginPath();
+      ctx.moveTo(fx, goalY - 44); ctx.lineTo(fx + span, goalY - 44); ctx.lineTo(fx + span / 2, goalY - 30);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    for (let x = m; x < W - m; x += 26) ctx.fillRect(x, goalY, 16, 5);
+    ctx.font = "18px " + COMIC_FONT;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(74,59,46,0.85)";
+    ctx.fillText("DELIVERY", W / 2, goalY - 54);
+  }
+  // Pickup chalk mark just below the run start.
+  if (startY + 64 > cam.y && startY + 40 < cam.y + H + 80) {
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    for (let x = m; x < W - m; x += 26) ctx.fillRect(x, startY + 60, 16, 4);
+  }
+  // Hazard patches in view (pre-rendered sprites — see buildHazards).
+  for (const z of hazards) {
+    if (!z.sprite || z.y + z.ry < cam.y - 40 || z.y - z.ry > cam.y + H + 40) continue;
+    ctx.drawImage(z.sprite, z.x - z.sprite.width / 2, z.y - z.sprite.height / 2);
+  }
 }
 
 // A falling vada pav: golden bun (bottom), green-chutney bun-top, a little
@@ -728,14 +841,16 @@ function buildBackdrop() {
 // back inside so nothing is stranded in the letterbox.
 function clampToArena() {
   if (!player) return;
+  const wh = worldH();
   const cl = (o) => {
     const r = o.r || 14;
     o.x = Math.max(r, Math.min(W - r, o.x));
-    o.y = Math.max(r, Math.min(H - r, o.y));
+    o.y = Math.max(r, Math.min(wh - r, o.y));
   };
   cl(player);
   for (const e of enemies) cl(e);
   for (const f of foods) cl(f);
+  if (corridorOn() && routeLen) cam.y = Math.max(0, Math.min(routeLen - H, cam.y));
 }
 
 // Drawn food sprites — emoji fonts differ per OS; these are consistent.
@@ -1082,6 +1197,20 @@ const CONFIG = {
   // pool, so picks stay meaningful. shots/pierce = max bonus; fire/drain = floor
   // multipliers (smaller = stronger); maxHp = hard heart ceiling.
   boonCaps: { shots: 3, pierce: 3, fireFloor: 0.6, drainFloor: 0.55, maxHp: 5 },
+  // CORRIDOR mode (the pivot): a zone is a vertical DELIVERY ROUTE you run up,
+  // not a fixed arena. The camera follows the courier; waves trigger by DISTANCE
+  // gates (you set the pace by pushing forward); bosses lock the camera into a
+  // one-screen duel so all arena boss tuning survives verbatim. on:false restores
+  // the classic arena game wholesale (also live: __mr.setCorridor(false)).
+  corridor: {
+    on: true,
+    screens: 6,     // route length in screen-heights (H at stage build)
+    tileH: 800,     // road segment tile height (world px; H-independent)
+    camFrac: 0.58,  // courier sits this far down the screen → more view ahead
+    camLerp: 5,     // camera follow rate (higher = tighter)
+    aheadBias: 0.7, // fraction of spawns that come from ahead (run direction)
+    cullDist: 1.6,  // enemies further than this many screens get re-fielded ahead
+  },
 };
 
 // ---------- Cities (the THEME track) ----------
@@ -1188,26 +1317,42 @@ function buildHazards() {
   if (!hz || zoneInCity(level) < hz.fromZone) return;
   const m = laneMargin();
   const r = mulberry32(level * 2654435761 >>> 0);
-  const cx = W / 2, cy = H / 2;
-  const clearR = Math.min(W, H) * 0.22; // spawn bubble — never start on a hazard
+  const corr = corridorOn();
+  // Spawn bubble — never start on a hazard. In corridor it wraps the route start.
+  const cx = W / 2, cy = corr ? startY : H / 2;
+  const clearR = Math.min(W, H) * 0.22;
   // Per-zone SHUFFLE: free placement (random x in lane + random y), varied count
   // (±1), rejection-sampled so patches don't overlap, the spawn bubble, or repeat
   // a rigid pattern. Seeded by `level`, so every zone's layout is visibly its own.
-  const n = Math.max(2, hz.count + ((r() * 3) | 0) - 1); // count-1 .. count+1
+  // Corridor routes are several screens long, so the count scales with length.
+  const base = corr ? Math.round(hz.count * CONFIG.corridor.screens / 2) : hz.count;
+  const n = Math.max(2, base + ((r() * 3) | 0) - 1); // base-1 .. base+1
+  const y0 = corr ? goalY + 80 : H * 0.1;
+  const y1 = corr ? startY - 120 : H * 0.9;
   let tries = 0;
-  while (hazards.length < n && tries < 240) {
+  while (hazards.length < n && tries < 400) {
     tries++;
     const rx = (24 + r() * 26) * (Math.min(W, H) / 600 + 0.6);
     const ry = rx * (0.55 + r() * 0.25);
     const laneL = m + rx, laneR = W - m - rx;
     const x = laneL + r() * (laneR - laneL);
-    const y = H * (0.1 + r() * 0.8);
+    const y = y0 + r() * (y1 - y0);
     if (Math.hypot(x - cx, y - cy) < clearR + Math.max(rx, ry)) continue; // spawn-safe
     let ok = true;
     for (const z of hazards)
       if (Math.hypot(x - z.x, y - z.y) < (Math.max(rx, ry) + Math.max(z.rx, z.ry)) * 0.95) { ok = false; break; }
     if (!ok) continue;
     hazards.push({ x, y, rx, ry, type: hz.type, slow: hz.slow, chip: hz.chip || 0, hit: new Set() });
+  }
+  if (corr) {
+    // Corridor draws hazards per-frame as world objects (the backdrop is tiled,
+    // nothing to bake into) — pre-render each patch once so the frame cost is a
+    // single drawImage, not gradients + stipple.
+    for (const z of hazards) {
+      const pw = Math.ceil(z.rx * 2) + 12, ph = Math.ceil(z.ry * 2) + 12;
+      z.sprite = makeSprite(pw, ph, (g) =>
+        drawHazard(g, { ...z, x: pw / 2, y: ph / 2, sx: z.x, sy: z.y }));
+    }
   }
 }
 
@@ -1271,6 +1416,13 @@ let gapT; // breather countdown between waves
 let endingLevel; // true while the main boss plays its defeat beat (pauses spawns)
 let bossFight, bossFoodT, bossFoodEvery; // boss wave: spawns + wave timer pause
 let level;       // level currently being played (1-based)
+// Corridor-mode state. cam.y = world y of the visible window's top edge;
+// cam.lock >= 0 pins the window (boss duels). The route runs from startY
+// (bottom, pickup) up to goalY (top, delivery) — progress = climbing.
+let cam = { y: 0, lock: -1 };
+let routeLen = 0, startY = 0, goalY = 0;
+let waveGates = []; // waveGates[w] = world y that triggers wave w (corridor)
+let segCache = new Map(); // road segment tiles, keyed level:idx:W (capped LRU-ish)
 let barriers = []; // active barrier rects (pixels) for the current level
 let hazards = [];  // active hazard patches (pixels) for the current zone (see buildHazards)
 let showBarriers = false; // debug: draw collision rects to author them over the BG art
@@ -1293,6 +1445,20 @@ let nomPhase, nomT, nomSpawnT, nomFoodT, nomWon;
 let settingsOpen = false;
 let settingsFx = null; // { key, at } — press feedback in the settings panel
 let resumeT = 0; // 3-2-1 countdown after closing settings mid-game
+
+// Corridor helpers. NOM mode always plays in the classic arena.
+function corridorOn() { return CONFIG.corridor.on && !nomMode; }
+// World height entities clamp against: the whole route in corridor, else the screen.
+function worldH() { return corridorOn() && routeLen ? routeLen : H; }
+// Top of the active view band: the locked duel window if pinned, else the camera.
+function camTop() { return corridorOn() ? (cam.lock >= 0 ? cam.lock : cam.y) : 0; }
+// Screen-fraction → world y for UI-ish placements (announces, spawn bands).
+function viewY(f) { return camTop() + H * f; }
+// Route progress 0..1 (how far up the delivery route the courier is).
+function routeProgress() {
+  if (!corridorOn() || !routeLen) return 0;
+  return Math.max(0, Math.min(1, (startY - player.y) / (startY - goalY)));
+}
 
 // Per-RUN state — the build + courier that PERSIST across stages. Reset only at
 // run start (and on death → a fresh run), NEVER between zones. This is what lets
@@ -1350,6 +1516,26 @@ function setupStage(n, fresh) {
   bossFoodT = 0;
   endingLevel = false;
   level = n; // global ZONE counter → drives city, difficulty, backdrop, barriers
+  cam.lock = -1;
+  segCache.clear();
+  if (corridorOn()) {
+    // Build the delivery route: bottom = pickup, top = delivery. Wave gates sit
+    // at even distances between the start and the main-boss trigger, so the
+    // PLAYER paces the waves by climbing (no wave timer in corridor).
+    const cc = CONFIG.corridor;
+    routeLen = Math.round(cc.screens * H);
+    goalY = 140;
+    startY = routeLen - Math.round(H * 0.5);
+    const bossY = goalY + Math.round(H * 0.55); // crossing this = main-boss duel
+    waveGates = [];
+    for (let w = 2; w <= CONFIG.boss.mainWave; w++) {
+      waveGates[w] = startY - (startY - bossY) * ((w - 1) / (CONFIG.boss.mainWave - 1));
+    }
+    player.x = W / 2; player.y = startY;
+    cam.y = Math.max(0, Math.min(routeLen - H, player.y - H * cc.camFrac));
+  } else {
+    routeLen = 0; startY = 0; goalY = 0; waveGates = [];
+  }
   applyCityTheme();  // swap palette + food skins to this zone's city
   buildHazards();    // zone hazards (gated by fromZone) — drawn into the backdrop
   buildBackdrop();   // per-zone backdrop varies (seeded by zone) + city palette
@@ -1361,7 +1547,7 @@ function setupStage(n, fresh) {
     // Teach-by-doing: one unmissable food right next to the player so the
     // eat → attack link is discovered in the first seconds (chilli reads
     // clearly different from PLAIN — spread shots + 2× damage).
-    foods.push({ x: W / 2, y: H / 2 - 46, r: 11, type: FOOD_TYPES[0], life: CONFIG.foodLife });
+    foods.push({ x: player.x, y: player.y - 46, r: 11, type: FOOD_TYPES[0], life: CONFIG.foodLife });
   }
 }
 
@@ -1384,11 +1570,11 @@ function advanceStage() {
   const n = level + 1;
   setupStage(n, false);
   player.hp = Math.min(player.maxHp, player.hp + 1); // zone-clear reward heal
-  player.x = W / 2; player.y = H / 2;
+  if (!corridorOn()) { player.x = W / 2; player.y = H / 2; } // corridor: setupStage placed the courier at the route start
   if (cityOf(n) !== prevCity) {
     // Crossing into a new city — the world changes. Announce the city, then zone.
     announce("WELCOME TO " + curCity().name, "#ffd24a", 28);
-    smallText("zone 1 of " + ZONES_PER_CITY, "#9aa0b0", W / 2, H * 0.44);
+    smallText("zone 1 of " + ZONES_PER_CITY, "#9aa0b0", W / 2, viewY(0.44));
   } else {
     announce("ZONE " + zoneInCity(n) + "/" + ZONES_PER_CITY, "#ffd24a", 30);
   }
@@ -1462,7 +1648,8 @@ function buildBarriers() {
   const ew = CONFIG.edgeWalls;
   if (ew && ew.on) {
     const ww = ew.w * W;
-    barriers.unshift({ x: 0, y: 0, w: ww, h: H }, { x: W - ww, y: 0, w: ww, h: H });
+    const wh = worldH(); // corridor: the stall walls run the whole route
+    barriers.unshift({ x: 0, y: 0, w: ww, h: wh }, { x: W - ww, y: 0, w: ww, h: wh });
   }
 }
 // Left/right inset of the open lane (0 when edge walls are off).
@@ -2097,7 +2284,7 @@ function placeFloater(x, y, size) {
   return yy;
 }
 function announce(text, color, size = 34) {
-  floaters.push({ text, color, x: W / 2, y: placeFloater(W / 2, H * 0.35, size), life: 1.6, size, vy: -20 });
+  floaters.push({ text, color, x: W / 2, y: placeFloater(W / 2, viewY(0.35), size), life: 1.6, size, vy: -20 });
 }
 function smallText(text, color, x, y) {
   floaters.push({ text, color, x, y: placeFloater(x, y, 16), life: 0.9, size: 16, vy: -40 });
@@ -2118,11 +2305,25 @@ function spawnPoint(r) {
   // In the open lane (never inside the side stall-walls or the letterbox).
   const m = laneMargin();
   const x0 = m + r, x1 = W - m - r;
+  if (corridorOn() && cam.lock < 0) {
+    // Corridor: enemies come from OFF-SCREEN, biased toward the run direction
+    // (ahead = up = lower y). Flip to the other side if the route ends there.
+    const ahead = Math.random() < CONFIG.corridor.aheadBias;
+    let y = ahead ? cam.y - r - 30 - Math.random() * 120
+                  : cam.y + H + r + 30 + Math.random() * 120;
+    if (y < r || y > routeLen - r) {
+      y = ahead ? cam.y + H + r + 40 : cam.y - r - 40;
+      y = Math.max(r, Math.min(routeLen - r, y));
+    }
+    return { x: x0 + Math.random() * (x1 - x0), y };
+  }
+  // Arena / locked boss window: the four edges of the view band.
+  const b0 = camTop();
   const side = Math.floor(Math.random() * 4);
-  if (side === 0) return { x: x0 + Math.random() * (x1 - x0), y: r };
-  if (side === 1) return { x: x0 + Math.random() * (x1 - x0), y: H - r };
-  if (side === 2) return { x: x0, y: r + Math.random() * (H - 2 * r) };
-  return { x: x1, y: r + Math.random() * (H - 2 * r) };
+  if (side === 0) return { x: x0 + Math.random() * (x1 - x0), y: b0 + r };
+  if (side === 1) return { x: x0 + Math.random() * (x1 - x0), y: b0 + H - r };
+  if (side === 2) return { x: x0, y: b0 + r + Math.random() * (H - 2 * r) };
+  return { x: x1, y: b0 + r + Math.random() * (H - 2 * r) };
 }
 
 function makeEnemy(type, x, y, spdMul = 1) {
@@ -2152,7 +2353,7 @@ function spawnEnemy(spdMul = 1) {
     for (let i = 0; i < n; i++) {
       const e = makeEnemy("swarmer",
         Math.max(m + c.rMax, Math.min(W - m - c.rMax, p.x + (Math.random() - 0.5) * 52)),
-        Math.max(c.rMax, Math.min(H - c.rMax, p.y + (Math.random() - 0.5) * 52)), spdMul);
+        Math.max(c.rMax, Math.min(worldH() - c.rMax, p.y + (Math.random() - 0.5) * 52)), spdMul);
       enemies.push(e);
     }
   } else {
@@ -2174,6 +2375,9 @@ function spawnBossAdd() {
 function startBossFight(main) {
   bossFight = true;
   lastBossWave = wave;
+  // Corridor: pin the camera — the duel plays in a one-screen arena window, so
+  // every arena-tuned boss behavior (charge ranges, recovery windows) holds.
+  if (corridorOn()) cam.lock = Math.max(0, Math.min(routeLen - H, cam.y));
   const c = main ? CONFIG.mainBoss : CONFIG.boss;
   bossFoodEvery = c.foodEvery;
   bossFoodT = c.foodEvery;
@@ -2184,7 +2388,7 @@ function startBossFight(main) {
   const bname = cityBoss ? curCity().boss.name : (main ? "THE BLAND MAHARAJA" : "THE BLANDFATHER");
   enemies.push({
     type: "boss", boss: true, main: !!main, cityBoss,
-    x: W / 2, y: c.r, r: c.r * (cityBoss ? 1.18 : 1),
+    x: W / 2, y: camTop() + c.r, r: c.r * (cityBoss ? 1.18 : 1),
     hp: bhp, maxHp: bhp, speed: c.speed,
     wobble: Math.random() * Math.PI * 2,
     spawning: c.telegraph, spawnDur: c.telegraph,
@@ -2233,7 +2437,8 @@ function updateBoss(e, dt) {
     e.stateT -= dt;
     e.x += e.cvx * dt;
     e.y += e.cvy * dt;
-    if (e.x <= e.r || e.x >= W - e.r || e.y <= e.r || e.y >= H - e.r || e.stateT <= 0) {
+    const b0 = camTop();
+    if (e.x <= e.r || e.x >= W - e.r || e.y <= b0 + e.r || e.y >= b0 + H - e.r || e.stateT <= 0) {
       e.bossState = "recover";
       e.stateT = e.recover;
       shake = Math.max(shake, 0.18);
@@ -2245,8 +2450,9 @@ function updateBoss(e, dt) {
     e.y += Math.sin(a) * e.speed * 0.3 * dt;
     if (e.stateT <= 0) { e.bossState = "stalk"; e.chargeT = e.chargeEvery; }
   }
+  const b0 = camTop();
   e.x = Math.max(e.r, Math.min(W - e.r, e.x));
-  e.y = Math.max(e.r, Math.min(H - e.r, e.y));
+  e.y = Math.max(b0 + e.r, Math.min(b0 + H - e.r, e.y));
 }
 
 function applyBoon(b) {
@@ -2381,7 +2587,7 @@ function fuse(a, b) {
       if (d < 220) {
         if (!e.boss) { // bosses take the damage but hold their ground
           e.x = Math.max(e.r, Math.min(W - e.r, e.x + (dx / d) * 150));
-          e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 150));
+          e.y = Math.max(e.r, Math.min(worldH() - e.r, e.y + (dy / d) * 150));
         }
         e.hp -= 2;
         e.flash = 0.08;
@@ -2463,6 +2669,7 @@ function killEnemy(j) {
       return;
     }
     // Mini-boss: instant down → pick 1 of 3 boons (lasts the rest of THIS level).
+    cam.lock = -1; // corridor: release the duel window, the route continues
     enemies.splice(j, 1);
     burst(e.x, e.y, "#8d93a5", 26, 170);
     dying.push({ x: e.x, y: e.y, r: e.r, life: 0.4 });
@@ -2523,7 +2730,7 @@ function separateEnemies() {
     // into the margin, where it wedges between the wall and the crowd.
     const m = laneMargin();
     e.x = Math.max(m + e.r, Math.min(W - m - e.r, e.x));
-    e.y = Math.max(e.r, Math.min(H - e.r, e.y));
+    e.y = Math.max(e.r, Math.min(worldH() - e.r, e.y));
   }
 }
 
@@ -2574,7 +2781,7 @@ function triggerSlam() {
     const count = cfg.rainDrops; // ~12
     for (let i = 0; i < count; i++) {
       const x = m + Math.random() * (W - 2 * m);
-      bullets.push({ x, y: -14 - Math.random() * H * 1.1, // staggered → drizzles over time
+      bullets.push({ x, y: camTop() - 14 - Math.random() * H * 1.1, // staggered → drizzles over time
         vx: (Math.random() - 0.5) * 24, vy: 300 + Math.random() * 90,
         r: 11 + Math.random() * 3, damage: dmg, color: cols[0],
         life: 5, pierce: cfg.rainPierce, rain: true, pav: true }); // pav: drawn as a bun
@@ -2597,7 +2804,7 @@ function triggerSlam() {
         x = player.x + Math.cos(a) * d; y = player.y + Math.sin(a) * d;
       }
       x = Math.max(m + rad, Math.min(W - m - rad, x));
-      y = Math.max(rad, Math.min(H - rad, y));
+      y = Math.max(camTop() + rad, Math.min(camTop() + H - rad, y));
       storms.push({ x, y, r: rad, life: cfg.stormDur, maxLife: cfg.stormDur,
         spin: Math.random() * Math.PI * 2, colors: cols, hit: new Set(),
         kills: 0, capKills: cfg.stormCapKills });
@@ -2803,8 +3010,20 @@ function update(dt) {
   if (nomMode) {
     updateNom(dt);
   } else {
-  // Waves, with a breather between them.
-  if (gapT > 0) {
+  if (corridorOn()) {
+    // Corridor: the PLAYER paces the waves — crossing a distance gate advances
+    // the wave (mini-boss at gate 5, main boss guarding the delivery gate).
+    // gapT only delays spawns here (post-pick lull); it never advances waves.
+    if (gapT > 0) gapT -= dt;
+    if (!bossFight && !endingLevel && wave < CONFIG.boss.mainWave && player.y <= waveGates[wave + 1]) {
+      wave++;
+      waveTimer = 0;
+      if (wave === CONFIG.boss.wave) startBossFight(false);
+      else if (wave === CONFIG.boss.mainWave) startBossFight(true);
+      else { announce("WAVE " + wave, "#ffffff"); sfx.wave(); }
+    }
+  // Arena: waves on a timer, with a breather between them.
+  } else if (gapT > 0) {
     gapT -= dt;
     if (gapT <= 0) {
       wave++;
@@ -2847,7 +3066,7 @@ function update(dt) {
       const fx0 = Math.max(60, fm + 20), fx1 = Math.min(W - 60, W - fm - 20);
       foods.push({
         x: fx0 + Math.random() * (fx1 - fx0),
-        y: H * 0.3 + Math.random() * H * 0.4,
+        y: camTop() + H * 0.3 + Math.random() * H * 0.4,
         r: 11, type: t, life: CONFIG.foodLife,
       });
     }
@@ -2901,9 +3120,22 @@ function update(dt) {
   player.vy = player.imy * spd;
   const pm = laneMargin();
   player.x = Math.max(pm + player.r, Math.min(W - pm - player.r, player.x + player.vx * dt));
-  player.y = Math.max(player.r, Math.min(H - player.r, player.y + player.vy * dt));
+  player.y = Math.max(player.r, Math.min(worldH() - player.r, player.y + player.vy * dt));
   if (barriers.length) resolveBarriers(player);
   if (player.iframes > 0) player.iframes -= dt;
+
+  // Corridor camera: follow the courier (they sit camFrac down the screen so
+  // most of the view is AHEAD); during a boss duel the window is pinned and
+  // the courier is kept inside it — the duel is a one-screen arena.
+  if (corridorOn()) {
+    if (cam.lock >= 0) {
+      player.y = Math.max(cam.lock + player.r, Math.min(cam.lock + H - player.r, player.y));
+      cam.y += (cam.lock - cam.y) * Math.min(1, dt * CONFIG.corridor.camLerp);
+    } else {
+      const target = Math.max(0, Math.min(routeLen - H, player.y - H * CONFIG.corridor.camFrac));
+      cam.y += (target - cam.y) * Math.min(1, dt * CONFIG.corridor.camLerp);
+    }
+  }
 
   // Hazard FRICTION cue: wading through a puddle/quicksand already slows you
   // (playerHazardSlow), but make it FELT — kick up splashes/sand opposite your
@@ -2953,7 +3185,7 @@ function update(dt) {
         if (d < SAVORY_PULSE_RADIUS) {
           if (!e.boss) {
             e.x = Math.max(e.r, Math.min(W - e.r, e.x + (dx / d) * 80));
-            e.y = Math.max(e.r, Math.min(H - e.r, e.y + (dy / d) * 80));
+            e.y = Math.max(e.r, Math.min(worldH() - e.r, e.y + (dy / d) * 80));
           }
           e.hp -= 1;
           e.flash = 0.08;
@@ -2969,7 +3201,8 @@ function update(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
-    if (b.life <= 0 || b.x < -20 || b.x > W + 20 || (b.y < -20 && !b.rain) || b.y > H + 20) {
+    const cy0 = camTop(); // cull against the view band, not the screen origin
+    if (b.life <= 0 || b.x < -20 || b.x > W + 20 || (b.y < cy0 - 20 && !b.rain) || b.y > cy0 + H + 20) {
       bullets.splice(i, 1);
       continue;
     }
@@ -2998,6 +3231,12 @@ function update(dt) {
   let levelDone = false;
   for (const e of enemies) {
     if (e.spawning > 0) { e.spawning -= dt; continue; }
+    // Corridor: an enemy left far behind (or far ahead) is dead weight — re-field
+    // it at a fresh off-screen spawn point so the pressure stays near the courier.
+    if (corridorOn() && !e.boss && !e.defeated && Math.abs(e.y - player.y) > H * CONFIG.corridor.cullDist) {
+      const p = spawnPoint(e.r);
+      e.x = p.x; e.y = p.y;
+    }
     if (e.defeated) {
       // Defeated main boss: slump + smoke, harmless, until the beat runs out.
       e.defeatT -= dt;
@@ -3078,7 +3317,7 @@ function update(dt) {
         // Recoil: shove the player away from the Bland so the hit reads as impact.
         const ka = Math.atan2(player.y - e.y, player.x - e.x);
         player.x = Math.max(player.r, Math.min(W - player.r, player.x + Math.cos(ka) * 20));
-        player.y = Math.max(player.r, Math.min(H - player.r, player.y + Math.sin(ka) * 20));
+        player.y = Math.max(player.r, Math.min(worldH() - player.r, player.y + Math.sin(ka) * 20));
         rings.push({ x: player.x, y: player.y, r: 10, maxR: 54, life: 0.3, color: "#ff5a3c" });
         smallText("-1 ♥", "#ff5a6e", player.x, player.y - 26);
         if (player.hp <= 0) {
@@ -3163,8 +3402,10 @@ function draw() {
   }
   ctx.setTransform(scale, 0, 0, scale, offX + sx, offY + sy);
 
-  // Arena: pre-rendered night street.
-  ctx.drawImage(bgCanvas, 0, 0);
+  // Corridor draws a camera-scrolled tiled world inside the clip below; the
+  // arena (and the menu screens) draw the pre-rendered full-screen backdrop.
+  const worldMode = corridorOn() && state !== "menu" && state !== "levels" && level >= 1 && player;
+  if (!worldMode) ctx.drawImage(bgCanvas, 0, 0);
 
   if (state === "menu") {
     drawMenu();
@@ -3182,6 +3423,14 @@ function draw() {
   ctx.beginPath();
   ctx.rect(0, 0, W, H);
   ctx.clip();
+  if (worldMode) {
+    // World transform: everything from here to restore() draws in world
+    // coordinates; the camera scroll is this single translate. Rounded so
+    // segment-tile joints land on whole pixels (fractional joints let the
+    // dark page background bleed through as a seam line).
+    ctx.translate(0, -Math.round(cam.y));
+    drawCorridorWorld();
+  }
 
   const now = performance.now() / 1000;
 
@@ -3466,7 +3715,7 @@ function draw() {
     ctx.fillText(fl.text, fl.x, fl.y);
   }
   ctx.globalAlpha = 1;
-  ctx.drawImage(vignette, 0, 0);
+  ctx.drawImage(vignette, 0, worldMode ? Math.round(cam.y) : 0); // vignette is camera-fixed
   ctx.restore(); // end arena clip
 
   drawHUD();
@@ -3610,6 +3859,16 @@ function drawHUD() {
     ctx.font = "bold 11px sans-serif";
     ctx.fillStyle = "#ffd24a";
     ctx.fillText("PWR " + playerLevel, W / 2, 15);
+  }
+  // Delivery progress (corridor): a slim route bar with the gate tick at the end.
+  if (!nomMode && corridorOn()) {
+    const pw = 130, px = (W - pw) / 2, py = 34;
+    ctx.fillStyle = "rgba(20,20,30,0.55)";
+    ctx.fillRect(px, py, pw, 5);
+    ctx.fillStyle = "#7ddf8a";
+    ctx.fillRect(px, py, pw * routeProgress(), 5);
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
+    ctx.fillRect(px + pw - 2, py - 2, 2, 9);
   }
   drawGear();
 
@@ -4520,6 +4779,15 @@ window.__mr = {
   get unlocked() { return unlockedLevel; },
   get barriers() { return barriers; },
   get hazards() { return hazards; },
+  // Corridor mode: camera + route state, and a live A/B switch. setCorridor(false)
+  // restores the classic arena game (restarts the current zone either way).
+  get cam() { return { ...cam }; },
+  get route() { return { routeLen, startY, goalY, progress: player ? routeProgress() : 0, waveGates: [...waveGates] }; },
+  setCorridor(v) {
+    CONFIG.corridor.on = !!v;
+    if (state === "playing" && level) startLevel(level);
+    return "corridor → " + CONFIG.corridor.on;
+  },
   // Authoring: overlay collision rects on the BG to align them to the art.
   get showBarriers() { return showBarriers; },
   set showBarriers(v) { showBarriers = !!v; },

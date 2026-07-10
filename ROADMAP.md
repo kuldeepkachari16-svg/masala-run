@@ -4,6 +4,19 @@
 
 ---
 
+## 🔀 PIVOT (2026-07-11): fixed arena → scrolling corridor street
+
+A zone is now a **delivery route** (vertical scrolling street, camera follows the
+courier; waves are distance-gated; bosses lock the camera into one-screen duels).
+Decided with the PM after the OpenAI art-direction review — the corridor is what the
+Art Bible's edge/road system is designed for, and it serves the courier fantasy.
+Pre-pivot game preserved on branch `arena-classic` (+ live flag `__mr.setCorridor`).
+**Owed next:** corridor balance retune (old arena numbers untouched) · playtest the
+new feel (Gate-1 now tests the CORRIDOR loop) · Technical Asset Contract for
+ChatGPT/Codex written against the corridor game (edge band %, tile heights, camera).
+
+---
+
 ## ⭐ Commercial north-star (set 2026-06-20)
 
 **Goal:** a real commercial launch — app stores, revenue, players we don't know.
