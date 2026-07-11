@@ -2568,6 +2568,542 @@ Consistent category readability.
 City-specific flavour without lighting chaos.
 ```
 
+### Environment Props & Micro-Clusters
+
+#### Core Direction
+
+Masala Run environment props should be modular micro-clusters that express restrained city identity, warmth, humour, and street-life charm while remaining clearly outside the playable road and subordinate to gameplay.
+
+Each cluster should read as one simple idea, use one anchor object with optional attachments, repeat with disguised variation, and avoid anything that looks like a pickup, hazard, enemy, obstacle, interaction target, or gameplay instruction.
+
+Core rule:
+
+```text
+Props add controlled city charm.
+Gameplay remains the focus.
+```
+
+
+#### Primary Role of Environment Props
+
+Environment props exist to support city identity and charm while staying clearly subordinate to gameplay.
+
+Props may add warmth, locality, humour, recognizability, and life, but they must never become the player’s focus.
+
+Rule:
+
+```text
+Environment props support the world.
+They do not compete with survival gameplay.
+```
+
+
+#### Prop Placement
+
+Most environment props belong inside the left and right edge zones.
+
+The playable road is the gameplay canvas.
+
+Props should not be placed on the playable road as decoration.
+
+If a noticeable object appears on the playable road, it must have explicit gameplay meaning as a hazard, pickup, obstacle, enemy, attack, or other gameplay object.
+
+Rule:
+
+```text
+Decorative props live on the edges.
+Gameplay objects live on the road.
+```
+
+
+#### Road Prop Restriction
+
+Decorative props must not appear on the playable road.
+
+No random paper scraps, bottles, stones, crates, food bits, leaves, or street objects should be added to the road purely for atmosphere.
+
+If an object is visible on the playable road and attracts attention, it must be actionable or removed.
+
+
+#### Preferred Production Unit
+
+The preferred production unit for environment decoration is the modular micro-cluster.
+
+Avoid relying on:
+
+* individual scattered prop spam
+* complete painted edge strips
+* dense street scenes
+* large decorative background illustrations
+
+Micro-clusters support reuse, variation, procedural placement, and readability control.
+
+
+#### Micro-Cluster Definition
+
+A micro-cluster is a small reusable environmental composition that reads as one simple idea.
+
+Examples:
+
+* tea stall
+* fruit cart
+* parked cycle
+* plant corner
+* crate stack
+* small shopfront
+* awning segment
+* clay pot group
+* lantern corner
+
+A micro-cluster should not feel like a dense mini-scene.
+
+Rule:
+
+```text
+One cluster = one readable idea.
+```
+
+
+#### Anchor + Attachments
+
+Every micro-cluster should have one clear anchor object.
+
+The anchor defines the cluster idea.
+
+Optional supporting attachments may add variation, flavour, asymmetry, and procedural freshness.
+
+Example:
+
+```text
+Anchor: fruit cart
+Optional attachments: crate, small cloth shade, basket, sign shape, stool
+```
+
+Attachments must never make the cluster noisy or unclear.
+
+
+#### Cluster Density
+
+Micro-clusters should be sparse to medium density with controlled detail.
+
+They should feel alive, but not realistic, chaotic, or busy.
+
+Avoid recreating real Indian street clutter.
+
+Rule:
+
+```text
+Life, not noise.
+Charm, not clutter.
+```
+
+
+#### Cluster Spacing
+
+Micro-clusters should be organically spaced with breathing gaps.
+
+Spacing should not look evenly tiled, stamped, or mechanically repeated.
+
+Clusters should not be packed continuously along both edges.
+
+The edge should have a natural density rhythm:
+
+```text
+cluster → breathing gap → smaller cluster → calm area → cluster
+```
+
+
+#### Left / Right Asymmetry
+
+Left and right edge props should be intentionally asymmetrical while remaining balanced overall.
+
+One side may be slightly more active while the other is calmer.
+
+Asymmetry should make the world feel natural, not random.
+
+No side should overpower gameplay.
+
+
+#### City Identity Through Props
+
+Props should carry moderate city identity through restrained local materials, forms, silhouettes, prop types, and motif accents.
+
+Avoid:
+
+* literal landmark-heavy design
+* dense cultural symbols
+* tourist-poster treatment
+* stereotype-heavy props
+* excessive decorative motifs
+
+City identity should be recognizable but quiet.
+
+
+#### Landmark Echoes
+
+Masala Run should use landmark echoes, not literal landmark props.
+
+City identity should come from:
+
+* material language
+* roofline hints
+* shopfront shapes
+* awning forms
+* street-food objects
+* boundary-adjacent props
+* local silhouettes
+* restrained pattern accents
+
+Do not make literal landmarks common environmental props.
+
+
+#### Signage
+
+Signage may appear in edge props, but text should generally be abstract, unreadable, icon-like, symbolic, or shape-based.
+
+Avoid readable text unless deliberately approved for a specific gameplay, branding, or production reason.
+
+Readable text can distract the player, create localization problems, age badly, and pull attention away from gameplay.
+
+
+#### Human Presence
+
+Human presence should be implied through objects, lighting, arrangement, and traces of activity.
+
+Avoid visible human figures in environmental prop clusters for now.
+
+Visible people may confuse gameplay readability, imply NPC systems, or compete with enemies and active objects.
+
+Examples of implied human presence:
+
+* arranged stools
+* lit stall
+* stacked crates
+* cup on counter
+* open awning
+* parked cycle
+* warm shop light
+* cooking setup without people
+
+
+#### Vehicles
+
+Vehicles may appear only as parked or static edge decoration unless separately designed as gameplay hazards.
+
+Allowed examples:
+
+* parked cycle
+* parked scooter
+* compact cart
+* cropped parked vehicle edge element
+
+Vehicles must remain muted, compact, cropped where useful, and clearly outside the playable road.
+
+Moving vehicles are not part of this chapter.
+
+
+#### Prop Scale
+
+Props should use slightly exaggerated, readable, world-native scale.
+
+Strict realism is not required.
+
+Important identifying features may be made chunkier, cleaner, or slightly larger for gameplay-distance readability.
+
+Rule:
+
+```text
+Believable enough to belong.
+Simplified enough to read.
+```
+
+
+#### Prop Detail
+
+Environmental props should use moderate selective detail only.
+
+Details must serve one of these purposes:
+
+* explain the object
+* support city flavour
+* add controlled charm
+* clarify material
+* improve silhouette readability
+
+Avoid tiny decoration, excessive grime, dense patterns, realistic clutter, and unnecessary cultural ornament.
+
+
+#### Prop Outlines
+
+Environmental props should use softer or lighter outlines than gameplay objects.
+
+They must not visually compete with the player, enemies, hazards, pickups, or attacks.
+
+Outline priority remains:
+
+```text
+Gameplay objects > hazards / threats > pickups > props > frontage / ambient details
+```
+
+Props should be readable, but subordinate.
+
+
+#### Prop Colour
+
+Prop colours should use muted city palettes with small controlled accents.
+
+Avoid bright saturation across many props.
+
+Accent colour is attention currency and should be spent carefully.
+
+Props must not reuse critical gameplay colours in ways that make them look like pickups, hazards, attacks, enemies, or interaction targets.
+
+
+#### Pattern Use
+
+Patterns are allowed only in small controlled areas.
+
+Allowed pattern surfaces:
+
+* awnings
+* cloth
+* stall covers
+* tile strips
+* small sign shapes
+* food packaging
+* special city props
+* occasional frontage accents
+
+Avoid:
+
+* dense patterns
+* high-contrast patterns near gameplay action
+* patterned playable road center
+* patterns that resemble pickups, hazards, attacks, enemies, or warnings
+
+Rule:
+
+```text
+Patterns are flavour.
+Patterns are never the gameplay canvas.
+```
+
+
+#### Shared Structure, City-Specific Skins
+
+All cities should share the same micro-cluster grammar.
+
+Cities may differ through:
+
+* materials
+* silhouettes
+* prop families
+* local street-food cues
+* colour accents
+* lighting attachments
+* texture abstraction
+* motif restraint
+
+Rule:
+
+```text
+Same cluster logic.
+Different city flavour.
+```
+
+
+#### City Archetype Count
+
+Each city should begin with 4–6 environment prop / micro-cluster archetypes.
+
+This gives enough variety for procedural composition while keeping the first asset kits manageable.
+
+Do not define final asset lists in this chapter.
+
+
+#### Mumbai Archetype Direction
+
+Mumbai prop archetypes may later include ideas such as:
+
+* local street-food stall
+* shopfront / awning cluster
+* parked cycle or scooter
+* plant / crate corner
+* small signage frontage
+* compact urban utility cluster
+
+These are directional examples only, not a final Mumbai asset list.
+
+Mumbai should feel local, urban, warm, slightly worn, and lively without becoming landmark-heavy or chaotic.
+
+
+#### Jaisalmer Archetype Direction
+
+Jaisalmer prop archetypes may later include ideas such as:
+
+* sandstone platform cluster
+* small desert stall
+* cloth / awning setup
+* clay pot cluster
+* low carved frontage
+* lantern corner
+
+These are directional examples only, not a final Jaisalmer asset list.
+
+Jaisalmer should feel warm, sandy, stone-rich, calm, and distinct without becoming a tourist postcard.
+
+
+#### Repetition Disguise
+
+Micro-clusters may repeat, but repetition must be disguised.
+
+Use:
+
+* optional attachments
+* cropping
+* rotation where perspective allows
+* slight scale variation
+* spacing rhythm
+* left/right variants
+* colour accent variation
+* lighting variants
+* calm gaps between clusters
+
+Avoid obvious procedural stamping.
+
+
+#### Left / Right Variants
+
+Important clusters should support left/right-aware variants when perspective, shadows, frontage direction, cropping, or road-boundary orientation matter.
+
+Simple standalone props may remain universal.
+
+Do not require separate variants for every tiny prop.
+
+
+#### Boundary Interaction
+
+Micro-clusters may sit near the playable boundary, but must never visually intrude into the road or confuse the movement limit.
+
+The road silhouette must remain clean.
+
+The player should never wonder whether a decorative prop is blocking movement or part of the playable space.
+
+
+#### Prop Shadows
+
+Props may use simple soft grounding shadows only where useful.
+
+Avoid realistic, heavy, dramatic, or muddy shadows.
+
+Shadows should help place props in the world without increasing edge visual weight too much.
+
+
+#### Night Prop Lighting
+
+Only selected practical-light clusters should carry localized glow at night.
+
+Examples:
+
+* stall lamp
+* shop light
+* lantern
+* window glow
+* small sign glow
+* warm bulb
+
+Do not make every prop glow.
+
+Night edge lighting should remain sparse, localized, and subordinate to gameplay readability.
+
+
+#### Review Priority
+
+Environment props and micro-clusters must be reviewed in this order:
+
+1. Gameplay readability
+2. Boundary clarity
+3. Does it clearly belong outside the playable road?
+4. Does it avoid looking like a gameplay object?
+5. Modularity
+6. Cluster readability
+7. Repetition safety
+8. City identity
+9. Style consistency
+10. Charm / humour / polish
+
+Beauty alone is never enough.
+
+
+#### Immediate Rejection Rule
+
+Reject or redesign any prop or cluster that looks like:
+
+* pickup
+* hazard
+* enemy
+* obstacle
+* attack
+* projectile
+* interaction target
+* gameplay instruction
+* movement path
+* spawn marker
+* UI element
+
+Decorative props must never impersonate gameplay objects.
+
+
+#### Scope Boundary
+
+This chapter defines environmental prop and micro-cluster grammar.
+
+It may define:
+
+* prop role
+* placement rules
+* cluster structure
+* density
+* spacing
+* repetition rules
+* anchor / attachment logic
+* city-flavour boundaries
+* signage rules
+* human-presence rules
+* vehicle rules
+* outline / colour / pattern guidance
+* night lighting behaviour
+* review hierarchy
+
+It must not define:
+
+* final Mumbai asset kit
+* final Jaisalmer asset kit
+* exact production prompts
+* Prompt Bible wording
+* gameplay code
+* implementation systems
+* metadata schemas
+* procedural placement algorithms
+* final prop counts
+* enemy / pickup / hazard catalogues
+
+
+#### Final Principle
+
+Environment props in Masala Run should create controlled city charm through modular micro-clusters while staying subordinate to gameplay.
+
+Final rule:
+
+```text
+Readable micro-clusters.
+Restrained city flavour.
+No decorative road clutter.
+No gameplay confusion.
+Procedural reuse with disguised repetition.
+Gameplay first, charm second.
+```
+
 ## Part II — Environment Design
 
 ### Chapter 10 — Environment Composition
@@ -2587,6 +3123,224 @@ TODO: Define this chapter during the Art Bible authoring process.
 TODO: Define this chapter during the Art Bible authoring process.
 
 ## Part III — Asset Standards
+
+### Modular Asset System
+
+#### Core Principle
+
+Masala Run is built from modular reusable assets assembled procedurally.
+
+Every asset should maximize:
+
+- reuse
+- readability
+- procedural flexibility
+- long-term scalability
+
+Never optimize an asset at the cost of modularity.
+
+The production philosophy is:
+
+```text
+Reusable assets create beautiful cities.
+Beautiful cities should never require unique handcrafted scenes.
+```
+
+#### 1. Default Production Unit
+
+The preferred production unit is the modular micro-cluster.
+
+Individual props should exist as reusable building blocks.
+
+Micro-clusters should be assembled from these reusable props.
+
+Avoid producing large baked edge strips or complete decorative scenes.
+
+#### 2. Smallest Reusable Unit
+
+Every meaningful prop should exist independently whenever practical.
+
+Examples:
+
+- stool
+- crate
+- basket
+- lantern
+- awning
+- plant
+- cycle
+- cart
+
+These can later be combined into reusable micro-clusters.
+
+#### 3. Assembly Philosophy
+
+Worlds should be composed from interchangeable modules.
+
+Avoid baking multiple unrelated props into permanent compositions unless they represent one intentional micro-cluster.
+
+#### 4. Asset Library Structure
+
+Use a shared core asset library.
+
+Extend it with city-specific skins and city-specific additions.
+
+Shared logic.
+Different visual flavour.
+
+#### 5. Asset Hierarchy
+
+Preferred hierarchy:
+
+```text
+Base Asset
+→ Variant
+→ City Skin
+→ Instance
+```
+
+This preserves reuse while allowing controlled variation.
+
+#### 6. Pivot Standards
+
+Every asset category should use standardized pivot locations.
+
+Pivot placement should remain consistent across all variants.
+
+Artists should never choose pivots arbitrarily.
+
+#### 7. Gameplay Bounds
+
+Gameplay collision/readability bounds should remain independent from visual artwork.
+
+Large decorative elements should not accidentally increase gameplay footprint.
+
+#### 8. Cropping Philosophy
+
+Cropping is encouraged when it improves world continuation.
+
+Assets should comfortably support partial visibility at screen edges.
+
+#### 9. Left / Right Variants
+
+Create dedicated left/right variants only when perspective or readability actually changes.
+
+Do not duplicate every asset unnecessarily.
+
+#### 10. Rotation Support
+
+Assets may support controlled rotation only where perspective remains believable.
+
+Rotation should never distort visual logic.
+
+#### 11. Scale Variation
+
+Allow only small controlled scale variation.
+
+Approximately 5-10% variation.
+
+Avoid obvious random scaling.
+
+#### 12. Colour Variants
+
+Support restrained colour variants where appropriate.
+
+Variants should preserve gameplay readability and category recognition.
+
+#### 13. Wear Variants
+
+Support light procedural wear variants.
+
+Wear should add freshness without changing gameplay meaning.
+
+#### 14. Overlay Philosophy
+
+Road markings, surface variation, lighting effects and similar elements should exist as independent modular overlays whenever practical.
+
+Avoid baking overlays permanently into base assets.
+
+#### 15. Lighting Variants
+
+Prefer lighting overlays and lighting variants over duplicate assets.
+
+Reuse the same structural asset whenever possible.
+
+#### 16. Day / Night Production
+
+Day and night should share the same base assets.
+
+Time-of-day differences should primarily come from lighting treatments and controlled variants.
+
+#### 17. Material System
+
+Materials should follow shared global rules while allowing restrained city-specific skins.
+
+Do not rebuild assets simply to express city flavour.
+
+#### 18. Naming Convention
+
+Adopt a structured naming convention from the beginning.
+
+Every reusable asset should be uniquely identifiable.
+
+#### 19. Asset Independence
+
+Assets should remain independently reusable whenever possible.
+
+Avoid unnecessary dependencies between neighbouring assets.
+
+#### 20. Modularity Protection
+
+Reject any asset that significantly reduces procedural flexibility or reuse.
+
+Beauty alone is not sufficient reason to accept an asset.
+
+#### 21. Future Scalability
+
+The asset system should support dozens of future cities without changing the underlying production architecture.
+
+Design for long-term expansion from the beginning.
+
+#### 22. Procedural Compatibility
+
+Every asset should assume procedural placement by default.
+
+Manual handcrafted placement should never become a production requirement.
+
+#### 23. Review Priority
+
+Review order:
+
+1. Modularity
+2. Gameplay Readability
+3. Reusability
+4. Procedural Compatibility
+5. City Flavour
+6. Visual Polish
+
+#### 24. Immediate Rejection Rule
+
+Reject or redesign any asset that:
+
+- reduces modular reuse
+- harms gameplay readability
+- requires handcrafted placement
+- breaks procedural composition
+- duplicates existing functionality unnecessarily
+- introduces city-specific logic into shared assets
+
+#### 25. Final Principle
+
+Masala Run's production pipeline should favor reusable modular assets that naturally create beautiful cities through procedural composition.
+
+Rule:
+
+```text
+Modularity first.
+Gameplay second.
+City flavour third.
+Beauty emerges from composition, not handcrafted scenes.
+```
 
 ### Chapter 14 — Asset Categories
 
