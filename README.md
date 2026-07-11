@@ -8,6 +8,12 @@ A mobile-first survival action game. The Bland are eating the city's flavor — 
 
 **The one rule:** you attack with whatever you last ate, and flavor fades — so keep eating.
 
+**THE PIVOT (2026-07-11):** a zone is now a **scrolling delivery route** — a vertical
+street ~6 screens long (pickup at the bottom, DELIVERY gate at the top), camera
+following the courier. Waves trigger by distance (you set the pace), bosses lock the
+camera into one-screen duels. The classic fixed-arena game is preserved on branch
+`arena-classic` and live via `__mr.setCorridor(false)`. Details in CHANGELOG.
+
 ## v0 greybox — what's in
 
 - Fixed on-screen joystick bottom-left (default) or touch-anywhere mode + WASD/arrows; auto-attack at nearest enemy

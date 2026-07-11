@@ -7,6 +7,9 @@ this file owns game-specific context, constraints, and workflow. Treat it as pri
 - **Masala Run** — mobile-first survival/action game. A courier in an Indian
   street-food city fights "The Bland" (grey creatures eating the city's flavor)
   by eating food: you attack with whatever you last ate, flavor fades, keep eating.
+- **Post-pivot (2026-07-11):** a zone is a vertical scrolling **delivery route**
+  (distance-gated waves, camera-locked boss duels), gated on `CONFIG.corridor.on`.
+  The classic fixed arena lives on branch `arena-classic` / `__mr.setCorridor(false)`.
 - Vanilla JS + Canvas 2D, **zero dependencies**, single `game.js` + `index.html`.
   Procedural art + Web Audio (no asset files). Installable PWA.
 - Its **OWN git repo**, gitignored from hq-secondbrain. Public via GitHub Pages.
