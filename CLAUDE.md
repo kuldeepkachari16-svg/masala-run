@@ -49,6 +49,15 @@ this file owns game-specific context, constraints, and workflow. Treat it as pri
 - Commit + push only on meaningful, verified work; show the git **sync box**
   after every push (parent rule).
 
+## Context hygiene (token burn)
+Sessions here have hit 385K ctx; every tool call replays the whole context.
+- One feature per session — `/clear` between slices; don't start new work past ~150K ctx.
+- `game.js` is one big file: grep for the region, Read by line range — never
+  re-Read the whole file.
+- Delegate browser-verify loops (screenshot / state-read cycles) and mechanical
+  edit rounds to the `implementer` agent (global via `~/.claude/agents/` symlink),
+  `verifier` for done-checks. Main session keeps the design-call + review hats.
+
 ## Tone
 - In-GAME copy is playful and comic — that's the product. My **responses to the
   PM stay crisp-and-bulleted with no dramatization**, same as the parent baseline.
