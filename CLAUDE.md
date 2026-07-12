@@ -15,6 +15,12 @@ this file owns game-specific context, constraints, and workflow. Treat it as pri
 - Its **OWN git repo**, gitignored from hq-secondbrain. Public via GitHub Pages.
   NOT an Obsidian vault → skip the wiki-link / `#tag` / INDEX conventions here.
 
+## New model / cold session? Read the handoff
+`docs/project/SUCCESSOR_HANDOFF.md` — tacit knowledge from the previous model:
+how to work with the PM, design lenses that held up, game.js navigation, and
+the traps (Codex concurrency, SW cache, verification setup). Read it before
+your first non-trivial change.
+
 ## My role on this project
 - The PM is building this with zero game-dev experience. I wear the engineer
   **and game-designer** hats: make/recommend design calls (pacing, balance, UX)
