@@ -81,9 +81,15 @@ Gameplay readability MUST always take priority over visual complexity.
 
 #### Playable Area
 
-The playable arena occupies approximately 76–80% of the screen width.
+The collision/playable lane remains approximately 84% of the screen width.
 
-The environment occupies approximately 20–24% of the screen width.
+Approximately 8% per side is reserved as the collision edge band.
+
+The intended 20–24% environmental visual presence is achieved through wider edge
+props and frontage positioned partly off-screen so they visually bleed inward.
+
+Edge assets MUST tolerate cropping. No essential silhouette, face, or identifying
+feature should be placed in the outer half of a cropped cluster.
 
 Arena width SHOULD remain stable so the playable space stays consistent and
 readable.
@@ -123,6 +129,14 @@ SHOULD feel alive without becoming visually busy.
 #### World Continuation
 
 The world SHOULD appear to continue naturally beyond the visible screen.
+
+Masala Run uses a one-screen-wide vertical corridor. The camera scrolls
+vertically only.
+
+World continuation comes from top/bottom scrolling and cropped left/right edge
+elements.
+
+There is no horizontal camera movement or horizontal environment reveal.
 
 Edges frame the arena. They MUST NOT imply that the world ends at the screen
 boundary.
@@ -2493,22 +2507,30 @@ All cities must respect:
 
 Lighting should support the modular asset pipeline.
 
-Use base assets plus lighting overlays, lighting variants, glow elements, shadow elements, and time-of-day treatments.
+Day and night should reuse the same base asset geometry.
 
-Do not create separate complete painted scenes for day and night.
+Time-of-day treatment should come from palette-compatible colouring, runtime
+palette changes, and optional engine-controlled glow/light overlays.
+
+Separately painted day/night scene pairs and full edge-strip pairs are retired.
+
+Assets must not contain baked drop shadows, glow halos, or baked time-of-day
+lighting.
 
 Rule:
 
 ```text
-Base asset + controlled lighting treatment.
-Not separate painted background.
+Same geometry + controlled runtime-friendly lighting treatment.
+Not separate painted day/night scenes or strips.
 ```
 
 #### 27. Night Asset Production
 
 Night should reuse the same structural asset logic as day.
 
-Night variants are allowed only where needed for readability, mood, or practical light behaviour.
+Night variants are allowed only where needed for readability, mood, or practical
+light behaviour, and should remain modular overlays or restrained asset variants
+rather than full duplicate scenes.
 
 Examples:
 
@@ -2519,7 +2541,8 @@ Examples:
 * night-tinted road overlay
 * practical light spill element
 
-Avoid duplicating entire city scenes as fixed night paintings.
+Avoid duplicating entire city scenes or complete edge strips as fixed night
+paintings.
 
 #### 28. Review Priority
 

@@ -108,6 +108,35 @@ The repository should remain the primary source of truth.
 
 Implementation must never override creative decisions.
 
+For current runtime capability, `docs/art-production/TECHNICAL_ASSET_CONTRACT.md`
+is authoritative. The Art Bible remains authoritative for creative intent.
+
+Current runtime reality:
+
+- vanilla JavaScript
+- Canvas 2D
+- single `game.js`
+- zero runtime dependencies
+- PWA
+
+Current supported asset operations:
+
+- image drawing
+- uniform scaling
+- horizontal mirroring
+- global alpha
+- cached flat-colour tinting
+- cached hit-flash compositing
+- offscreen pre-rendering
+
+Unsupported unless new engine work is explicitly approved:
+
+- arbitrary entity sprite rotation
+- runtime per-pixel recolouring or hue shifting
+- shaders
+- skeletal animation
+- sprite-sheet/frame animation
+
 ---
 
 # Continuous Improvement
