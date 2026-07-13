@@ -64,6 +64,23 @@ Sessions here have hit 385K ctx; every tool call replays the whole context.
   edit rounds to the `implementer` agent (global via `~/.claude/agents/` symlink),
   `verifier` for done-checks. Main session keeps the design-call + review hats.
 
+## Doc provenance (every new .md)
+Every new `.md` in this repo opens with a provenance block right under the H1 —
+so future-us can tell why a doc exists and whether it still holds, without
+git archaeology:
+```
+> **Purpose:** <one line — the question this doc answers / why it exists>
+> **Status:** Living  ·  **Owner:** Claude (engine)
+> **Created:** YYYY-MM-DD
+```
+- **Status** ∈ `Living` · `Proposed` (planned, not built) · `Superseded by <path>`
+  (dead → points to replacement) · `Archived` (history only, don't act on).
+- **Owner** ∈ `Claude (engine)` · `ChatGPT (creative)` · `Codex (repo)` · `PM`.
+- **Created** is a hint; git (`git log --diff-filter=A --follow`) is the real
+  source of truth. Its live job is "last meaningfully reviewed."
+- When a doc dies, don't delete silently — flip Status to `Superseded by …`.
+- Full cross-AI rule in `docs/project/AI_COLLABORATION.md`.
+
 ## Tone
 - In-GAME copy is playful and comic — that's the product. My **responses to the
   PM stay crisp-and-bulleted with no dramatization**, same as the parent baseline.

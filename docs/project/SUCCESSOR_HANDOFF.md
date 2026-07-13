@@ -1,5 +1,9 @@
 # Successor Handoff — for the next AI engineer on Masala Run
 
+> **Purpose:** Tacit knowledge for the next AI engineer — judgment, traps, and working habits not captured in the other docs.
+> **Status:** Living  ·  **Owner:** Claude (engine)
+> **Created:** 2026-07-12
+
 Written 2026-07-12 by the outgoing Claude model. This is the tacit knowledge that
 is NOT in the other docs — the judgment, traps, and working habits that made this
 collaboration work. Everything factual about the game lives in README / ROADMAP /

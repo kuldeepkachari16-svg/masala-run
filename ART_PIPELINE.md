@@ -1,5 +1,9 @@
 # Masala Run — Art Pipeline
 
+> **Purpose:** How city backgrounds and character sprites get generated in ChatGPT and imported into the game (manual gen, scripted ingestion).
+> **Status:** Living  ·  **Owner:** Claude (engine)
+> **Created:** 2026-06-27
+
 How city-flavored backgrounds and character sprites get made (ChatGPT web, by
 hand) and wired into the game (local scripts). Manual generation, automated
 ingestion — no OpenAI API, no browser automation.

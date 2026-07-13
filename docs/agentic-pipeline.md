@@ -1,5 +1,9 @@
 # Masala Run — Agentic Content Pipeline
 
+> **Purpose:** Earlier plan for scaling content (zones, art) via Claude Code subagents + a deterministic gate.
+> **Status:** Superseded by docs/pipeline/ARCHITECTURE.md  ·  **Owner:** Claude (engine)
+> **Created:** 2026-06-27
+
 > **Superseded (2026-07-11)** by `docs/pipeline/ARCHITECTURE.md` — the pipeline is
 > now planned on LangGraph. This doc's two core artifacts (zone-spec schema,
 > zero-LLM deterministic gates) carry forward as graph nodes; the Claude-Code

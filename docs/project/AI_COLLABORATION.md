@@ -1,5 +1,9 @@
 # AI Collaboration
 
+> **Purpose:** Governs process, roles, and decision flow between the PM and the AI systems (ChatGPT, Codex, Claude) building Masala Run.
+> **Status:** Living  ·  **Owner:** Codex (repo)
+> **Created:** 2026-07-10
+
 This document governs collaboration between the project owner and AI systems used
 throughout Masala Run. It defines process, roles, and decision flow.
 
@@ -138,6 +142,34 @@ Unsupported unless new engine work is explicitly approved:
 - sprite-sheet/frame animation
 
 ---
+
+# Doc Provenance Convention
+
+Every new `.md` file created by any AI in this project opens with a provenance
+block immediately under the H1 title. It exists so that months later anyone can
+tell why a doc was written and whether it is still authoritative — without
+reconstructing history from git.
+
+```
+> **Purpose:** <one line — the question this doc answers / why it exists>
+> **Status:** Living  ·  **Owner:** ChatGPT (creative)
+> **Created:** YYYY-MM-DD
+```
+
+- **Status** is a fixed vocabulary: `Living` (current, maintained) · `Proposed`
+  (a plan not yet built) · `Superseded by <path>` (dead — points to its
+  replacement) · `Archived` (kept for history, do not act on).
+- **Owner** names the responsible lane: `ChatGPT (creative)` · `Claude
+  (engine)` · `Codex (repo)` · `PM`.
+- **Created** is a human-readable hint only. Git is the authoritative record of
+  when a file was added; the field's real value is signalling the last time the
+  doc was meaningfully reviewed.
+- A doc is never silently abandoned. When it stops being true, its owner flips
+  Status to `Superseded by <path>` or `Archived` rather than deleting it, so the
+  supersession chain stays legible.
+
+This rule is documentation hygiene; it does not alter the Decision Hierarchy or
+any creative authority defined above.
 
 # Continuous Improvement
 

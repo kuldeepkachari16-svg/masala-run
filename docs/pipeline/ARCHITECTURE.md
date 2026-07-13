@@ -1,5 +1,9 @@
 # Masala Run — LangGraph Content Pipeline (Architecture)
 
+> **Purpose:** The plan for a LangGraph app that turns a 3-line zone brief into approved assets + validated `CITIES[]` data + playtest evidence, with 3 human gates.
+> **Status:** Proposed  ·  **Owner:** Claude (engine)
+> **Created:** 2026-07-11
+
 Status: **proposed — documentation only, nothing built**. Supersedes
 `docs/agentic-pipeline.md` as the orchestration plan; that doc's two core
 artifacts (zone-spec + zero-LLM gates) survive here as graph nodes.

@@ -1,5 +1,9 @@
 # Masala Run — ChatGPT image batches (copy-paste ready)
 
+> **Purpose:** Copy-paste ChatGPT prompts to generate the v1 city prop-strip and character-sprite art set.
+> **Status:** Living  ·  **Owner:** ChatGPT (creative)
+> **Created:** 2026-06-27
+
 Generated from `assets/art_manifest.json`. **Workflow:** open ChatGPT web (image
 generation), paste **one batch block at a time** (the whole block, style bible +
 all numbered prompts), generate, then **download each image and rename it to the
