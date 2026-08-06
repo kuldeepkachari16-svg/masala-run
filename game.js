@@ -765,11 +765,224 @@ function drawCorridorWorld() {
     ctx.fillStyle = "rgba(255,255,255,0.25)";
     for (let x = m; x < W - m; x += 26) ctx.fillRect(x, startY + 60, 16, 4);
   }
+  // Asset-fed environmental edge props. Drawn on the road base but BEFORE every
+  // gameplay layer (hazards, drains, food, bullets, entities) — decoration never
+  // occludes play. See the edge-prop section below.
+  drawEdgeProps();
   // Hazard patches in view (pre-rendered sprites — see buildHazards).
   for (const z of hazards) {
     if (!z.sprite || z.y + z.ry < cam.y - 40 || z.y - z.ry > cam.y + H + 40) continue;
     ctx.drawImage(z.sprite, z.x - z.sprite.width / 2, z.y - z.sprite.height / 2);
   }
+}
+
+// ---------- Environmental edge props (asset-fed, Tier-4 passive) ----------
+// Decoration that lives OUTSIDE the protected playable road: non-interactive,
+// non-collectible, not a hazard, not a pickup. Gameplay always wins.
+//
+// ORIENTATION IS BAKED INTO THE ART, NEVER INTO THE RENDERER. A "right" master
+// is authored with its service side facing LEFT (toward the road) and its
+// structural depth — rear, storage, canopy overhang, handle — extending RIGHT
+// (toward the city). RUNTIME MIRRORING IS PROHIBITED: drawEdgeProps() applies a
+// translate + UNIFORM POSITIVE scale only, never a negative x scale. A left-edge
+// prop must be a separately authored left master, not a flipped right one.
+//
+// All bounds below are in SOURCE-IMAGE PIXELS of the delivered PNG, so they are
+// independent of runtime scale and of the device height. edgePlacement()
+// converts them to design px exactly once.
+const EDGE_PROP_DEFS = {
+  // Mumbai vada-pav cart, fixed canopy, dedicated RIGHT-edge master.
+  // Bounds MEASURED from the delivered PNG at alpha ≥ 32 (Session 46). The
+  // session-45 export manifest's visible_bounds [48,48,1072,1534] is a nominal
+  // canvas-inset claim, not the silhouette — the real silhouette is far tighter
+  // and sits high-left in the canvas. Trust these numbers, not the manifest.
+  mumbai_vadapav_cart_fixed_canopy_right: {
+    src: "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v001.png",
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 1120, h: 1582 },
+    // PROVISIONAL. Drawn height of visual_bounds in design px. The `tall`
+    // archetype of the Technical Asset Contract §4 hero-scale law: courier = 70,
+    // tall props cap at ~120. 88 reads as a landmark the courier runs past
+    // without dwarfing them. Tune here and nowhere else.
+    heightPx: 88,
+    tall: true,
+    // visual_bounds — the COMPLETE visible silhouette: canopy, supports, counter,
+    // storage, wheels, handle, lower ground-contact edge.
+    visualBounds: { x0: 226, y0: 432, x1: 950, y1: 1057 },
+    // placement_footprint — the PHYSICAL ground footprint only. Deliberately not
+    // the canvas and not visual_bounds: the canopy overhangs left of the wheels
+    // and the handle floats right of the body, and neither touches the ground.
+    footprint: { x0: 276, y0: 950, x1: 876, y1: 1057 },
+    // crop_safe_bounds — silhouette plus the 48 px transparent padding the export
+    // contract requires. Cropping inside this is a defect.
+    cropSafe: { x0: 178, y0: 384, x1: 998, y1: 1105 },
+    // Pivot: road_facing_ground_contact_centre. NOT image centre, NOT bottom
+    // centre, NOT canopy or wheel centre. x sits on the road-facing (left)
+    // boundary of the FOOTPRINT — matching the metadata's
+    // alignTo: road_facing_edge_left, so placement is a direct assignment with no
+    // offset arithmetic. y sits on the front-most ground contact (the near
+    // caster) so the cart rests on the road plane rather than floating.
+    pivot: { x: 276, y: 1057 },
+    // PROVISIONAL spacing, expressed as multiples of the footprint width. Not
+    // exercised by the single-asset test — carried so the future segment composer
+    // has a home for them instead of inventing new ones.
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
+};
+const EDGE_PROP_IMGS = {};
+function loadEdgeProps() {
+  // Same convention as loadSprites/loadThemeImages: a missing file simply never
+  // completes, the prop never draws, and nothing else breaks.
+  for (const k in EDGE_PROP_DEFS) {
+    const im = new Image();
+    im.src = EDGE_PROP_DEFS[k].src;
+    EDGE_PROP_IMGS[k] = im;
+  }
+}
+loadEdgeProps();
+function edgePropReady(k) {
+  const im = EDGE_PROP_IMGS[k];
+  return !!(im && im.complete && im.naturalWidth);
+}
+
+// The PLACEMENT ENVELOPE: everything the runtime (and later the segment
+// composer) needs to position one prop against one environmental edge, in design
+// px, derived — never hardcoded at a call site.
+//
+//   left edge wall │      protected playable road      │ right edge wall
+//   0            m │                                   │ W-m            W
+//                                            roadEdge ─┤ ├─ bufferEdge = pivot
+//
+// Returns null for an unknown key. `ok` is the hard contract: the physical
+// footprint stays clear of the road and only the permitted visual overhang
+// reaches back over it.
+function edgePlacement(key) {
+  const d = EDGE_PROP_DEFS[key];
+  if (!d) return null;
+  const cfg = CONFIG.edgeProps;
+  const vb = d.visualBounds, fp = d.footprint, cs = d.cropSafe, pv = d.pivot;
+  const s = d.heightPx / (vb.y1 - vb.y0);          // uniform, height-driven
+  const m = laneMargin() || CONFIG.edgeWalls.w * W;
+  const dir = d.edge === "right" ? 1 : -1;         // +1 = city lies to the right
+  const roadEdgeX = d.edge === "right" ? W - m : m;
+  const pivotX = roadEdgeX + dir * cfg.safetyBuffer;
+  const sx = (u) => pivotX + dir * (u - pv.x) * s; // source px → design px
+  const rect = (r) => ({
+    x0: Math.min(sx(r.x0), sx(r.x1)), x1: Math.max(sx(r.x0), sx(r.x1)),
+    y0: (r.y0 - pv.y) * s, y1: (r.y1 - pv.y) * s, // relative to the pivot's ground line
+  });
+  const vis = rect(vb), foot = rect(fp), crop = rect(cs);
+  // Everything road-side of the pivot: the canopy overhang. This is the asset's
+  // ACTUAL reach toward the road; cfg.intrusionAllow is the permitted maximum.
+  const intr = rect({ x0: Math.min(vb.x0, pv.x), y0: vb.y0, x1: Math.max(vb.x0, pv.x), y1: vb.y1 });
+  const roadIntrusion = Math.abs(pv.x - vb.x0) * s;
+  const footRoadX = d.edge === "right" ? foot.x0 : foot.x1;
+  const fw = (fp.x1 - fp.x0) * s;
+  return {
+    key, edge: d.edge, scale: +s.toFixed(5), mirrored: false,
+    roadEdgeX, bufferEdgeX: pivotX, pivotX,
+    safetyClearance: cfg.safetyBuffer,
+    roadFacingX: d.edge === "right" ? vis.x0 : vis.x1,
+    cityFacingX: d.edge === "right" ? vis.x1 : vis.x0,
+    width: (vb.x1 - vb.x0) * s,
+    height: d.heightPx,
+    footprintWidth: fw,
+    depth: (fp.y1 - fp.y0) * s,
+    roadIntrusion, maxRoadIntrusion: cfg.intrusionAllow,
+    // How much of the asset runs off the city side of the screen. Expected and
+    // intended (Technical Asset Contract §2 — the city-facing outer half bleeds
+    // off), but reported so it is never an accident.
+    bleed: Math.max(0, d.edge === "right" ? vis.x1 - W : -vis.x0),
+    minSpacing: fw * d.spacing.minMul,
+    recSpacing: fw * d.spacing.recMul,
+    overlapAllow: fw * d.spacing.overlapAllowMul,
+    bounds: { visual: vis, footprint: foot, cropSafe: crop, roadIntrusion: intr },
+    // Hard checks. footprintClear = the physical cart never enters the protected
+    // road; intrusionOk = the canopy's reach back over it is within allowance.
+    footprintClear: d.edge === "right" ? footRoadX >= roadEdgeX : footRoadX <= roadEdgeX,
+    intrusionOk: roadIntrusion <= cfg.intrusionAllow,
+    get ok() { return this.footprintClear && this.intrusionOk; },
+  };
+}
+
+// Session 46 controlled test: ONE deterministic instance, right edge, Mumbai.
+// This is a TEST HARNESS, not procedural placement — there is no segment
+// composer yet (Technical Asset Contract §10). `y` is a world y on the route.
+function edgePropInstances() {
+  const cfg = CONFIG.edgeProps;
+  if (!cfg.on || !cfg.test) return [];
+  if (!corridorOn() || !routeLen || !level || nomMode) return [];
+  if (curCity().key !== "mumbai") return [];
+  // A third of a screen up from the pickup point: on screen from the first frame
+  // of the route, next to the courier — the Contract §8 approval gate's framing.
+  return [{ key: "mumbai_vadapav_cart_fixed_canopy_right", y: startY - Math.round(H * 0.32) }];
+}
+
+// Runs inside the corridor world transform (already translated by -cam.y), so
+// inst.y is a world y and needs no camera math.
+function drawEdgeProps() {
+  const cfg = CONFIG.edgeProps;
+  if (!cfg.on) return;
+  for (const inst of edgePropInstances()) {
+    if (!edgePropReady(inst.key)) continue;
+    const d = EDGE_PROP_DEFS[inst.key];
+    const p = edgePlacement(inst.key);
+    if (!p) continue;
+    if (inst.y + p.bounds.visual.y1 < cam.y - 40 || inst.y + p.bounds.visual.y0 > cam.y + H + 40) continue;
+    const s = p.scale;
+    // Draw the delivered canvas WHOLE, positioned by the pivot. No source-rect
+    // crop → the authored alpha and padding are used exactly as delivered. The
+    // transform is translate + uniform positive scale: no mirror, no rotation.
+    const dx = p.pivotX - d.pivot.x * s;
+    const dy = inst.y - d.pivot.y * s;
+    ctx.save();
+    ctx.globalAlpha = cfg.alpha;
+    ctx.drawImage(EDGE_PROP_IMGS[inst.key], dx, dy, d.canvas.w * s, d.canvas.h * s);
+    ctx.restore();
+    if (cfg.debug) drawEdgePropDebug(p, inst);
+  }
+}
+
+// Dev-only diagnostics. OFF in normal play (CONFIG.edgeProps.debug = false);
+// flip live with __mr.config.edgeProps.debug = true. Deleting this function and
+// its one call site removes the whole overlay.
+function drawEdgePropDebug(p, inst) {
+  const top = cam.y, bot = cam.y + H;
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  // Protected playable road boundary (this edge) + the safety-buffer line.
+  const vline = (x, col, dash) => {
+    ctx.setLineDash(dash || []);
+    ctx.strokeStyle = col;
+    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bot); ctx.stroke();
+  };
+  vline(p.roadEdgeX, "rgba(90,230,140,0.9)");            // road boundary
+  vline(p.bufferEdgeX, "rgba(255,200,60,0.9)", [6, 5]);  // safety buffer
+  ctx.setLineDash([]);
+  const box = (b, col, fill) => {
+    ctx.strokeStyle = col;
+    if (fill) { ctx.fillStyle = fill; ctx.fillRect(b.x0, inst.y + b.y0, b.x1 - b.x0, b.y1 - b.y0); }
+    ctx.strokeRect(b.x0, inst.y + b.y0, b.x1 - b.x0, b.y1 - b.y0);
+  };
+  ctx.setLineDash([4, 4]);
+  box(p.bounds.cropSafe, "rgba(180,180,190,0.55)");      // crop-safe padding
+  ctx.setLineDash([]);
+  box(p.bounds.visual, "rgba(80,200,255,0.95)");         // visual bounds
+  box(p.bounds.footprint, "rgba(255,90,220,0.95)", "rgba(255,90,220,0.13)"); // footprint
+  box(p.bounds.roadIntrusion, "rgba(255,70,70,0.95)", "rgba(255,70,70,0.12)"); // road intrusion
+  // Pivot crosshair.
+  ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(p.pivotX - 7, inst.y); ctx.lineTo(p.pivotX + 7, inst.y);
+  ctx.moveTo(p.pivotX, inst.y - 7); ctx.lineTo(p.pivotX, inst.y + 7);
+  ctx.stroke();
+  ctx.font = "9px monospace";
+  ctx.textAlign = "right";
+  ctx.fillStyle = p.ok ? "rgba(90,230,140,0.95)" : "rgba(255,70,70,0.95)";
+  ctx.fillText((p.ok ? "OK " : "FAIL ") + p.edge + " s=" + p.scale, p.roadEdgeX - 4, inst.y - 2);
+  ctx.restore();
 }
 
 // A falling vada pav: golden bun (bottom), green-chutney bun-top, a little
@@ -1210,6 +1423,26 @@ const CONFIG = {
     camLerp: 5,     // camera follow rate (higher = tighter)
     aheadBias: 0.7, // fraction of spawns that come from ahead (run direction)
     cullDist: 1.6,  // enemies further than this many screens get re-fielded ahead
+  },
+  // ENVIRONMENTAL EDGE PROPS — asset-fed Tier-4 passive decoration that lives
+  // OUTSIDE the protected playable road. Every value here is PROVISIONAL and
+  // exists to be tuned; nothing about placement is hardcoded in scene code.
+  // Session 46 = the first controlled single-asset runtime placement test.
+  edgeProps: {
+    on: true,
+    test: true,        // deterministic single-asset test placement (Session 46).
+                       // Set false to silence it; procedural placement is NOT
+                       // implemented yet — this is a test harness, not a system.
+    debug: false,      // dev-only overlay (road/buffer boundaries, bounds, pivot).
+                       // Live: __mr.config.edgeProps.debug = true
+    safetyBuffer: 3,   // design px OUTWARD from the road boundary that no
+                       // placement FOOTPRINT may cross. Pure clearance.
+    intrusionAllow: 8, // design px of purely-VISUAL overhang (canopy/awning, no
+                       // ground contact) permitted back over the road boundary.
+                       // Sells depth without narrowing play.
+    alpha: 1,          // the "quieter than gameplay" lever if a prop ever competes
+                       // with entities. Draw order (behind everything) does the
+                       // work today, so this stays at 1.
   },
 };
 
@@ -4814,6 +5047,16 @@ window.__mr = {
     CONFIG.corridor.on = !!v;
     if (state === "playing" && level) startLevel(level);
     return "corridor → " + CONFIG.corridor.on;
+  },
+  // Environmental edge props: the computed placement envelope per registered
+  // asset, plus the live test instances. Overlay the geometry with
+  // __mr.config.edgeProps.debug = true.
+  get edgeProps() {
+    const o = { instances: edgePropInstances(), placements: {} };
+    for (const k in EDGE_PROP_DEFS) {
+      o.placements[k] = { ...edgePlacement(k), ok: edgePlacement(k).ok, loaded: edgePropReady(k) };
+    }
+    return o;
   },
   // Authoring: overlay collision rects on the BG to align them to the art.
   get showBarriers() { return showBarriers; },

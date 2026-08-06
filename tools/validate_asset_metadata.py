@@ -152,6 +152,11 @@ def main():
             print(f"FAIL {rel(path)}: cannot read JSON: {e}")
             failed += 1
             continue
+        if not isinstance(data, dict):
+            # Not a per-asset record (e.g. an export manifest, which is a JSON
+            # array). Skip rather than crash on the shape.
+            print(f"SKIP {rel(path)}: not a metadata record object")
+            continue
         errors = validate_record(path, data)
         if errors:
             failed += 1
