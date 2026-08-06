@@ -11,7 +11,13 @@ this file owns game-specific context, constraints, and workflow. Treat it as pri
   (distance-gated waves, camera-locked boss duels), gated on `CONFIG.corridor.on`.
   The classic fixed arena lives on branch `arena-classic` / `__mr.setCorridor(false)`.
 - Vanilla JS + Canvas 2D, **zero dependencies**, single `game.js` + `index.html`.
-  Procedural art + Web Audio (no asset files). Installable PWA.
+  Web Audio, installable PWA.
+- **Art is asset-fed with a procedural fallback (since 2026-08-07).** Character
+  sprites load from `assets/sprites/`, environmental edge props from
+  `assets/props/` via `EDGE_PROP_DEFS`; the procedural kit (`DAY_ELEMENTS`,
+  `drawDayStreet`) still draws the road and fills whatever no asset claims. A
+  missing/404 asset never breaks the game — it just never draws. Placement is
+  owned by the segment composer, not by either system alone.
 - Its **OWN git repo**, gitignored from hq-secondbrain. Public via GitHub Pages.
   NOT an Obsidian vault → skip the wiki-link / `#tag` / INDEX conventions here.
 

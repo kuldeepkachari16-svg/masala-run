@@ -19,6 +19,47 @@ How to drive and verify Masala Run headlessly, plus the `__mr` debug API.
 Proven flows: full delivery route, both bosses, zone-2 auto-advance, arena flip
 (`setCorridor(false)`), death path — with screenshots read at each step.
 
+## Fallback: raw CDP driver (2026-08-07)
+
+Use when playwright is unavailable or the Claude-in-Chrome extension bridge
+fails. Both happened in the Session 46/47 runs — the extension returned
+`Cannot access a chrome-extension:// URL of different extension` on every call.
+
+**Do not use `--headless --virtual-time-budget` for anything that needs frames.**
+Virtual time will not service `requestAnimationFrame`-awaiting promises, so the
+game loop never advances: cached segment tiles are never built, `__mr` state
+reads come back empty, and screenshots show a pre-first-frame page. It only
+works for a page that finishes its work in timers.
+
+What works — talk to Chrome directly over the DevTools protocol:
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --headless=new --disable-gpu --no-sandbox --force-device-scale-factor=1 \
+  --hide-scrollbars --remote-debugging-port=9333 \
+  --window-size=640,1080 --user-data-dir=<scratch>/chrome-prof about:blank &
+```
+
+Then drive it from Node (26+ has a built-in `WebSocket`, so there is no
+dependency to install): `GET http://127.0.0.1:9333/json/list` for the page
+target, connect to its `webSocketDebuggerUrl`, and use `Page.enable` /
+`Runtime.enable` / `Page.navigate` / `Runtime.evaluate` (with
+`awaitPromise: true, returnByValue: true`) / `Page.captureScreenshot`. Subscribe
+to `Runtime.exceptionThrown` and `Runtime.consoleAPICalled` to assert zero
+console errors. This gives real rAF frames, so `await raf()` loops behave.
+
+**Cropping screenshots to the design rect:** the viewport is not the play area.
+Read `__mr.layout` (`offX`, `offY`, `scale`) and `__mr.dims` (`W`, `H`), then
+crop `(offX, offY) → (offX + W*scale, offY + H*scale)`. Skipping this silently
+clips the right edge — exactly where environmental props live.
+
+**Wait for the camera, don't count frames.** Headless `dt` is small, so a fixed
+frame count will not converge a `camLerp` follow. Either poll until
+`|cam.y - target| < 1` with an iteration cap, or hold `player.y` every frame
+while settling.
+
+`--user-data-dir` grows to ~150 MB; put it in scratch and delete it after.
+
 ## `__mr` debug API
 
 Actions:
@@ -32,7 +73,12 @@ Actions:
 - `config` — live handle on `CONFIG` (device-side tuning)
 
 Getters: `player`, `enemies`, `foods`, `build`, `boons`, `sprites`, `flavor`,
-`barriers`, `hazards`, `mods`, `powers`, `cam`,
-`route` (routeLen / startY / goalY / progress / waveGates).
+`barriers`, `hazards`, `mods`, `powers`, `cam`, `layout` (offX/offY/scale/dpr),
+`dims` (W/H), `route` (routeLen / startY / goalY / progress / waveGates),
+`edgeProps` (asset-fed prop placement envelopes + test instances),
+`edgeComposer` (per-segment edge claims, rejects with reasons, budget usage).
+
+Edge-prop / composer debug overlay: `__mr.config.edgeProps.debug = true`
+(off by default; draws per frame in world space, never into a cached tile).
 
 Gotcha: `W` is the fixed design width (480), **not** `canvas.width`.
