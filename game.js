@@ -548,6 +548,27 @@ const DAY_ELEMENTS = {
     g.restore();
   },
 };
+// Vertical footprint of each procedural element, read off the draw code above and
+// expressed in units of the placement scale `s` (the elements are authored in a
+// 72-unit space that `s` maps to design px). The segment composer needs this to
+// de-conflict the procedural deck against authored production props — it cannot
+// measure a canvas draw call.
+//   up/down — extent above / below the element's ground contact (baseY)
+//   weight  — visual weight, spent against the per-segment budget
+//   anchor  — a MAJOR silhouette (own the segment) vs. a filler
+//   rngDraws — how many rng() the draw fn consumes. A rejected candidate burns
+//     exactly this many, so the seeded stream is IDENTICAL whether or not the
+//     element draws: de-confliction is a pure subtraction and never reshuffles
+//     the rest of the segment.
+const DAY_ELEMENT_EXTENT = {
+  stall: { up: 45, down: 9, weight: 3, anchor: true,  rngDraws: 1 },
+  cart:  { up: 72, down: 9, weight: 3, anchor: true,  rngDraws: 1 },
+  crate: { up: 28, down: 8, weight: 2, anchor: false, rngDraws: 1 },
+  pot:   { up: 30, down: 6, weight: 1, anchor: false, rngDraws: 0 },
+  plant: { up: 29, down: 6, weight: 1, anchor: false, rngDraws: 0 },
+  dog:   { up: 23, down: 5, weight: 1, anchor: false, rngDraws: 0 },
+  cat:   { up: 32, down: 5, weight: 1, anchor: false, rngDraws: 0 },
+};
 
 // Draw the whole day street for the current level (seeded, stable per level).
 function drawDayStreet(g, w, h) {
@@ -685,22 +706,54 @@ function drawCorridorSegment(g, w, h, idx) {
     const cwY = h * (0.3 + rng() * 0.4), lane = w - 2 * mw - 28, seg = lane / 6;
     for (let i = 0; i < 6; i++) g.fillRect(mw + 14 + i * seg, cwY, seg - 10, 40);
   }
-  // Edge props: same deck-shuffle kit as the arena street, seeded per segment.
+  // Edge props: same deck-shuffle kit as the arena street, seeded per segment —
+  // but now COMPOSED. Production props claim their edge intervals first (below),
+  // and every procedural candidate is tested against those claims plus the
+  // per-edge budget before it is allowed to draw. A rejected candidate burns the
+  // rng draws it would have used, so the seeded stream is byte-identical to the
+  // pre-composer build and the rest of the segment is untouched.
   const s = ((CONFIG.propMarginFrac || 0.15) * w) / 72;
+  const comp = { idx, y0: idx * h, y1: (idx + 1) * h, left: newEdgeState(), right: newEdgeState() };
+  const budget = CONFIG.edgeProps.budget;
+  if (CONFIG.edgeProps.on) for (const c of productionClaims(idx)) addClaim(comp[c.edge], c);
   const pool = ["stall", "cart", "crate", "pot", "plant"];
   const deck = () => { const d = pool.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; [d[i], d[j]] = [d[j], d[i]]; } return d; };
-  const place = (cx, startPhase) => {
+  // Try one procedural element at segment-local `ly`. Returns whether it drew.
+  const tryPlace = (edge, kind, cx, ly) => {
+    const ext = DAY_ELEMENT_EXTENT[kind];
+    const wy = idx * h + ly; // claims are world y — a prop may straddle a joint
+    const cand = { id: kind + "@" + Math.round(wy), source: "procedural", kind, edge,
+                   y0: wy - ext.up * s, y1: wy + ext.down * s,
+                   minGapBefore: budget.minGap, minGapAfter: budget.minGap,
+                   priority: ext.anchor ? 3 : 4, anchor: ext.anchor, weight: ext.weight };
+    if (!CONFIG.edgeProps.on || edgeAdmits(comp[edge], cand, ext, budget)) {
+      DAY_ELEMENTS[kind](g, cx, ly, s, rng);
+      if (CONFIG.edgeProps.on) addClaim(comp[edge], cand);
+      return true;
+    }
+    for (let i = 0; i < ext.rngDraws; i++) rng(); // keep the stream identical
+    return false;
+  };
+  const place = (edge, cx, startPhase) => {
     let y = (0.05 + startPhase) * h, d = deck();
     while (y < 0.95 * h) {
       if (!d.length) d = deck();
-      DAY_ELEMENTS[d.pop()](g, cx, y, s, rng);
+      tryPlace(edge, d.pop(), cx, y);
       y += (0.16 + rng() * 0.16) * h;
     }
   };
-  place(0, rng() * 0.12);
-  place(w, rng() * 0.12);
-  if (rng() < 0.45) DAY_ELEMENTS.dog(g, rng() < 0.5 ? mw * 0.5 : w - mw * 0.5, (0.2 + rng() * 0.7) * h, s);
-  if (rng() < 0.45) DAY_ELEMENTS.cat(g, rng() < 0.5 ? mw * 0.5 : w - mw * 0.5, (0.2 + rng() * 0.7) * h, s);
+  place("left", 0, rng() * 0.12);
+  place("right", w, rng() * 0.12);
+  // The stray dog + cat sit inside the margin rather than on the edge column, but
+  // they still share the edge with a production prop — so they compose too. The
+  // rng draws below mirror the original inline argument evaluation exactly.
+  for (const pet of ["dog", "cat"]) {
+    if (rng() >= 0.45) continue;
+    const leftSide = rng() < 0.5;
+    const py = (0.2 + rng() * 0.7) * h;
+    tryPlace(leftSide ? "left" : "right", pet, leftSide ? mw * 0.5 : w - mw * 0.5, py);
+  }
+  lastSegComposition = comp;
   if (zoneNight) {
     const lr = mw * 1.9;
     for (let y = 0.14 * h; y < h; y += 0.3 * h) {
@@ -714,15 +767,43 @@ function drawCorridorSegment(g, w, h, idx) {
     }
   }
 }
-function corridorSegSprite(idx) {
-  const key = level + ":" + idx + ":" + W + ":" + (zoneNight ? "n" : "d");
-  let c = segCache.get(key);
-  if (!c) {
-    c = makeSprite(W, CONFIG.corridor.tileH, (g) => drawCorridorSegment(g, W, CONFIG.corridor.tileH, idx));
+// Set by drawCorridorSegment as it builds a tile, then claimed by the cache entry
+// below. The composer runs INSIDE the tile build (it shares the tile's rng), so
+// this is how the resolved claims escape to the debug overlay and __mr.
+let lastSegComposition = null;
+// A cached tile now carries { canvas, comp }. The key gains a composition
+// signature so a moved production claim or a live budget change rebuilds the tile
+// instead of serving art composed against stale claims. The DEBUG flag is
+// deliberately absent from the key: all composer diagnostics draw per-frame in
+// world space, never into a tile, so debug can never contaminate the cache.
+function segCacheKey(idx) {
+  return level + ":" + idx + ":" + W + ":" + (zoneNight ? "n" : "d") + ":" + segCompositionSig(idx);
+}
+function corridorSegEntry(idx) {
+  const key = segCacheKey(idx);
+  let e = segCache.get(key);
+  if (!e) {
+    lastSegComposition = null;
+    const canvas = makeSprite(W, CONFIG.corridor.tileH, (g) => drawCorridorSegment(g, W, CONFIG.corridor.tileH, idx));
+    e = { canvas, comp: lastSegComposition };
     if (segCache.size > 8) segCache.delete(segCache.keys().next().value);
-    segCache.set(key, c);
+    segCache.set(key, e);
   }
-  return c;
+  return e;
+}
+function corridorSegSprite(idx) { return corridorSegEntry(idx).canvas; }
+// Resolved composition for an already-built segment, or null. Read-only — never
+// forces a tile build, so inspecting it cannot perturb the cache.
+function segComposition(idx) {
+  const e = segCache.get(segCacheKey(idx));
+  return e ? e.comp : null;
+}
+function visibleSegIdx() {
+  const th = CONFIG.corridor.tileH;
+  const out = [];
+  if (!corridorOn() || !routeLen) return out;
+  for (let i = Math.max(0, Math.floor(cam.y / th)); i <= Math.floor((cam.y + H) / th); i++) out.push(i);
+  return out;
 }
 
 // Route base + furniture + hazard patches for the camera band. Runs inside the
@@ -769,6 +850,7 @@ function drawCorridorWorld() {
   // gameplay layer (hazards, drains, food, bullets, entities) — decoration never
   // occludes play. See the edge-prop section below.
   drawEdgeProps();
+  drawComposerDebug();
   // Hazard patches in view (pre-rendered sprites — see buildHazards).
   for (const z of hazards) {
     if (!z.sprite || z.y + z.ry < cam.y - 40 || z.y - z.ry > cam.y + H + 40) continue;
@@ -982,6 +1064,160 @@ function drawEdgePropDebug(p, inst) {
   ctx.textAlign = "right";
   ctx.fillStyle = p.ok ? "rgba(90,230,140,0.95)" : "rgba(255,70,70,0.95)";
   ctx.fillText((p.ok ? "OK " : "FAIL ") + p.edge + " s=" + p.scale, p.roadEdgeX - 4, inst.y - 2);
+  ctx.restore();
+}
+
+// ---------- Segment composer (shared edge-placement ownership) ----------
+// The Session 46 problem: production props and the procedural DAY_ELEMENTS deck
+// placed content independently, so a procedural plant landed on the cart canopy.
+// Neither could see the other's space. This is the shared owner.
+//
+// THE MODEL IS ONE-DIMENSIONAL, ON PURPOSE. Both systems pin to the same column
+// on each edge — the procedural deck centres its elements ON the screen edge
+// (cx = 0 / cx = W) and production props anchor to the safety buffer — so their
+// horizontal spans always overlap. The only axis with any freedom is vertical.
+// A claim is therefore a vertical interval on one edge, and de-confliction is an
+// interval test. No rect packer, no constraint solver.
+//
+// Claims live in WORLD y (not segment-local) so a production prop straddling a
+// tile joint de-conflicts correctly on both tiles.
+//
+// Priority is fixed, and is the whole point of the layer:
+//   1. protected road + safety buffer   (geometry, not a claim — see edgePlacement)
+//   2. authored production edge props   (claim first, never yield)
+//   3. major procedural anchors         (stall / cart)
+//   4. smaller procedural fillers       (crate / pot / plant)
+function newEdgeState() {
+  return { claims: [], rejects: [], anchors: 0, elements: 0, weight: 0, occupied: 0 };
+}
+
+// Production props intersecting segment `idx`, as claims. Derived from the same
+// edgePlacement() envelope the renderer draws with, so a claim can never drift
+// from what is on screen. The claim uses MEASURED VISUAL BOUNDS, never the
+// original transparent canvas — the canvas is 1582 px tall for a 625 px cart.
+function productionClaims(idx) {
+  const cfg = CONFIG.edgeProps;
+  const th = CONFIG.corridor.tileH;
+  const segY0 = idx * th, segY1 = segY0 + th;
+  const out = [];
+  for (const inst of edgePropInstances()) {
+    const p = edgePlacement(inst.key);
+    if (!p) continue;
+    const vis = p.bounds.visual;
+    const y0 = inst.y + vis.y0, y1 = inst.y + vis.y1;
+    // Breathing space: a share of the prop's own visual height, floored so small
+    // props still get a real gap. This is what keeps decoration off the canopy.
+    const gap = Math.max(cfg.budget.minGap, (y1 - y0) * cfg.budget.gapMul);
+    if (y1 + gap < segY0 || y0 - gap > segY1) continue;
+    out.push({
+      id: inst.key, source: "production", edge: p.edge,
+      y0, y1, minGapBefore: gap, minGapAfter: gap, priority: 2,
+      anchor: true, weight: 3,
+    });
+  }
+  return out;
+}
+
+// Does this edge admit a candidate interval? Two independent gates, in this
+// order on purpose: OVERLAP first (the hard correctness constraint — this is
+// what stops a plant landing on the cart canopy), then the budget (a soft
+// density ceiling). Order matters for the recorded reason: when both would
+// reject, the reason reported is the one that actually means something.
+// A rejection is always recorded, never silent.
+function edgeAdmits(st, cand, ext, budget) {
+  const reject = (why) => { st.rejects.push({ ...cand, kind: cand.kind, why }); return false; };
+  for (const c of st.claims) {
+    // Each side's own gap applies and the larger wins, so a production prop's
+    // generous breathing space is never eroded by a greedy neighbour.
+    const gap = Math.max(c.minGapAfter || 0, c.minGapBefore || 0, budget.minGap);
+    if (cand.y0 < c.y1 + gap && cand.y1 > c.y0 - gap) return reject("overlap:" + c.id);
+  }
+  if (st.elements >= budget.maxElements) return reject("maxElements");
+  if (ext.anchor && st.anchors >= budget.maxAnchors) return reject("maxAnchors");
+  if (st.weight + ext.weight > budget.maxWeight) return reject("maxWeight");
+  const h = cand.y1 - cand.y0;
+  if (st.occupied + h > budget.maxOccupancy * CONFIG.corridor.tileH) return reject("maxOccupancy");
+  return true;
+}
+function addClaim(st, claim) {
+  st.claims.push(claim);
+  st.elements++;
+  st.weight += claim.weight || 1;
+  st.occupied += claim.y1 - claim.y0;
+  if (claim.anchor) st.anchors++;
+}
+
+// Signature of everything a cached segment tile's COMPOSITION depends on beyond
+// its existing seed. Folded into the tile cache key so a live config change or a
+// moved production claim rebuilds the tile instead of serving stale art.
+function segCompositionSig(idx) {
+  const cfg = CONFIG.edgeProps;
+  if (!cfg.on) return "off";
+  const b = cfg.budget;
+  const claims = productionClaims(idx)
+    .map((c) => c.edge[0] + Math.round(c.y0) + "_" + Math.round(c.y1))
+    .sort().join(",");
+  return (claims || "-") + "|" + b.maxAnchors + "," + b.maxElements + "," +
+    b.maxWeight + "," + b.maxOccupancy + "," + b.gapMul + "," + b.minGap;
+}
+
+// Composer diagnostics. Dev-only (CONFIG.edgeProps.debug, default false) and
+// drawn PER FRAME in world space — never into a segment tile, so it cannot
+// contaminate the tile cache. Runs inside the corridor world transform.
+//   amber bar = production claim   ·   blue bar = accepted procedural claim
+//   pale band = that claim's reserved gap   ·   red tick = rejected candidate
+function drawComposerDebug() {
+  if (!CONFIG.edgeProps.debug || !CONFIG.edgeProps.on) return;
+  const m = laneMargin() || CONFIG.edgeWalls.w * W;
+  ctx.save();
+  ctx.font = "8px monospace";
+  for (const i of visibleSegIdx()) {
+    const comp = segComposition(i);
+    if (!comp) continue;
+    // Segment identity + boundary.
+    ctx.setLineDash([2, 6]); ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.30)";
+    ctx.beginPath(); ctx.moveTo(0, comp.y0); ctx.lineTo(W, comp.y0); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.textAlign = "center"; ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fillText("SEG " + i, W / 2, comp.y0 + 10);
+    for (const edge of ["left", "right"]) {
+      const st = comp[edge], isLeft = edge === "left";
+      // Bars sit just INSIDE the road boundary so they stay legible against the
+      // props they describe. Ownership reads off which side of the road they hug.
+      const barX = isLeft ? m + 4 : W - m - 10, gapX = isLeft ? m : W - m - 14;
+      for (const c of st.claims) {
+        const prod = c.source === "production";
+        const gap = Math.max(c.minGapBefore || 0, c.minGapAfter || 0);
+        ctx.fillStyle = prod ? "rgba(255,200,60,0.15)" : "rgba(90,170,255,0.11)";
+        ctx.fillRect(gapX, c.y0 - gap, 14, (c.y1 - c.y0) + gap * 2);
+        ctx.fillStyle = prod ? "rgba(255,200,60,0.95)" : "rgba(90,170,255,0.9)";
+        ctx.fillRect(barX, c.y0, 6, c.y1 - c.y0);
+        ctx.textAlign = isLeft ? "left" : "right";
+        ctx.fillText(prod ? "PROD" : c.kind, isLeft ? barX + 9 : barX - 3, c.y0 + 8);
+      }
+      for (const r of st.rejects) {
+        const my = (r.y0 + r.y1) / 2;
+        ctx.strokeStyle = "rgba(255,70,70,0.85)"; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(isLeft ? m + 2 : W - m - 14, my); ctx.lineTo(isLeft ? m + 16 : W - m, my);
+        ctx.stroke();
+        ctx.textAlign = isLeft ? "left" : "right";
+        ctx.fillStyle = "rgba(255,70,70,0.9)";
+        ctx.fillText("x " + r.kind + " " + r.why, isLeft ? m + 19 : W - m - 17, my + 3);
+      }
+      // Budget usage for this edge of this segment.
+      const b = CONFIG.edgeProps.budget;
+      ctx.textAlign = isLeft ? "left" : "right";
+      ctx.fillStyle = "rgba(200,220,255,0.75)";
+      ctx.fillText(
+        edge.toUpperCase() + " a" + st.anchors + "/" + b.maxAnchors +
+        " e" + st.elements + "/" + b.maxElements +
+        " w" + st.weight + "/" + b.maxWeight +
+        " o" + Math.round(100 * st.occupied / CONFIG.corridor.tileH) + "%",
+        isLeft ? 4 : W - 4, comp.y0 + 22);
+    }
+  }
   ctx.restore();
 }
 
@@ -1443,6 +1679,28 @@ const CONFIG = {
     alpha: 1,          // the "quieter than gameplay" lever if a prop ever competes
                        // with entities. Draw order (behind everything) does the
                        // work today, so this stays at 1.
+    // Per-segment, per-edge density ceiling for the segment composer. Production
+    // props spend from the SAME budget as procedural elements — that is the whole
+    // mechanism by which decoration thins out around an authored prop.
+    //
+    // CALIBRATED TO THE SHIPPED LOOK, NOT TO TASTE. The procedural ladder deals
+    // 3–6 elements per edge per segment from a 5-card deck (weights 3/3/2/1/1),
+    // giving natural maxima of 6 elements, 13 weight, 3 anchors and ~0.40
+    // occupancy. Every ceiling below sits AT that natural maximum, so a
+    // procedural-only segment composes exactly as it did before this layer
+    // existed — no silent thinning of the playtested corridor. A production claim
+    // (1 element, weight 3, 1 anchor, ~0.11 occupancy) is what pushes its edge
+    // over the line and costs the deck roughly one element near the prop.
+    // All PROVISIONAL.
+    budget: {
+      maxAnchors: 3,      // major silhouettes (stall / cart / production prop)
+      maxElements: 6,     // total placements on one edge of one segment
+      maxWeight: 13,      // visual-weight ceiling (see DAY_ELEMENT_EXTENT)
+      maxOccupancy: 0.45, // max share of the segment's edge height that may be
+                          // claimed — the breathing-gap and asymmetry guarantee
+      gapMul: 0.35,       // production breathing space, × the prop's visual height
+      minGap: 10,         // design px floor between any two claims on one edge
+    },
   },
 };
 
@@ -5057,6 +5315,29 @@ window.__mr = {
       o.placements[k] = { ...edgePlacement(k), ok: edgePlacement(k).ok, loaded: edgePropReady(k) };
     }
     return o;
+  },
+  // Segment composer: the resolved edge claims for every segment currently on
+  // screen — production props, accepted procedural elements, rejected candidates
+  // and budget usage. This is the ground truth the tile was actually drawn from,
+  // read straight out of the cache entry (never rebuilds a tile).
+  get edgeComposer() {
+    const out = { tileH: CONFIG.corridor.tileH, budget: CONFIG.edgeProps.budget, segments: [] };
+    const side = (st) => ({
+      anchors: st.anchors, elements: st.elements, weight: st.weight,
+      occupied: +st.occupied.toFixed(1),
+      occupancy: +(st.occupied / CONFIG.corridor.tileH).toFixed(3),
+      claims: st.claims.map((c) => ({
+        id: c.id, source: c.source, kind: c.kind, priority: c.priority,
+        y0: +c.y0.toFixed(1), y1: +c.y1.toFixed(1),
+        gapBefore: +(c.minGapBefore || 0).toFixed(1), gapAfter: +(c.minGapAfter || 0).toFixed(1),
+      })),
+      rejects: st.rejects.map((r) => ({ kind: r.kind, why: r.why, y0: +r.y0.toFixed(1), y1: +r.y1.toFixed(1) })),
+    });
+    for (const i of visibleSegIdx()) {
+      const c = segComposition(i);
+      if (c) out.segments.push({ idx: i, y0: c.y0, y1: c.y1, left: side(c.left), right: side(c.right) });
+    }
+    return out;
   },
   // Authoring: overlay collision rects on the BG to align them to the art.
   get showBarriers() { return showBarriers; },
