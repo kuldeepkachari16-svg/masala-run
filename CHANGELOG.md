@@ -1,5 +1,76 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 51 continued: new left source unblocks Test C, two latent engine bugs fixed
+The Session 51 blocker below (wrong-handedness left master) is resolved. PM
+supplied a freshly generated render with the correct opposite handedness
+(`ChatGPT Image Aug 7, 2026, 08_56_59 PM.png`) — confirmed by visual
+inspection: display case on the high-x side of its own canvas, gas cylinder +
+handle on the low-x side, the mirror of the right master, matching the
+correctly-authored umbrella-cart left/right pair. Processed and registered as
+`mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.png` (v001/v002
+kept, unmodified, as the rejected-orientation record).
+- **Processing (measured, not copied from the other masters' params — this
+  source responds differently):** cropped to alpha-bbox + 48px padding
+  (729×640 canvas); alpha-cleaned (dust 2,005→1,108, no baked shadow found);
+  found and fixed a hygiene defect unique to this source — fully-transparent
+  pixels carried a baked olive-tinted RGB instead of neutral `(0,0,0,0)` like
+  every other production PNG in the family, a real risk of a colour-fringe
+  when the browser downsamples the sprite (~7x scale-down at `heightPx: 88`);
+  style-corrected lightly (saturation ×0.73, contrast ×0.92 — this source was
+  already close to the family's flattened target, so the aggressive
+  mean-shift pass the other two masters needed was deliberately skipped to
+  avoid over-flattening below the family norm). Geometry measured directly
+  (not proportionally copied): footprint `(146,498)-(642,591)` converged from
+  two independent methods (alpha-column scan at y=480/500, and the right
+  master's 82.9%-down-visual-height convention) landing on the same numbers.
+- **Two engine bugs found and fixed** — both invisible until this session
+  because every previously-registered production prop was `edge:"right"`:
+  1. `edgePlacement()`'s `roadIntrusion`/`intr` calculation used
+     `visualBounds.x0` unconditionally; correct only for a right-edge prop.
+     Fixed to use the edge-conditional road-facing side (`x0` for right,
+     `x1` for left), matching the already-edge-aware `roadFacingX` a few
+     lines below it.
+  2. Deeper bug: `sx()` (the source-px → design-px mapping every bound is
+     built from) multiplied by a `dir` term that reverses x-order for
+     `edge:"left"`, but `drawEdgeProps()`'s actual `ctx.drawImage()` call
+     never mirrors the sprite (positive width, plain translate, by explicit
+     design — runtime mirroring is prohibited). Every left-edge bound was
+     being computed as though the sprite were drawn mirrored when it never
+     is. First symptom: `footprintClear` failed by ~77px even though the
+     drawn sprite was correctly oriented on screen. Fixed by removing the
+     `dir` multiplier from `sx()` so the math matches the always-order-
+     preserving draw. Verified byte-identical right-master output
+     before/after (dir=+1 made the multiplier a no-op there — zero
+     regression risk for the shipped right-edge props).
+- **Test A (standalone left, new `testKey` value):** `footprintClear: true`,
+  `intrusionOk: true` (roadIntrusion 6.16/8px), correct visual orientation
+  confirmed by screenshot (service/display renders toward the road edge,
+  handle/cylinder correctly bleed off-canvas toward the city), composer claim
+  de-conflicts left-edge procedural candidates (`overlap:mumbai_vadapav_cart_
+  fixed_canopy_left` reject observed), day and night both clean, zero console
+  errors, two fresh loads byte-identical.
+- **Test C (opposing edges, new `CONFIG.edgeProps.testC` flag, default
+  `false`):** left (6.16px) and right (7.04px) both `ok: true` simultaneously;
+  independent edge budgets confirmed (left `a2/3 e4/6 w9/13 o30%`, right
+  `a2/3 e4/6 w9/13 o30.1%`, separate claim/reject lists, zero cross-edge
+  leakage); road-centre stays clear with no tunnel/gateway effect (the two
+  carts sit at slightly different heights with different proportions — an
+  honest artifact of two independently-authored source images, not forced
+  symmetry); day and night both clean, zero console errors; two fresh loads
+  plus a simulated camera walk byte-identical; `segCompositionSig()` correctly
+  differentiates single-key / Test B / Test C configurations and reproduces
+  the original composition on revert.
+- **Session 50 regression:** re-verified — right-edge Test B (chai counter +
+  vada-pav cart) unaffected, both claims still admitted through `edgeAdmits()`.
+- **Not flipped live by default:** `CONFIG.edgeProps.testC` stays `false` and
+  the new metadata record stays `status: "review"` (not `"approved"`) —
+  the art itself hasn't had a PM sign-off pass yet, same gate Session 48/50
+  used for the right master before Session 50 flipped it live.
+- **Files:** `game.js` (2 bug fixes + new `EDGE_PROP_DEFS` entry + `testC`
+  harness), `assets/props/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_
+  1x_v003.png` (new), its metadata (new), `mumbai_prop_vadapav_cart_fixed_
+  canopy_left_neutral_1x_v002.json` (traceability tag only).
+
 ## 2026-08-07 — Session 51: fixed-canopy left master fails orientation validation — Test C blocked
 Objective was opposing-edge Test C (corrected fixed-canopy cart on both the left
 and right edges of the same segment). Part 1 (inspect the left master before

@@ -959,6 +959,49 @@ const EDGE_PROP_DEFS = {
     // composer exercise — not retuned per-asset without evidence either needs it.
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
+  // Mumbai vada-pav cart, fixed canopy, dedicated LEFT-edge master. Session 51:
+  // the original left source (v001/v002) had the SAME handedness as the right
+  // master instead of the mirror-opposite a left master needs, and was rejected
+  // (see mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v002.json notes
+  // for the full evidence trail) — this def points at v003, a freshly sourced
+  // render with the correct opposite handedness (service/display on the HIGH-x
+  // side of its own canvas, storage/handle on the LOW-x side). Bounds MEASURED
+  // from the delivered PNG (own geometry, not mirrored/copied from the right def).
+  mumbai_vadapav_cart_fixed_canopy_left: {
+    src: "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.png",
+    city: "mumbai",
+    edge: "left",
+    canvas: { w: 729, h: 640 },
+    // Same physical cart archetype as the right master — same heightPx for
+    // visual parity between the two edges. Tune here and nowhere else.
+    heightPx: 88,
+    tall: true,
+    // visual_bounds — the COMPLETE visible silhouette at alpha ≥ 32: canopy,
+    // supports, counter, display case, storage, wheel, gas cylinder, handle.
+    visualBounds: { x0: 48, y0: 48, x1: 680, y1: 591 },
+    // placement_footprint — the PHYSICAL ground footprint only, identified by an
+    // alpha-column scan of the cleaned PNG: the stable body+wheel band starts
+    // where the canopy/counter overhang and the floating handle appendage both
+    // drop out (y≈480-500 gave the same x-range independently, (147,642) and
+    // (146,642)), landing at the same 82.9%-down-the-visual-height line the
+    // right master's footprint sits at. Canopy overhangs right of the wheels
+    // (service/display side) and the handle floats left of the body — neither
+    // touches the ground, same asymmetry as the right master, mirrored.
+    footprint: { x0: 146, y0: 498, x1: 642, y1: 591 },
+    // crop_safe_bounds — silhouette plus the 48 px transparent padding the
+    // export contract requires; this PNG was cropped to exactly this, so it
+    // equals the full canvas.
+    cropSafe: { x0: 0, y0: 0, x1: 728, y1: 639 },
+    // Pivot: road_facing_ground_contact_centre, matching alignTo:
+    // road_facing_edge_right. x sits on the road-facing (RIGHT) boundary of the
+    // footprint — the mirror of the right master's pivot, which sits on ITS
+    // road-facing (left) boundary. y sits on the front-most ground contact.
+    pivot: { x: 642, y: 591 },
+    // PROVISIONAL spacing, carried from the right master's def for family
+    // consistency — not exercised by a single-asset test any more than the
+    // right master's was.
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
 };
 const EDGE_PROP_IMGS = {};
 function loadEdgeProps() {
@@ -996,8 +1039,24 @@ function edgePlacement(key) {
   const m = laneMargin() || CONFIG.edgeWalls.w * W;
   const dir = d.edge === "right" ? 1 : -1;         // +1 = city lies to the right
   const roadEdgeX = d.edge === "right" ? W - m : m;
-  const pivotX = roadEdgeX + dir * cfg.safetyBuffer;
-  const sx = (u) => pivotX + dir * (u - pv.x) * s; // source px → design px
+  const pivotX = roadEdgeX + dir * cfg.safetyBuffer; // outward offset — dir is
+                                                      // correct here, direction
+                                                      // is genuinely edge-specific.
+  // source px → design px. Session 51 bug fix: this used to multiply by `dir`,
+  // which REVERSES source-x order for a left edge (low source-x -> high design-x).
+  // drawEdgeProps() never does that — ctx.drawImage() always uses a positive
+  // width (canvas.w * s) and a plain translate, by design (runtime mirroring is
+  // prohibited; see the EDGE_PROP_DEFS header comment), so the actually-drawn
+  // pixels NEVER reverse order regardless of edge. With the `dir` multiplier,
+  // every left-edge bound (visualBounds/footprint/cropSafe/roadIntrusion/
+  // footprintClear) was computed as if the sprite were mirrored on screen when
+  // it never is — invisible until Session 51 registered the first left-edge
+  // prop (mumbai_vadapav_cart_fixed_canopy_left): its whole footprint measured
+  // as shoved onto the road side of the pivot instead of straddling outward
+  // from it, and footprintClear failed by ~77px even though the actual drawn
+  // sprite is correctly oriented. sx() must match the draw: order-preserving,
+  // unconditionally.
+  const sx = (u) => pivotX + (u - pv.x) * s;
   const rect = (r) => ({
     x0: Math.min(sx(r.x0), sx(r.x1)), x1: Math.max(sx(r.x0), sx(r.x1)),
     y0: (r.y0 - pv.y) * s, y1: (r.y1 - pv.y) * s, // relative to the pivot's ground line
@@ -1005,8 +1064,17 @@ function edgePlacement(key) {
   const vis = rect(vb), foot = rect(fp), crop = rect(cs);
   // Everything road-side of the pivot: the canopy overhang. This is the asset's
   // ACTUAL reach toward the road; cfg.intrusionAllow is the permitted maximum.
-  const intr = rect({ x0: Math.min(vb.x0, pv.x), y0: vb.y0, x1: Math.max(vb.x0, pv.x), y1: vb.y1 });
-  const roadIntrusion = Math.abs(pv.x - vb.x0) * s;
+  // roadFacingVisX is the source-px edge of the visual silhouette that faces the
+  // road — x0 for a right master, x1 for a left one (Session 51: a left-edge
+  // master's road-facing structure sits on the HIGH-x side of its own canvas,
+  // the mirror of a right master's LOW-x side — see roadFacingX below, which
+  // this must agree with). Fixed in Session 51: this used to be hardcoded to
+  // vb.x0 unconditionally, which happened to work only because every prop
+  // registered before the left vada-pav cart was edge:"right"; for a left
+  // master it silently measured cityward bleed instead of roadward intrusion.
+  const roadFacingVisX = d.edge === "right" ? vb.x0 : vb.x1;
+  const intr = rect({ x0: Math.min(roadFacingVisX, pv.x), y0: vb.y0, x1: Math.max(roadFacingVisX, pv.x), y1: vb.y1 });
+  const roadIntrusion = Math.abs(pv.x - roadFacingVisX) * s;
   const footRoadX = d.edge === "right" ? foot.x0 : foot.x1;
   const fw = (fp.x1 - fp.x0) * s;
   return {
@@ -1058,6 +1126,20 @@ function edgePropInstances() {
   // A third of a screen up from the pickup point: on screen from the first frame
   // of the route, next to the courier — the Contract §8 approval gate's framing.
   const baseY = startY - Math.round(H * 0.32);
+  if (cfg.testC) {
+    // Session 51: opposing-edge test — the corrected cart on left (v003) and
+    // right (v002) at once. Left and right are independent composer state
+    // (comp.left / comp.right, separate claims/budgets — see newEdgeState()),
+    // so there is no shared claim list to space the two instances against each
+    // other; both can sit at the same world y.
+    const left = EDGE_PROP_DEFS.mumbai_vadapav_cart_fixed_canopy_left;
+    const right = EDGE_PROP_DEFS.mumbai_vadapav_cart_fixed_canopy_right;
+    if (!left || !right) return [];
+    return [
+      { key: "mumbai_vadapav_cart_fixed_canopy_left", y: baseY },
+      { key: "mumbai_vadapav_cart_fixed_canopy_right", y: baseY },
+    ];
+  }
   if (cfg.testB) {
     const cart = EDGE_PROP_DEFS.mumbai_vadapav_cart_fixed_canopy_right;
     const chai = EDGE_PROP_DEFS.mumbai_chai_counter_shallow_awning_right;
@@ -1751,6 +1833,13 @@ const CONFIG = {
                        // console flag — draws BOTH the vada-pav cart and the chai
                        // counter (hand-spaced, see edgePropInstances()). Set
                        // false to fall back to the single-asset testKey harness.
+    testC: false,      // Session 51: opposing-edge test — draws the corrected
+                       // vada-pav cart on BOTH the left (v003) and right (v002)
+                       // edges of the same segment. Off by default (no PM
+                       // sign-off yet on the new left source); live-switchable
+                       // via __mr.config.edgeProps.testC. Takes priority over
+                       // testB when both are true, since they'd otherwise both
+                       // try to own the right-edge cart slot.
     testKey: "mumbai_vadapav_cart_fixed_canopy_right", // which ONE registered
                        // EDGE_PROP_DEFS entry the harness draws when testB is
                        // false. Live-switchable: __mr.config.edgeProps.testKey.

@@ -1,0 +1,70 @@
+{
+  "id": "mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003",
+  "city": "mumbai",
+  "category": "prop",
+  "dimensions": {
+    "width": 729,
+    "height": 640,
+    "unit": "px"
+  },
+  "collision": {
+    "type": "none",
+    "solid": false
+  },
+  "placementWeight": 0,
+  "placementRules": {
+    "allowedZones": [
+      "non_playable_edge_left"
+    ],
+    "blockedZones": [
+      "safety_buffer",
+      "playable_road"
+    ],
+    "minSpacing": 0,
+    "alignTo": "road_facing_edge_right",
+    "notes": "Session 51: dedicated left-edge master sourced from a freshly generated render (not derived from v001/v002, which had the wrong handedness). Measured dimensions/anchor/footprint below are real Session-51 controlled measurements, not disabled-draft sentinels. minSpacing/placementWeight stay 0 for the same reason as the right master: no procedural pool exists, this record must not enter a runtime pool on its own — the composer weight used at runtime comes from productionClaims() in game.js, not from this field."
+  },
+  "anchor": {
+    "x": 642,
+    "y": 591,
+    "origin": "custom"
+  },
+  "lightingCompatibility": [],
+  "biomeCompatibility": [
+    "mumbai"
+  ],
+  "tags": [
+    "source_brief_pab_mumbai_envprop_vada_pav_cart_v1",
+    "family_mumbai_prop_vadapav_cart_v001",
+    "subcategory_street_commerce_food_cart",
+    "gameplay_tier_4",
+    "variant_fixed_canopy",
+    "orientation_left_edge",
+    "orientation_class_c_dedicated_master",
+    "service_direction_right",
+    "city_direction_left",
+    "road_facing_edge_right",
+    "city_facing_edge_left",
+    "runtime_mirroring_prohibited",
+    "pivot_road_facing_ground_contact_centre",
+    "micro_cluster_anchor",
+    "transparent_background_required",
+    "creative_direction_approved",
+    "version_3",
+    "supersedes_v001",
+    "supersedes_v002",
+    "session_51_new_source",
+    "orientation_corrected",
+    "alpha_dust_cleaned",
+    "transparent_pixels_neutralized",
+    "painterly_contrast_reduced",
+    "geometry_measured_session_51",
+    "left_test_a_passed",
+    "test_c_opposing_edge_passed",
+    "day_palette_validated",
+    "night_palette_validated_no_glow",
+    "pending_pm_review"
+  ],
+  "status": "review",
+  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1, left-edge fixed-canopy master, THIRD attempt. Session 51 rejected v001/v002 (source 'image-gen-1(14).png') for having the SAME handedness as the right master (service/display on the low-x side, storage/handle on the high-x side of the canvas) instead of the mirror-opposite a left master needs - see v002's notes for the full evidence trail. This v003 is sourced from a newly generated render ('ChatGPT Image Aug 7, 2026, 08_56_59 PM.png', supplied 2026-08-07) with the CORRECT opposite handedness confirmed by visual inspection: display case / bowl / QR placard sit on the high-x (right) side of the canvas, gas cylinder + tow-bar handle sit on the low-x (left) side - matching the right master's mirror image, and matching the correctly-authored umbrella-cart left/right pair in the same brief. Processing pipeline (measured, not copied from the fixed-canopy right/left v002 params - this source responds differently): (1) Cropped from the raw 1024x1536 source to alpha>=32 bbox (189,497)-(821,1040) plus 48px transparent padding on all sides, producing a 729x640 canvas with the silhouette at (48,48)-(680,591), matching the family's crop-safe-padding convention. (2) Alpha cleanup: Gaussian-smoothed (sigma 1.5) alpha>=200 core, dilated 4px, original alpha kept inside that mask and zeroed outside - removed sub-alpha-8 dust from 2,005 to 1,108 residual (legitimate edge AA). No baked ground-contact shadow was found under the wheels in this source (unlike the rejected v001/v002), so no shadow-specific removal was needed. (3) Found and fixed a genuine hygiene defect this source had that the others didn't: fully-transparent (alpha=0) pixels carried a baked olive-tinted RGB vignette instead of neutral (0,0,0,0) like every other production PNG in this family (verified against the right master, which is uniformly (0,0,0,0) at alpha=0) - left uncorrected this risks a colour-tinted fringe when the browser downsamples the sprite at runtime (heightPx 88 against a 640px-tall source is a ~7x scale-down). Fixed by zeroing RGB wherever the cleaned alpha mask is 0. (4) Style: measured BEFORE any correction (Laplacian-std texture 35.1, greyscale-contrast std 47.9, mean HSV saturation 116.3) and found this source already close to the right master's CORRECTED target (46.0 / 43.7 / 85) on texture and contrast - applying the same aggressive pyrMeanShiftFiltering used on the other two masters would have over-flattened it below the family's norm. Applied a lighter, source-appropriate correction instead: saturation x0.73, contrast x0.92, no mean-shift/bilateral pass. Measured AFTER: texture 35.5 (essentially unchanged - already below the 46.0 family target, an honest source difference, not a processing gap), contrast 44.1 (vs 43.7 target - close match), saturation 84.1 (vs 85 target - close match). Silhouette bbox unchanged before/after correction (48,48)-(680,591), confirming no crop/structural drift from the colour pass. (5) Geometry measured directly from the cleaned PNG's alpha channel (Session-46-style controlled pass, not proportionally copied): visualBounds = full alpha>=32 silhouette (48,48)-(680,591). footprint = the stable ground-level body+wheel band identified by alpha-column scan at y=480/500 (147-642 / 146-642, essentially identical, confirming a real structural edge rather than a sampling artifact) combined with the same 82.9%-down-the-visual-height convention the right master's footprint sits at - both methods converged on (146,498)-(642,591) independently, which is the evidence this is a measured value, not a guess. cropSafe = visualBounds +/-48px = full canvas (0,0)-(728,639). pivot = road_facing_ground_contact_centre: x = footprint's road-facing (right, high-x) boundary = 642, matching alignTo: road_facing_edge_right; y = footprint.y1 = 591 (ground line), matching the right master's pivot.y = footprint.y1 convention exactly. heightPx set to 88, matching the right master exactly - same physical cart archetype, both edges should read as the same real-world size. IMPORTANT - Session 51 also found and fixed a latent engine bug this asset exposed: edgePlacement()'s roadIntrusion formula in game.js used visualBounds.x0 unconditionally, which is only correct for right-edge props (where x0 IS the road-facing side); for a left-edge prop the road-facing side is x1, and the old formula would have measured cityward bleed (~96px) instead of roadward intrusion (~6px) - see CHANGELOG.md and the game.js diff for the fix. This had never been exercised before because every previously-registered production prop was edge:'right'. A SECOND, deeper engine bug was found while diagnosing why the first fix still left footprintClear failing by ~77px: edgePlacement()'s sx() coordinate mapping multiplied by a `dir` term that reverses source-x order for edge:'left' (dir=-1), but drawEdgeProps() never mirrors the actual sprite (ctx.drawImage always uses a positive width and a plain translate, by explicit design - runtime mirroring is prohibited) - so every left-edge bound was being computed as if the sprite were drawn mirrored when it never is. Fixed by removing the `dir` multiplier from sx() so the metadata math matches the always-order-preserving draw; verified the right master's placement output is byte-identical before/after (dir=+1 made the multiplier a no-op there, so zero regression risk). Registered as EDGE_PROP_DEFS.mumbai_vadapav_cart_fixed_canopy_left and run through Session 51 Test A (standalone) and Test C (opposing edges with the right master): footprintClear true, intrusionOk true (roadIntrusion 6.16/8px), composer claim correctly de-conflicts left-edge procedural candidates (one reject observed, 'overlap:mumbai_vadapav_cart_fixed_canopy_left'), day and night render clean with zero console errors, two fresh page loads plus a simulated camera walk produced byte-identical __mr.edgeComposer output, and segCompositionSig() correctly differentiated left-only/right-only/opposing-edge configurations then reproduced the original composition on revert. Session 50's right-edge Test B (chai counter + vada-pav cart) re-verified unaffected. Not yet PM-reviewed for visual/creative sign-off - status held at 'review', not 'approved', and CONFIG.edgeProps.testC defaults to false (opt-in only) pending that review, following the same gate Session 48/50 used for the right master. Supersedes mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v001 and v002, both kept unmodified on disk for traceability - they carry the wrong-handedness defect documented in v002's own notes, not a defect in this record."
+}
