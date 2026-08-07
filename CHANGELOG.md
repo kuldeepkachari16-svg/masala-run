@@ -1,5 +1,95 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 52: Production-Integration Gate 1 — gameplay playtest, PASS
+Objective was a gameplay-readability gate for the Sessions 46–51 environmental-
+prop pipeline, not another placement-engine test: does the validated Mumbai
+vada-pav cart (right v002 + left v003) and chai counter (right v001) stay
+visually subordinate during actual simulated play, not just in static
+screenshots? No redesign was in scope unless play exposed a real failure —
+none did, so **zero `game.js` changes this session** (confirmed: `git diff --
+game.js` empty throughout).
+- **Method:** browser extension bridge was unavailable this session, so drove
+  a real (non-virtual-time) headless Chrome over raw CDP — `__mr.tick(1/60)`
+  in batches + `requestAnimationFrame` awaits per the verification doc's
+  fallback recipe, with `player.x`/`player.y` set directly (a live object
+  reference via `__mr.player`) for deterministic positioning next to each
+  prop, plus held-key runs for organic movement/combat. `__mr.player.maxHp =
+  __mr.player.hp = 99` for survivability. Traversed Mumbai zone 1 (day) and
+  zone 4 (night, `nightZones`) at the shipped default (`testB`: right cart +
+  chai) and, temporarily via `__mr.config.edgeProps.testC = true` (reverted
+  after — a live-only flag flip, no code change), the opposing-edge left+right
+  cart configuration Session 51 validated technically but never exercised in
+  live movement/combat.
+- **Player/enemy/attack readability:** PASS in every scenario. The courier's
+  bright orange sprite and the grey/blue "Bland" enemies stay high-contrast
+  against the tan (day) / dark-purple (night) road and against the muted
+  green/teal production props; attack VFX (projectile + hit-glow) and food/XP
+  pickups read as the brightest, most saturated elements on screen in every
+  captured frame, ahead of any environmental prop. Screenshots taken with the
+  player standing directly beside the right cart, the chai counter, and (in
+  `testC`) the left cart, including mid-combat with a 13–31-enemy cluster
+  adjacent to the right cart — no silhouette confusion, no prop reading as
+  interactive/reward-like, in any frame.
+- **Road-centre clarity:** PASS. With both the left and right cart live
+  (`testC`) the centre lane stayed visually calm in a live-movement frame —
+  no tunnel/gateway effect, despite the two masters' honest size/proportion
+  mismatch (independently-authored sources, not forced symmetry, per Session
+  51).
+- **Density / repetition — a pilot-configuration finding, not a composer or
+  art defect:** `edgePropInstances()` places its production claims at a
+  single fixed world-y per level (`baseY`, derived from `startY`), so on a
+  4560px / ~800px-per-tile route only **one segment out of ~6** (segment
+  idx 4, confirmed via `__mr.edgeComposer`) carries any production prop —
+  every other segment on the route is procedural-only. This means the
+  props read as a once-per-zone landmark, not continuous scenery (mitigates
+  the "does it get exhausting at gameplay speed" concern), but it also means
+  this session could not exercise "repeated production placement across many
+  segments" as the brief asked — there is currently only one placed instance
+  per level to observe. Classification: **(4) current limited pilot
+  configuration** (the harness places one test instance, by design — "there
+  is no segment composer picking these" per the harness's own header
+  comment) — not a composer bug, not evidence the deterministic composition
+  is broken, not an asset-variety problem.
+- **Session 50 regression (re-verified via `__mr.edgeComposer` mid-play):**
+  both right-edge production claims (`mumbai_vadapav_cart_fixed_canopy_right`,
+  `mumbai_chai_counter_shallow_awning_right`) present and admitted; procedural
+  candidates correctly rejected around them (`overlap:mumbai_chai_counter_
+  shallow_awning_right` on a procedural cart, `overlap:mumbai_vadapav_cart_
+  fixed_canopy_right` on a procedural crate) — production-to-production and
+  production-to-procedural de-confliction both intact.
+- **Session 51 regression (re-verified via `__mr.edgeProps.placements` mid-
+  play, `testC` on):** left and right cart both `footprintClear: true`,
+  `intrusionOk: true`, `ok: true`, `mirrored: false` — genuine independent
+  left/right masters, no runtime mirroring, independent budgets, correct
+  bounds — simultaneously, under live movement, not just the static test
+  harness.
+- **Validation:** `node --check game.js` OK · `python3 tools/
+  validate_asset_metadata.py` OK (all registered records) · `python3 tools/
+  validate_asset_names.py` — pre-existing WARNs only, on legacy assets
+  outside this session's scope (`*-day.png`/`*-night.png` backdrops,
+  `bland.svg`/`courier.svg`), zero new warnings · `git diff --check` clean ·
+  zero console errors across the full day/night/testB/testC session (error
+  hook installed mid-session, none observed after).
+- **Not changed:** edge budgets, spacing multipliers, pivots, road-intrusion
+  limits, orientation/mirroring rules, cache semantics, RNG — gameplay
+  evidence never surfaced a problem, so per the session's own critical rule,
+  nothing was retuned. `CONFIG.edgeProps.testC` was flipped live only for the
+  duration of the in-session test and reverted to its shipped default
+  (`false`) before this entry was written.
+- **Docs-only:** `docs/art-production/ART_BIBLE.md`, `CITY_KITS.md`,
+  `PROCEDURAL_PLACEMENT.md`, `PROMPT_BIBLE.md`, `tools/validate_asset_names.py`,
+  and `assets/metadata/session45_export_manifest.json` /
+  `docs/art-production/PRODUCTION_ASSET_BRIEFS.md` were already modified/
+  untracked in the working tree at session start (Codex's concurrent art-
+  production lane) — left untouched, not swept into this session's commit.
+- **Decision — GATE 1: PASS.** The Mumbai environmental-prop production and
+  integration pilot is validated for controlled broader rollout. This is not
+  authorization for mass Mumbai generation or the Jaisalmer rollout — see
+  ROADMAP for the actual next gate (PM visual sign-off on the `testC` left
+  master, then the fresh-player fun/retention Gate-1, which this session does
+  not address).
+- **Files:** `CHANGELOG.md`, `ROADMAP.md` only.
+
 ## 2026-08-07 — Session 51 continued: new left source unblocks Test C, two latent engine bugs fixed
 The Session 51 blocker below (wrong-handedness left master) is resolved. PM
 supplied a freshly generated render with the correct opposite handedness

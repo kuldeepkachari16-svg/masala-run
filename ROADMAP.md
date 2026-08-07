@@ -15,9 +15,19 @@ Pre-pivot game preserved on branch `arena-classic` (+ live flag `__mr.setCorrido
 exploit felt, boss camera-lock reads natural; delivery bar defect fixed (`40f307d`).
 **Technical Asset Contract written** (`docs/art-production/TECHNICAL_ASSET_CONTRACT.md`)
 — includes the playable-width ruling (84% collision lane; env presence via edge
-bleed) + the in-game approval gate. **Owed next:** Gate-1 playtest with FRESH
-players on the corridor loop · corridor retune only if Gate-1 demands it · segment
-composer for asset-fed edge clusters (engine work, when approved art exists).
+bleed) + the in-game approval gate. Segment composer for asset-fed edge clusters
+shipped Sessions 46–51 (production-first ownership, procedural de-confliction,
+independent left/right budgets). **Production-Integration Gate 1 (2026-08-07,
+Session 52): PASSED** — distinct from the fresh-player fun/retention Gate-1
+below, still outstanding. This gate checked whether the validated Mumbai
+vada-pav cart (left + right) and chai counter stay visually subordinate and
+non-disruptive during actual simulated movement/combat: player/enemy/attack
+readability and road-centre clarity held in both day and night, for the
+default-live config (right cart + chai) and the opposing-edge config (left +
+right cart, `testC`) alike. No placement-engine change was warranted. Full
+report in `CHANGELOG.md`. **Owed next:** PM visual sign-off on the `testC`
+left-master art (same gate Session 48/50 used) before flipping it live;
+corridor retune only if further play demands it.
 
 ---
 
