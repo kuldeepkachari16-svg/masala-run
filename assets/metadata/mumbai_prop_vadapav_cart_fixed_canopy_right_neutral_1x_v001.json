@@ -52,8 +52,9 @@
     "creative_direction_approved",
     "repository_export_pending",
     "runtime_integration_pending",
-    "version_1"
+    "version_1",
+    "superseded_by_v002"
   ],
-  "status": "draft",
-  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1. dimensions and anchor are now MEASURED from the delivered binary (Session 46, 2026-08-07): canvas 1120x1582; silhouette 226,432-950,1057 at alpha>=32; footprint 276,950-876,1057; pivot 276,1057 = road_facing_ground_contact_centre. NOTE: the session45 export manifest's visible_bounds_px [48,48,1072,1534] is a canvas-inset claim, not the silhouette - do not size from it. placementWeight 0 remains the disable sentinel: Test A (single-asset placement) passed, but mixed placement and the segment composer are pending, so this asset is NOT integrated into production. See docs/art-production/PROCEDURAL_PLACEMENT.md#test-a--single-asset."
+  "status": "deprecated",
+  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1. dimensions and anchor are now MEASURED from the delivered binary (Session 46, 2026-08-07): canvas 1120x1582; silhouette 226,432-950,1057 at alpha>=32; footprint 276,950-876,1057; pivot 276,1057 = road_facing_ground_contact_centre. NOTE: the session45 export manifest's visible_bounds_px [48,48,1072,1534] is a canvas-inset claim, not the silhouette - do not size from it. placementWeight 0 remains the disable sentinel: Test A (single-asset placement) passed, but mixed placement and the segment composer are pending, so this asset is NOT integrated into production. See docs/art-production/PROCEDURAL_PLACEMENT.md#test-a--single-asset. SESSION 48: superseded by mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002, which corrects the painterly rendering, contrast, baked contact shadow and 9,534 sub-alpha-8 dust pixels this binary carries. This v001 binary and record are kept, unmodified pixel-wise, for traceability - game.js now points at v002."
 }

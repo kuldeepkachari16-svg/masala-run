@@ -1,5 +1,49 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 48: runtime-style correction pilot, Mumbai vada-pav cart (fixed-canopy right)
+The Session 46/47 binary was technically integrated (Test A passed, composer
+de-conflicts a procedural plant) but too painterly/high-contrast for the flat
+retro game. Corrected it deterministically rather than re-generating.
+- **New production asset:** `mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002.png`
+  (+ metadata JSON). v001 kept on disk and in metadata, `status: deprecated`,
+  tagged `superseded_by_v002`, for traceability — nothing was overwritten.
+  `game.js` `EDGE_PROP_DEFS` now points `src` at v002.
+- **Pipeline (scipy + opencv + PIL, all local/deterministic, no re-gen):**
+  alpha cleanup keeps only the alpha≥200 core plus a 4px dilation (real AA
+  fringe) and zeroes everything else — removes the baked ground-contact shadow
+  and all 9,534 sub-alpha-8 dust pixels in one pass, confirmed by re-measuring
+  (0 stray dust outside the true silhouette afterward). Style: `cv2.pyrMeanShiftFiltering`
+  (sp=18, sr=45) flattens painterly gradients into broader colour regions, then
+  a light bilateral pass + PIL contrast ×0.78 / saturation ×0.75 / brightness
+  ×1.06. Measured: Laplacian-std texture 61.6→46.0, greyscale-contrast std
+  57.8→43.7, mean HSV saturation 136→85 (all inside the silhouette mask).
+- **Geometry untouched on purpose:** canvas stays 1120×1582, alpha≥32 bbox is
+  bit-identical (226,431)-(949,1056) before/after — only alpha and RGB moved,
+  never a crop/resize — so none of `EDGE_PROP_DEFS`' measured visualBounds /
+  footprint / cropSafe / pivot needed retuning.
+- **Runtime re-validation (headless Chrome via raw CDP, `docs/verification.md`
+  fallback recipe — playwright-core isn't installed here):** day (Z1) and the
+  Mumbai night zone (Z4, `nightZones:[4]`) both load with **zero console
+  errors/exceptions**. `__mr.edgeProps` reproduces the pre-recorded envelope
+  exactly — `ok:true`, `footprintClear:true`, `intrusionOk:true`, road
+  intrusion **7.04/8px**, `scale:0.1408`, `mirrored:false`, `edge:"right"`.
+  `__mr.edgeComposer` still rejects the overlapping procedural plant
+  (`why:"overlap:mumbai_vadapav_cart_fixed_canopy_right"`) — Session 47's
+  de-confliction is unaffected. Night: silhouette stays readable, no glow, no
+  baked-lighting clash, doesn't wash into the dark palette.
+- **Honest limit:** this is a raster filter pass, not a re-illustration. It
+  measurably reduces painterly noise/contrast/saturation but cannot add the
+  bold flat cel-shade outline the hand-drawn/procedural props use (see
+  `assets/props/mumbai-day.png`) — closing that last gap needs re-authoring,
+  not more filtering. Recorded as `status: review` (not `approved`) pending a
+  PM call on whether this is enough to proceed.
+- **Scope held:** no chai-counter integration, no Test B/C, no other vada-pav
+  masters touched, no procedural/road/camera/combat changes.
+- **Doc note:** `docs/art-production/PROCEDURAL_PLACEMENT.md` already carries
+  an uncommitted, non-contiguous Session 45 scaffold diff (two mid-file hunks,
+  no clean append point) — left untouched rather than risk mixing commits;
+  this write-up lives here instead.
+
 ## 2026-07-11 — THE PIVOT: fixed arena → scrolling corridor street (delivery routes)
 The game is now what the name promises: the courier **runs a route**. A zone is a
 vertical street ~6 screens long — pickup at the bottom, DELIVERY gate at the top —

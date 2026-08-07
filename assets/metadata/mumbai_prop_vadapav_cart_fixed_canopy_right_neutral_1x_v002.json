@@ -1,0 +1,66 @@
+{
+  "id": "mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002",
+  "city": "mumbai",
+  "category": "prop",
+  "dimensions": {
+    "width": 1120,
+    "height": 1582,
+    "unit": "px"
+  },
+  "collision": {
+    "type": "none",
+    "solid": false
+  },
+  "placementWeight": 0,
+  "placementRules": {
+    "allowedZones": [
+      "non_playable_edge_right"
+    ],
+    "blockedZones": [
+      "safety_buffer",
+      "playable_road"
+    ],
+    "minSpacing": 0,
+    "alignTo": "road_facing_edge_left",
+    "notes": "Session 48 runtime-style correction of v001. Canvas dimensions, silhouette bounding box, footprint and pivot are BIT-IDENTICAL to v001 (only alpha cleanup and RGB tone/texture were touched, no crop or resize), so the Session 46 measured geometry in EDGE_PROP_DEFS (game.js) carries over unchanged - no placement/road-intrusion values were retuned. minSpacing and placementWeight stay 0 for the same reason as v001: no procedural pool exists, this record must not enter a runtime pool on its own."
+  },
+  "anchor": {
+    "x": 276,
+    "y": 1057,
+    "origin": "custom"
+  },
+  "lightingCompatibility": [],
+  "biomeCompatibility": [
+    "mumbai"
+  ],
+  "tags": [
+    "source_brief_pab_mumbai_envprop_vada_pav_cart_v1",
+    "family_mumbai_prop_vadapav_cart_v001",
+    "subcategory_street_commerce_food_cart",
+    "gameplay_tier_4",
+    "variant_fixed_canopy",
+    "orientation_right_edge",
+    "orientation_class_c_dedicated_master",
+    "service_direction_left",
+    "city_direction_right",
+    "road_facing_edge_left",
+    "city_facing_edge_right",
+    "runtime_mirroring_prohibited",
+    "pivot_road_facing_ground_contact_centre",
+    "micro_cluster_anchor",
+    "transparent_background_required",
+    "creative_direction_approved",
+    "version_2",
+    "supersedes_v001",
+    "runtime_style_correction",
+    "session_48_pilot",
+    "alpha_dust_cleaned",
+    "contact_shadow_removed",
+    "painterly_contrast_reduced",
+    "geometry_identical_to_v001",
+    "day_palette_validated",
+    "night_palette_pending_pm_review"
+  ],
+  "status": "review",
+  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1, Session 48 runtime-style correction pilot. Source: v001 binary (mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v001.png), corrected via a deterministic local pipeline (scipy/opencv/PIL) - no re-generation, no redesign. Alpha: removed the baked ground-contact shadow and 9,534 sub-alpha-8 dust pixels by keeping only alpha>=200 core plus a 4px dilation (real antialiasing fringe), zeroing everything else; measured alpha>=32 bbox is IDENTICAL before/after (226,431)-(949,1056), so EDGE_PROP_DEFS visualBounds/footprint/cropSafe/pivot in game.js needed no changes. Style: cv2.pyrMeanShiftFiltering (sp=18, sr=45) flattened painterly gradients into broader colour regions, followed by a light bilateral pass and PIL contrast x0.78 / saturation x0.75 / brightness x1.06. Measured effect: Laplacian-std texture 61.6->46.0 (-25%), greyscale contrast std 57.8->43.7 (-24%), mean HSV saturation 136->85 (-38%). Honest limit: this is a raster filter pass, not a re-illustration - it cannot add the bold flat cel-shade outline the existing procedural/hand-drawn game props use (see assets/props/mumbai-day.png), so full stylistic parity with those props still requires re-authoring, not further filtering. Status is 'review' (not 'approved') pending PM sign-off on whether the reduced-but-still-painterly result is good enough to proceed, and pending a night-palette visual call (Test A day passed at runtime; night was checked for readability/no-clash, not a full approval loop). See docs/art-production/PRODUCTION_ASSET_BRIEFS.md and CHANGELOG.md for the Session 48 write-up."
+}

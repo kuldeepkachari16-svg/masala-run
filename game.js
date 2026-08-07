@@ -878,8 +878,12 @@ const EDGE_PROP_DEFS = {
   // session-45 export manifest's visible_bounds [48,48,1072,1534] is a nominal
   // canvas-inset claim, not the silhouette — the real silhouette is far tighter
   // and sits high-left in the canvas. Trust these numbers, not the manifest.
+  // Session 48: src repointed to the style-corrected v002 binary (deterministic
+  // alpha cleanup + tone flattening). Canvas size and every bound below are
+  // BIT-IDENTICAL to v001 — v002 only touched pixel alpha/colour, never crop or
+  // scale — so none of the measured numbers changed.
   mumbai_vadapav_cart_fixed_canopy_right: {
-    src: "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v001.png",
+    src: "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002.png",
     city: "mumbai",
     edge: "right",
     canvas: { w: 1120, h: 1582 },
