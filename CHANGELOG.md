@@ -1,5 +1,33 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 48 follow-up 2: same style-correction pipeline applied to both umbrella carts
+Third and fourth of the four vada-pav masters corrected — all four now share
+the same treatment. Correction-only, no runtime integration (same reasoning
+as the fixed-canopy left master).
+- **New assets:** `mumbai_prop_vadapav_cart_umbrella_open_cart_{left,right}_neutral_1x_v002.png`
+  (+ metadata). v001s kept, `status: deprecated`, `superseded_by_v002`.
+- **Same defect family confirmed:** baked ground-contact shadow on both
+  (alpha-channel inspection) + dust (left 3,910 sub-8 px, right 3,384).
+  Painterly rendering was, if anything, more extreme here — the striped
+  umbrella canopy was the single most saturated element in the whole
+  vada-pav family.
+- **Same pipeline, same parameters** as the fixed-canopy corrections
+  (Gaussian-smoothed alpha≥200 core + 4px Euclidean dilation for cleanup;
+  `cv2.pyrMeanShiftFiltering` sp=18/sr=45 + light bilateral + contrast ×0.78
+  / saturation ×0.75 / brightness ×1.06 for style). No per-asset retuning
+  needed — both responded well at the same settings.
+- **Measured:** left — texture 72.4→55.7, contrast 64.8→49.4, saturation
+  152→97. Right — texture 72.1→55.7, contrast 64.1→48.6, saturation 153→99.
+  Largest saturation drop of the four assets, as expected from the umbrella.
+- **Bbox:** both tightened ~3px at the bottom only (shadow blend zone) —
+  wheels/spokes/umbrella ribs/gas cylinder all confirmed intact visually.
+  Smaller shift than the fixed-canopy left master (13px) — these two had a
+  cleaner shadow/object boundary.
+- **Not done (same as the fixed-canopy left master):** no placement/pivot
+  measurement, no `EDGE_PROP_DEFS` entry, no runtime test, `game.js`
+  untouched. All four vada-pav masters are now style-corrected; none except
+  the fixed-canopy right master has been placement-tested.
+
 ## 2026-08-07 — Session 48 follow-up: same style-correction pipeline applied to fixed-canopy LEFT master
 Same treatment as the right master, on request, kept narrow: pixel correction
 only, no runtime integration.

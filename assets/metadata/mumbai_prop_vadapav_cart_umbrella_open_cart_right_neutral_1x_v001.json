@@ -1,0 +1,60 @@
+{
+  "id": "mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v001",
+  "city": "mumbai",
+  "category": "prop",
+  "dimensions": {
+    "width": 0,
+    "height": 0,
+    "unit": "px"
+  },
+  "collision": {
+    "type": "none",
+    "solid": false
+  },
+  "placementWeight": 0,
+  "placementRules": {
+    "allowedZones": [
+      "non_playable_edge_right"
+    ],
+    "blockedZones": [
+      "safety_buffer",
+      "playable_road"
+    ],
+    "minSpacing": 0,
+    "alignTo": "road_facing_edge_left",
+    "notes": "Disabled draft. Service faces left; structural depth extends right. Spacing awaits binary bounds and controlled placement testing."
+  },
+  "anchor": {
+    "x": 0,
+    "y": 0,
+    "origin": "custom"
+  },
+  "lightingCompatibility": [],
+  "biomeCompatibility": [
+    "mumbai"
+  ],
+  "tags": [
+    "source_brief_pab_mumbai_envprop_vada_pav_cart_v1",
+    "family_mumbai_prop_vadapav_cart_v001",
+    "subcategory_street_commerce_food_cart",
+    "gameplay_tier_4",
+    "variant_umbrella_open_cart",
+    "orientation_right_edge",
+    "orientation_class_c_dedicated_master",
+    "service_direction_left",
+    "city_direction_right",
+    "road_facing_edge_left",
+    "city_facing_edge_right",
+    "runtime_mirroring_prohibited",
+    "pivot_road_facing_ground_contact_centre",
+    "micro_cluster_anchor_or_secondary_anchor",
+    "transparent_background_required",
+    "creative_direction_approved",
+    "repository_export_pending",
+    "runtime_integration_pending",
+    "version_1",
+    "superseded_by_v002"
+  ],
+  "status": "deprecated",
+  "notes": "Prepared metadata template for PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1. Zero dimensions, zero custom-anchor coordinates, zero spacing, and placementWeight 0 are disabled draft sentinels, not validated production measurements. Binary export and final directory are absent. SESSION 48: superseded by mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v002, which applies the same style-correction pipeline used on the other three carts (alpha dust/shadow cleanup + painterly/contrast/saturation reduction). This v001 binary and record are kept, unmodified, for traceability. Still a disabled draft either way - no placement/measurement testing has been done for this master."
+}
