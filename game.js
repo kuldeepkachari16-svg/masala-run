@@ -896,11 +896,17 @@ const EDGE_PROP_DEFS = {
     city: "mumbai",
     edge: "right",
     canvas: { w: 1120, h: 1582 },
-    // PROVISIONAL. Drawn height of visual_bounds in design px. The `tall`
-    // archetype of the Technical Asset Contract §4 hero-scale law: courier = 70,
-    // tall props cap at ~120. 88 reads as a landmark the courier runs past
-    // without dwarfing them. Tune here and nowhere else.
-    heightPx: 88,
+    // PM feedback (2026-08-08, post-Gate-1): at 88 the visual silhouette bled
+    // ~58% of its width off the canvas edge (the pivot anchors near the road
+    // margin, so a taller sprite reaches further cityward past the fixed
+    // screen edge) — read as the cart being cut in half, not an intentional
+    // edge treatment. Dropped to 70, the courier-height floor: keeps the prop
+    // at-or-above player height (still the Technical Asset Contract §4
+    // hero-scale law's landmark rule — courier = 70, tall props cap at ~120)
+    // while cutting bleed to ~49%. Hitting a lower bleed % by scaling alone
+    // would require dropping below courier height (PM chose this over that).
+    // Tune here and nowhere else.
+    heightPx: 70,
     tall: true,
     // visual_bounds — the COMPLETE visible silhouette: canopy, supports, counter,
     // storage, wheels, handle, lower ground-contact edge.
@@ -934,10 +940,13 @@ const EDGE_PROP_DEFS = {
     city: "mumbai",
     edge: "right",
     canvas: { w: 699, h: 709 },
-    // Deliberately at-or-below the vada-pav cart's 88: Session 49 brief calls for
-    // this prop to read as visually quieter than, or at most comparable to, the
-    // corrected vada-pav cart. Tune here and nowhere else.
-    heightPx: 80,
+    // Deliberately at-or-below the vada-pav cart's heightPx (Session 49 brief:
+    // read as visually quieter than, or at most comparable to, the corrected
+    // cart). Dropped from 80 to 70 alongside the cart's own PM-directed
+    // bleed fix above — same courier-height floor, same reasoning: cuts this
+    // prop's edge bleed from ~49% to ~43% without going below player height.
+    // Tune here and nowhere else.
+    heightPx: 70,
     tall: true,
     // visual_bounds — complete visible silhouette at alpha ≥ 32: canopy, supports,
     // bulb, kettle, jars, counter body, side cloth, feet.
@@ -973,8 +982,10 @@ const EDGE_PROP_DEFS = {
     edge: "left",
     canvas: { w: 729, h: 640 },
     // Same physical cart archetype as the right master — same heightPx for
-    // visual parity between the two edges. Tune here and nowhere else.
-    heightPx: 88,
+    // visual parity between the two edges (kept in lockstep with the right
+    // master's PM-directed bleed fix above: 88 → 70, the courier-height
+    // floor). Tune here and nowhere else.
+    heightPx: 70,
     tall: true,
     // visual_bounds — the COMPLETE visible silhouette at alpha ≥ 32: canopy,
     // supports, counter, display case, storage, wheel, gas cylinder, handle.
@@ -1146,9 +1157,14 @@ function edgePropInstances() {
     if (!cart || !chai) return [];
     // Chai counter sits further up the route (smaller world y) than the cart,
     // separated by the larger of the two recSpacing values so neither claim's
-    // visual bounds can touch: cart span is [baseY-88, baseY]; the gap is
-    // measured from there, not from the pivot.
-    const cartHeight = cart.heightPx, gap = 161; // = max(cart, chai) recSpacing, both at their def'd heightPx
+    // visual bounds can touch: cart span is [baseY-heightPx, baseY]; the gap
+    // is measured from there, not from the pivot. Computed from edgePlacement()
+    // rather than a hardcoded constant — recSpacing scales with heightPx
+    // (Session 52 follow-up dropped both from 88/80 to 70), so a fixed number
+    // here would go stale the next time either prop's heightPx is tuned.
+    const cartHeight = cart.heightPx;
+    const gap = Math.max(edgePlacement("mumbai_vadapav_cart_fixed_canopy_right").recSpacing,
+                          edgePlacement("mumbai_chai_counter_shallow_awning_right").recSpacing);
     const chaiY = baseY - cartHeight - gap;
     return [
       { key: "mumbai_vadapav_cart_fixed_canopy_right", y: baseY },

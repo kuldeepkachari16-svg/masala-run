@@ -25,9 +25,16 @@ non-disruptive during actual simulated movement/combat: player/enemy/attack
 readability and road-centre clarity held in both day and night, for the
 default-live config (right cart + chai) and the opposing-edge config (left +
 right cart, `testC`) alike. No placement-engine change was warranted. Full
-report in `CHANGELOG.md`. **Owed next:** PM visual sign-off on the `testC`
-left-master art (same gate Session 48/50 used) before flipping it live;
-corridor retune only if further play demands it.
+report in `CHANGELOG.md`. **Session 53 follow-up (2026-08-08):** PM reacted
+to the Gate-1 screenshots directly — edge props were bleeding ~58% of their
+own width off the canvas edge, reading as cut in half rather than an
+intentional treatment. Cut to ~49% by dropping `heightPx` 88→70 (both cart
+masters) / 80→70 (chai counter) — the largest reduction that keeps every
+prop at-or-above the courier's own height (the Technical Asset Contract §4
+hero-scale "landmark" rule). Full frontier + reasoning in `CHANGELOG.md`.
+**Owed next:** PM visual sign-off on the `testC` left-master art (same gate
+Session 48/50 used) before flipping it live; corridor retune only if further
+play demands it.
 
 ---
 

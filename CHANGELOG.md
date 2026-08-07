@@ -1,5 +1,50 @@
 # Masala Run — Changelog
 
+## 2026-08-08 — Session 53: PM feedback on Session 52 screenshots — edge-prop bleed cut from ~58% to ~49%
+Direct PM reaction to the Gate-1 screenshots: the cart art reads as cut in
+half at the canvas edge, not an intentional treatment. Confirmed the math —
+at `heightPx: 88` the right cart's visual silhouette bled ~58% of its own
+width past the canvas edge (part of the physical footprint, not just
+decorative canopy overhang). Not a new defect: flagged as an open item after
+Session 51 ("author edge masters narrower or accept it as a known
+constant") and never resolved.
+- **Why pure scaling can't hit an arbitrary bleed target:** the pivot anchors
+  at a fixed x (the road margin + safety buffer), and the whole sprite scales
+  uniformly around it — so shrinking bleed % necessarily shrinks on-screen
+  height too, they're the same lever. Ran the frontier for the PM: hitting his
+  initial 25–30% ask meant `heightPx` dropping to ~48, which puts the cart
+  *below* the courier's own 70px height — breaking the Technical Asset
+  Contract §4 hero-scale "landmark" rule (tall props should read as
+  bigger-than-player, not smaller). PM chose the courier-height floor instead
+  once shown the numbers.
+- **Change:** `heightPx` dropped from 88→70 (both vada-pav cart masters,
+  left `_v003` and right `_v002`) and 80→70 (chai counter) — the largest
+  reduction that keeps every registered edge prop at-or-above player height.
+  Cuts bleed from ~58%→~49% (right cart), ~59%→~51% (left cart),
+  ~49%→~43% (chai counter). Verified via `__mr.edgeProps.placements`:
+  `footprintClear`/`intrusionOk`/`ok` still `true` for all three post-change;
+  `mirrored: false` unchanged (no mirroring introduced).
+- **One consequential fix, not scope creep:** the `testB` harness had a
+  hardcoded `gap = 161` (`= max(cart, chai) recSpacing` at the OLD
+  heightPx values) spacing the chai counter above the cart. Left as a magic
+  number it would have gone stale at the new scale and silently produced the
+  wrong gap. Replaced with `Math.max(edgePlacement(...).recSpacing, ...)`
+  computed live from both defs' current placement — correct at any future
+  `heightPx`, not just today's. Re-verified via `__mr.edgeComposer`: chai
+  claim `y1=3739.3`, cart claim `y0=3867`, gap 127.7 = the new (larger, since
+  both props are now smaller) computed `recSpacing` max — no overlap.
+- **No other tuning touched:** edge budgets, spacing multipliers/thresholds
+  themselves (only their scale-dependent output), road-intrusion allowance,
+  pivots, orientation/mirroring rules, cache semantics all unchanged.
+- **Re-verified day + night, `testB` (default) and `testC` (temporarily
+  flipped live for screenshot verification, reverted after — no code change
+  from the flag itself):** visually smaller, noticeably more of each prop
+  on-screen, player now reads taller than every registered edge prop, zero
+  console errors, geometry checks unchanged (`ok: true` across the board).
+- **Files:** `game.js` (3 `heightPx` values + their comments, 1 hardcoded
+  spacing constant replaced with a live computation), `sw.js` (cache
+  `v28`→`v29`, player-visible change), `CHANGELOG.md`, `ROADMAP.md`.
+
 ## 2026-08-07 — Session 52: Production-Integration Gate 1 — gameplay playtest, PASS
 Objective was a gameplay-readability gate for the Sessions 46–51 environmental-
 prop pipeline, not another placement-engine test: does the validated Mumbai
