@@ -1,0 +1,67 @@
+{
+  "id": "mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v002",
+  "city": "mumbai",
+  "category": "prop",
+  "dimensions": {
+    "width": 0,
+    "height": 0,
+    "unit": "px"
+  },
+  "collision": {
+    "type": "none",
+    "solid": false
+  },
+  "placementWeight": 0,
+  "placementRules": {
+    "allowedZones": [
+      "non_playable_edge_left"
+    ],
+    "blockedZones": [
+      "safety_buffer",
+      "playable_road"
+    ],
+    "minSpacing": 0,
+    "alignTo": "road_facing_edge_right",
+    "notes": "Disabled draft, same as v001. Service faces right; structural depth extends left. Spacing, anchor and visual/footprint bounds still await controlled placement testing (Session-46-equivalent measurement pass) - this record only carries the Session 48 style correction of the binary, not a placement approval. Zero dimensions/anchor are disabled-draft sentinels, not validated measurements."
+  },
+  "anchor": {
+    "x": 0,
+    "y": 0,
+    "origin": "custom"
+  },
+  "lightingCompatibility": [],
+  "biomeCompatibility": [
+    "mumbai"
+  ],
+  "tags": [
+    "source_brief_pab_mumbai_envprop_vada_pav_cart_v1",
+    "family_mumbai_prop_vadapav_cart_v001",
+    "subcategory_street_commerce_food_cart",
+    "gameplay_tier_4",
+    "variant_fixed_canopy",
+    "orientation_left_edge",
+    "orientation_class_c_dedicated_master",
+    "service_direction_right",
+    "city_direction_left",
+    "road_facing_edge_right",
+    "city_facing_edge_left",
+    "runtime_mirroring_prohibited",
+    "pivot_road_facing_ground_contact_centre",
+    "micro_cluster_anchor",
+    "transparent_background_required",
+    "creative_direction_approved",
+    "repository_export_pending",
+    "runtime_integration_pending",
+    "version_2",
+    "supersedes_v001",
+    "runtime_style_correction",
+    "session_48_pilot",
+    "alpha_dust_cleaned",
+    "contact_shadow_removed",
+    "painterly_contrast_reduced",
+    "orientation_unverified",
+    "placement_measurement_pending"
+  ],
+  "status": "draft",
+  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1, left-edge fixed-canopy master. Session 48 applied the same deterministic style-correction pipeline used for the right-edge master to this binary: source v001 canvas is 1120x1574 with alpha>=32 bbox (219,460)-(894,1071), including 10,482 sub-alpha-8 dust pixels and a baked ground-contact shadow under the wheels. Correction: alpha cleanup keeps only a Gaussian-smoothed alpha>=200 core plus a 4px Euclidean dilation (the raw alpha channel is grainy - +/-10-20 between neighbouring pixels even mid-gradient - so the smoothing pass was needed here to avoid a jagged threshold boundary; the right-edge master's cleaner alpha didn't need it, but the smoothed version was verified to reproduce that master's result bit-for-bit before use). Result: dust 10,482->0 outside the true silhouette (1,587 remaining are legitimate edge antialiasing, verified visually), contact shadow removed, alpha>=32 bbox becomes (219,460)-(894,1058) - a real ~13px shrink at the bottom, because this master's baked shadow blends continuously into the wheel's own contact shadow with no clean boundary; the removed region is the diffuse shadow gradient, not cart structure (verified visually - full wheel, tire, rim spokes, casters all intact). Style flattening: cv2.pyrMeanShiftFiltering (sp=18, sr=45) + light bilateral + PIL contrast x0.78 / saturation x0.75 / brightness x1.06 - same parameters as the right master, for family consistency. Measured: Laplacian-std texture 65.2->46.0, greyscale-contrast std 55.0->40.5, mean HSV saturation 125->69. IMPORTANT: this record is style-correction only, not a placement approval. Unlike the right master, this asset has NEVER been through a Session-46-style controlled measurement/placement test - dimensions/anchor stay at the disabled-draft 0/0 sentinel, and the metadata's own temporary_orientation_note (carried from v001) still flags that orientation may need refinement. Do not wire this into EDGE_PROP_DEFS or a runtime pool without that measurement pass first. Superseded from mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v001, which is kept unmodified on disk for traceability."
+}

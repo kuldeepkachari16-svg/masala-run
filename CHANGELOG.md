@@ -1,5 +1,38 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 48 follow-up: same style-correction pipeline applied to fixed-canopy LEFT master
+Same treatment as the right master, on request, kept narrow: pixel correction
+only, no runtime integration.
+- **New asset:** `mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v002.png`
+  (+ metadata). v001 kept, `status: deprecated`, `superseded_by_v002`.
+- **Same defects confirmed:** 10,482 sub-alpha-8 dust pixels + a baked
+  ground-contact shadow (alpha-channel inspection), same painterly/high-contrast
+  rendering as the right master.
+- **One pipeline refinement, applied here and regression-checked against the
+  right master:** this binary's raw alpha channel is noticeably grainier
+  (±10-20 between neighbouring pixels mid-gradient), so a hard `alpha>=200`
+  threshold produced a jagged silhouette edge. Fix: Gaussian-smooth alpha
+  (σ=1.5) before the threshold decision, then an isotropic (Euclidean, not
+  diamond) 4px dilation — kept alpha *values* for surviving pixels unchanged,
+  only cleaned up which pixels survive. Re-ran the right master through the
+  same smoothed path first: bbox and dust count reproduced its already-shipped
+  result, so this is a strict improvement, not a behaviour change for v001→v002
+  (right).
+- **Bbox note:** left master's alpha>=32 bbox shrank ~13px at the bottom
+  (`(219,460)-(894,1071)` → `(219,460)-(894,1058)`) because its baked shadow
+  blends continuously into the wheel's own contact shadow with no clean
+  boundary — confirmed visually that the removed region is shadow gradient,
+  not cart structure (wheel/tire/rim/casters all intact). Harmless here: this
+  master was never measured or wired into `EDGE_PROP_DEFS` (dimensions/anchor
+  are still the disabled-draft 0/0 sentinel, per its own
+  `temporary_orientation_note` — orientation itself is still unverified). Left
+  `game.js` untouched.
+- **Measured:** Laplacian-std texture 65.2→46.0, contrast std 55.0→40.5, mean
+  HSV saturation 125→69 — in line with the right master's correction.
+- **Not done (out of scope for "apply the pipeline"):** no placement/pivot
+  measurement, no `EDGE_PROP_DEFS` entry, no runtime test — this asset still
+  needs its own Session-46-equivalent controlled test before it can be placed.
+
 ## 2026-08-07 — Session 48: runtime-style correction pilot, Mumbai vada-pav cart (fixed-canopy right)
 The Session 46/47 binary was technically integrated (Test A passed, composer
 de-conflicts a procedural plant) but too painterly/high-contrast for the flat
