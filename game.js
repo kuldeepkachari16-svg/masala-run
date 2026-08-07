@@ -1027,24 +1027,43 @@ function edgePlacement(key) {
   };
 }
 
-// Session 46 controlled test: ONE deterministic instance, right edge, Mumbai.
-// This is a TEST HARNESS, not procedural placement — there is no segment
-// composer yet (Technical Asset Contract §10). `y` is a world y on the route.
-// Session 49: which single asset that one instance is now lives behind
-// cfg.testKey (default unchanged: the vada-pav cart) so a second registered
-// prop can be exercised standalone — via __mr.config.edgeProps.testKey — without
-// ever drawing two production assets at once. That is deliberate: this harness
-// stays single-asset-only until a real segment composer test is authorized.
+// Session 46 controlled test: deterministic instances, right edge, Mumbai. This
+// is a TEST HARNESS, not procedural placement — there is no segment composer
+// picking these (Technical Asset Contract §10). `y` is a world y on the route.
+// Session 49 generalized the single instance behind cfg.testKey. Session 50:
+// PM approved the style-correction pipeline and asked to move straight to a
+// mixed placement so it's visible without a console command — cfg.testB (now
+// the default) draws BOTH registered right-edge props at once, spaced by hand
+// using each def's own recSpacing (the composer doesn't cross-check production
+// claims against each other — see productionClaims()/addClaim() — so this
+// harness owns keeping them apart). testKey stays available for a narrower
+// single-asset check when that's what's needed instead.
 function edgePropInstances() {
   const cfg = CONFIG.edgeProps;
   if (!cfg.on || !cfg.test) return [];
   if (!corridorOn() || !routeLen || !level || nomMode) return [];
   if (curCity().key !== "mumbai") return [];
-  const key = cfg.testKey || "mumbai_vadapav_cart_fixed_canopy_right";
-  if (!EDGE_PROP_DEFS[key]) return [];
   // A third of a screen up from the pickup point: on screen from the first frame
   // of the route, next to the courier — the Contract §8 approval gate's framing.
-  return [{ key, y: startY - Math.round(H * 0.32) }];
+  const baseY = startY - Math.round(H * 0.32);
+  if (cfg.testB) {
+    const cart = EDGE_PROP_DEFS.mumbai_vadapav_cart_fixed_canopy_right;
+    const chai = EDGE_PROP_DEFS.mumbai_chai_counter_shallow_awning_right;
+    if (!cart || !chai) return [];
+    // Chai counter sits further up the route (smaller world y) than the cart,
+    // separated by the larger of the two recSpacing values so neither claim's
+    // visual bounds can touch: cart span is [baseY-88, baseY]; the gap is
+    // measured from there, not from the pivot.
+    const cartHeight = cart.heightPx, gap = 161; // = max(cart, chai) recSpacing, both at their def'd heightPx
+    const chaiY = baseY - cartHeight - gap;
+    return [
+      { key: "mumbai_vadapav_cart_fixed_canopy_right", y: baseY },
+      { key: "mumbai_chai_counter_shallow_awning_right", y: chaiY },
+    ];
+  }
+  const key = cfg.testKey || "mumbai_vadapav_cart_fixed_canopy_right";
+  if (!EDGE_PROP_DEFS[key]) return [];
+  return [{ key, y: baseY }];
 }
 
 // Runs inside the corridor world transform (already translated by -cam.y), so
@@ -1715,14 +1734,14 @@ const CONFIG = {
     test: true,        // deterministic single-asset test placement (Session 46).
                        // Set false to silence it; procedural placement is NOT
                        // implemented yet — this is a test harness, not a system.
+    testB: true,       // Session 50: PM approved the style-correction pipeline
+                       // and asked to see the mixed placement live, not behind a
+                       // console flag — draws BOTH the vada-pav cart and the chai
+                       // counter (hand-spaced, see edgePropInstances()). Set
+                       // false to fall back to the single-asset testKey harness.
     testKey: "mumbai_vadapav_cart_fixed_canopy_right", // which ONE registered
-                       // EDGE_PROP_DEFS entry the test harness draws. Session 49
-                       // registered a second asset (mumbai_chai_counter_shallow_
-                       // awning_right) without changing this default — switch
-                       // live via __mr.config.edgeProps.testKey to validate it
-                       // standalone. Never lists two keys: this harness is
-                       // single-asset by design until a real segment composer
-                       // test is authorized (that is Test B, not this).
+                       // EDGE_PROP_DEFS entry the harness draws when testB is
+                       // false. Live-switchable: __mr.config.edgeProps.testKey.
     debug: false,      // dev-only overlay (road/buffer boundaries, bounds, pivot).
                        // Live: __mr.config.edgeProps.debug = true
     safetyBuffer: 3,   // design px OUTWARD from the road boundary that no

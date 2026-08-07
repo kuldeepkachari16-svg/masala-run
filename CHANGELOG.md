@@ -1,5 +1,40 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 50: PM sign-off on style correction + Test B (mixed placement) live by default
+The Session 48/49 open question — "is the deterministic style-correction pass
+good enough to proceed?" — is resolved. PM reviewed a before/after (raw AI
+render vs. corrected) and an honest-gap comparison (corrected chai counter
+next to the game's actual native art) and approved: revamp is coming for the
+whole game's art direction eventually anyway, so further polishing these two
+edge props now isn't the priority — move to testing the mixed placement.
+- **Metadata:** `mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002.json`
+  and `mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.json`
+  both flipped `status: review` → `approved`. Night-palette call (open since
+  Session 48) resolved: no glow/wash clash.
+- **Test B implemented** (`edgePropInstances()` in `game.js`): the single-asset
+  test harness gained `CONFIG.edgeProps.testB` (new default: `true`) that draws
+  BOTH registered right-edge props at once instead of one behind `testKey`.
+  Positions are hand-spaced (the composer does not cross-check production
+  claims against each other, by design — `productionClaims()`/`addClaim()`
+  add them directly) using a 161 design-px gap, the larger of the two defs'
+  own `recSpacing` values. `testKey` stays available as a fallback for a
+  narrower single-asset check.
+- **Runtime-validated (raw CDP):** day (Z1) and Mumbai night (Z4), zero
+  console errors/exceptions in both. Composer confirms both production claims
+  register on segment 4's right edge with **zero overlap** — cart
+  `y0:3849,y1:3937`, chai `y0:3608,y1:3688`, a clean 161px gap between them,
+  matching the hand-computed spacing exactly. Deterministic across two fresh
+  runs. A combined proof screenshot (courier nudged further up the route so
+  both fall in the same camera window) confirms visually: no clipping into
+  each other, correct road-safe footprint for both, road stays fully open
+  between them, same result at night with no lighting clash.
+- **Why this default flipped (not just a config toggle for me to test):** the
+  PM asked to see it live without a console command — `testB: true` is now
+  the shipped default, so it's visible on a plain page load / GitHub Pages,
+  same as any other player-facing change.
+- **Scope:** no left chai-counter master (still doesn't exist), no opposing-
+  edge Test C, no changes to player/enemy/camera/road, no edge-budget changes.
+
 ## 2026-08-07 — Session 49: Mumbai chai-counter right master, extracted + corrected + runtime-validated standalone
 New environmental prop family (separate from vada-pav): a teal shallow-awning
 chai counter, right-edge master only. Full pipeline in one session — extraction,
