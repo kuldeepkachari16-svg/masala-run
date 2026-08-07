@@ -1,5 +1,87 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 49: Mumbai chai-counter right master, extracted + corrected + runtime-validated standalone
+New environmental prop family (separate from vada-pav): a teal shallow-awning
+chai counter, right-edge master only. Full pipeline in one session — extraction,
+Session-48-style correction, metadata, `EDGE_PROP_DEFS` registration, standalone
+day+night runtime Test A, composer de-confliction check. **No Test B** (mixed
+placement with the vada-pav cart) — explicitly out of scope, left for a PM call.
+- **Source:** a two-counter composite delivered by the PM (`chai_counter_composite.png`,
+  1536x1024 RGBA), kept outside the repo (`~/Documents/Working images/`) — not
+  committed as a runtime asset. Only the **right** (teal) counter was used; the
+  left reddish counter was not extracted and has no asset in this repo.
+- **Extraction:** the two counters were cleanly separable by connected-component
+  analysis on the composite's alpha channel — left component bbox x[70,750],
+  right (used) component bbox x[812,1445], a 62px fully-transparent gap between
+  them, **zero pixel overlap/contamination**. Isolated the right component,
+  discarding 3,836 stray dust px that belonged to neither counter.
+- **Same deterministic pipeline as Session 48** (scipy/opencv/PIL): Gaussian-
+  smoothed alpha (σ=1.5) → alpha≥200 core → 4px Euclidean dilation → zero
+  everything else. Removed a baked ground-contact shadow (soft low-alpha band,
+  mean alpha 22–125 tapering to 0 over ~16 rows, near-black RGB — same defect
+  family as all four vada-pav masters) and cut sub-alpha-8 dust from 942→347,
+  with the survivors confirmed contiguous AA fringe on a single connected
+  component (0 disconnected/stray, both before and after). Style: `cv2.pyrMeanShiftFiltering`
+  (sp=18, sr=45) + light bilateral + PIL contrast ×0.78 / saturation ×0.75 /
+  brightness ×1.06 — identical parameters to the vada-pav family, no retuning
+  needed. Measured (within the silhouette mask): texture (Laplacian std)
+  83.2→48.4 (−42%), contrast (greyscale std) 54.4→40.8 (−25%), saturation (mean
+  HSV S) 69.2→41.4 (−40%). Geometry bit-identical before/after the style pass.
+- **New production asset:** `mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.png`
+  (699×709, genuine RGBA, verified transparent corners) + metadata JSON,
+  `status: review`. Filename and metadata both pass `tools/validate_asset_names.py`
+  / `validate_asset_metadata.py`.
+- **Orientation verified, not assumed:** kettle spout points left toward the
+  jars/tins (service side), the counter box recedes/narrows to the right
+  (structural depth), side cloth and storage box sit left-of-centre — matches
+  the required right-edge convention with **no mirroring**. No ambiguity found;
+  nothing was silently flipped.
+- **Own measured geometry**, not copied from the vada-pav def: `visualBounds
+  {48,48}-{650,658}`, `footprint {83,580}-{606,658}`, `pivot {83,658}`,
+  `heightPx: 80` (below the vada-pav cart's 88, per the brief's "visually
+  quieter than, or at most comparable to" requirement). **Honest flag:** footprint.x0
+  (83) is a deliberately conservative measurement — the front-left foot and the
+  side cloth's lower drape sit within ~15px of each other and could not be
+  cleanly separated by alpha alone; the more-left (more-clearance-required)
+  value was kept rather than guessed tighter.
+- **Runtime registration reuses the existing single mechanism**, no parallel
+  system: added the new entry to `EDGE_PROP_DEFS`, and generalized
+  `edgePropInstances()` behind a new `CONFIG.edgeProps.testKey` (default
+  unchanged — still the vada-pav cart) so a second registered prop can be
+  exercised standalone via `__mr.config.edgeProps.testKey` without ever drawing
+  two production assets at once. Confirmed by regression check: an untouched
+  page load still places exactly the vada-pav cart, byte-identical envelope to
+  the already-shipped result (`roadIntrusion 7.04/8`, `ok:true`).
+- **Runtime validation (raw CDP, playwright-core unavailable here):** day (Z1)
+  and Mumbai night (Z4) both load with **zero console errors/exceptions**.
+  Placement envelope: `mirrored:false`, `footprintClear:true`, `intrusionOk:true`,
+  road intrusion **4.59/8px**, `scale:0.13115`, `loaded:true`. Composer
+  (`__mr.edgeComposer`) confirms the production claim registers on segment 4's
+  right edge (`y0:3857, y1:3937`) and correctly **rejects an overlapping
+  procedural "plant" candidate** (`why:"overlap:mumbai_chai_counter_shallow_awning_right"`)
+  while leaving non-conflicting procedural elements (crate/cart/pot/stall) on
+  the same edge untouched — the Session 47 de-confliction mechanism working
+  against a second registered asset. Determinism re-verified: two independent
+  fresh page loads produced byte-identical claim ordering. `debug` stays
+  `false` by default; no `Math.random()` was added anywhere in this change.
+  Night: bulb reads as a small warm dot, no baked glow/halo, teal body stays
+  visible against the dark palette, road centre stays dominant.
+- **vs. the corrected vada-pav cart (reference only, not a mixed test):**
+  smaller (heightPx 80 vs 88), similarly flattened texture/contrast/saturation
+  from the shared pipeline, reads as comparably "quiet" — screenshots taken
+  standalone at the same route position for visual comparison, never placed in
+  the same composer segment.
+- **Scope held:** no left chai-counter master, no Test B (mixed same-edge), no
+  Test C (opposing edge), vada-pav cart v002 and its metadata untouched, no
+  player/enemy/camera/road changes, no edge-budget changes, Art/Prompt Bibles
+  and City Kits untouched, no broader Mumbai asset generation. Pre-existing
+  uncommitted Codex-lane changes (`ART_BIBLE.md`, `CITY_KITS.md`,
+  `PROCEDURAL_PLACEMENT.md`, `PROMPT_BIBLE.md`, `tools/validate_asset_names.py`,
+  `session45_export_manifest.json`, `PRODUCTION_ASSET_BRIEFS.md`) were left
+  exactly as found — none of it staged or committed here.
+- **Not done (deliberately, per brief):** no Test B, no left master, no PM
+  approval yet — `status: review`, same as the vada-pav family.
+
 ## 2026-08-07 — Session 48 follow-up 2: same style-correction pipeline applied to both umbrella carts
 Third and fourth of the four vada-pav masters corrected — all four now share
 the same treatment. Correction-only, no runtime integration (same reasoning

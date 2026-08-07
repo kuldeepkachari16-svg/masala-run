@@ -1,0 +1,64 @@
+{
+  "id": "mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001",
+  "city": "mumbai",
+  "category": "prop",
+  "dimensions": {
+    "width": 699,
+    "height": 709,
+    "unit": "px"
+  },
+  "collision": {
+    "type": "none",
+    "solid": false
+  },
+  "placementWeight": 0,
+  "placementRules": {
+    "allowedZones": [
+      "non_playable_edge_right"
+    ],
+    "blockedZones": [
+      "safety_buffer",
+      "playable_road"
+    ],
+    "minSpacing": 0,
+    "alignTo": "road_facing_edge_left",
+    "notes": "Session 49: right-edge master, extracted and style-corrected from a two-counter source composite (left reddish counter discarded, not used). Measured, not copied from the vada-pav family: visualBounds/footprint/pivot below are this asset's own alpha-inspected geometry. minSpacing and placementWeight stay 0 for the same reason as the vada-pav records: no procedural pool exists yet, this record must not enter a runtime pool on its own."
+  },
+  "anchor": {
+    "x": 83,
+    "y": 658,
+    "origin": "custom"
+  },
+  "lightingCompatibility": [],
+  "biomeCompatibility": [
+    "mumbai"
+  ],
+  "tags": [
+    "family_mumbai_prop_chai_counter_v001",
+    "subcategory_street_commerce_chai_counter",
+    "gameplay_tier_4",
+    "variant_shallow_awning",
+    "orientation_right_edge",
+    "orientation_class_c_dedicated_master",
+    "service_direction_left",
+    "city_direction_right",
+    "road_facing_edge_left",
+    "city_facing_edge_right",
+    "runtime_mirroring_prohibited",
+    "pivot_road_facing_ground_contact_centre",
+    "transparent_background_required",
+    "version_1",
+    "runtime_style_correction",
+    "session_49",
+    "alpha_dust_cleaned",
+    "contact_shadow_removed",
+    "painterly_contrast_reduced",
+    "left_reddish_counter_excluded",
+    "day_palette_validated",
+    "night_palette_validated_no_glow",
+    "single_asset_test_only",
+    "mixed_test_b_not_yet_run"
+  ],
+  "status": "review",
+  "notes": "Session 49: right-hand teal shallow-awning chai counter, extracted from a two-counter source composite delivered by the PM (source file kept outside the repo at ~/Documents/Working images/chai_counter_composite.png, 1536x1024 RGBA, NOT committed as a runtime asset — see CHANGELOG for provenance). The two counters were separated by connected-component analysis on the composite's alpha channel: left (reddish) component bbox x[70,750], right (teal, USED) component bbox x[812,1445], a clean 62px transparent gap between them, zero pixel overlap. Extraction: isolated the right component only (discarded 3,836 stray dust px belonging to neither large component), cropped to a 48px-padded working canvas. Alpha cleanup (same deterministic method as Session 48, applied here first before the style pass since this binary needed it): Gaussian-smoothed alpha (sigma=1.5) -> alpha>=200 core -> 4px Euclidean dilation (real AA fringe) -> zero everything else. This removed a baked ground-contact shadow (soft low-alpha band under the counter, mean alpha 22-125, tapering to zero over ~16 rows, near-black RGB ~[40,41,33] - consistent with the Session 48 defect family) and reduced sub-alpha-8 dust from 942 to 347, all of which are contiguous antialiasing fringe on the single silhouette component (0 disconnected/stray after cleanup; connected-component count was 1 both before and after). Canvas then trimmed to a tight 48px-padded production crop: 699x709, down from the initial 730x712 working crop. Style correction: cv2.pyrMeanShiftFiltering(sp=18, sr=45) + light bilateral(d=5, sigmaColor=40, sigmaSpace=40) + PIL contrast x0.78 / saturation x0.75 / brightness x1.06 - identical parameters to the shipped vada-pav v002 family, no per-asset retuning needed. Measured effect (within the alpha>=8 silhouette mask): Laplacian-std texture 83.2->48.4 (-42%), greyscale contrast std 54.4->40.8 (-25%), mean HSV saturation 69.2->41.4 (-40%). Geometry bit-identical before/after the style pass (alpha>=32 bbox (48,48)-(650,658) both times) - only alpha/RGB moved, confirming the style pass never touched crop or scale. Orientation verified, not assumed: kettle spout points left toward the jars/tins (service side), the counter's box recedes/narrows toward the right (structural depth), side cloth and side storage box sit left-of-centre - matches the required right-edge convention (service faces road-left, structure extends city-right) with no mirroring applied or needed. Footprint x0=83 is a deliberately conservative (safe-side) measurement: the ground-contact band scan (y 580-658, alpha>=200) picks up the corner where the side cloth's lower drape is adjacent to the front-left foot, and the two could not be cleanly separated by alpha alone at this ambiguity margin (~15px). Using the more-left value is the conservative choice for the footprintClear road-safety gate (requires MORE clearance, never less) - flagged here rather than silently resolved. Source-composite provenance: PAB source file 'chai_counter_composite.png', two counters (left reddish, right teal), only the right teal counter used per this session's brief; the left reddish counter was not extracted and has no corresponding asset in this repo. Status is 'review' (not 'approved'), pending PM sign-off on the style-correction result and a decision on Test B (mixed placement with the vada-pav cart), which was explicitly out of scope for this session."
+}

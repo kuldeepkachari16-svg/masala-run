@@ -915,6 +915,41 @@ const EDGE_PROP_DEFS = {
     // has a home for them instead of inventing new ones.
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
+  // Mumbai chai counter, shallow awning, dedicated RIGHT-edge master. Session 49:
+  // extracted from a two-counter source composite (left reddish counter unused,
+  // no left master exists yet), alpha-cleaned and style-corrected with the same
+  // deterministic pipeline as the vada-pav v002 family. Bounds MEASURED from the
+  // delivered PNG (own geometry — not copied from the vada-pav def above).
+  mumbai_chai_counter_shallow_awning_right: {
+    src: "assets/props/mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.png",
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 699, h: 709 },
+    // Deliberately at-or-below the vada-pav cart's 88: Session 49 brief calls for
+    // this prop to read as visually quieter than, or at most comparable to, the
+    // corrected vada-pav cart. Tune here and nowhere else.
+    heightPx: 80,
+    tall: true,
+    // visual_bounds — complete visible silhouette at alpha ≥ 32: canopy, supports,
+    // bulb, kettle, jars, counter body, side cloth, feet.
+    visualBounds: { x0: 48, y0: 48, x1: 650, y1: 658 },
+    // placement_footprint — ground-contact only. x0 is a deliberately CONSERVATIVE
+    // (safe-side) measurement: at this asset's scale the front-left foot and the
+    // side cloth's lower drape sit within ~15px of each other and could not be
+    // cleanly separated by alpha alone, so the more-left value was kept (more
+    // clearance required, never less — see the metadata JSON's notes field).
+    footprint: { x0: 83, y0: 580, x1: 606, y1: 658 },
+    // crop_safe_bounds — silhouette plus the 48 px transparent padding; the
+    // production PNG was cropped to exactly this, so it equals the full canvas.
+    cropSafe: { x0: 0, y0: 0, x1: 698, y1: 706 },
+    // Pivot: road_facing_ground_contact_centre, matching alignTo:
+    // road_facing_edge_left. x = footprint's road-facing (left) boundary, y = the
+    // front-most ground contact (bottom of the visual silhouette).
+    pivot: { x: 83, y: 658 },
+    // PROVISIONAL, carried over from the vada-pav def pending a real segment
+    // composer exercise — not retuned per-asset without evidence either needs it.
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
 };
 const EDGE_PROP_IMGS = {};
 function loadEdgeProps() {
@@ -995,14 +1030,21 @@ function edgePlacement(key) {
 // Session 46 controlled test: ONE deterministic instance, right edge, Mumbai.
 // This is a TEST HARNESS, not procedural placement — there is no segment
 // composer yet (Technical Asset Contract §10). `y` is a world y on the route.
+// Session 49: which single asset that one instance is now lives behind
+// cfg.testKey (default unchanged: the vada-pav cart) so a second registered
+// prop can be exercised standalone — via __mr.config.edgeProps.testKey — without
+// ever drawing two production assets at once. That is deliberate: this harness
+// stays single-asset-only until a real segment composer test is authorized.
 function edgePropInstances() {
   const cfg = CONFIG.edgeProps;
   if (!cfg.on || !cfg.test) return [];
   if (!corridorOn() || !routeLen || !level || nomMode) return [];
   if (curCity().key !== "mumbai") return [];
+  const key = cfg.testKey || "mumbai_vadapav_cart_fixed_canopy_right";
+  if (!EDGE_PROP_DEFS[key]) return [];
   // A third of a screen up from the pickup point: on screen from the first frame
   // of the route, next to the courier — the Contract §8 approval gate's framing.
-  return [{ key: "mumbai_vadapav_cart_fixed_canopy_right", y: startY - Math.round(H * 0.32) }];
+  return [{ key, y: startY - Math.round(H * 0.32) }];
 }
 
 // Runs inside the corridor world transform (already translated by -cam.y), so
@@ -1673,6 +1715,14 @@ const CONFIG = {
     test: true,        // deterministic single-asset test placement (Session 46).
                        // Set false to silence it; procedural placement is NOT
                        // implemented yet — this is a test harness, not a system.
+    testKey: "mumbai_vadapav_cart_fixed_canopy_right", // which ONE registered
+                       // EDGE_PROP_DEFS entry the test harness draws. Session 49
+                       // registered a second asset (mumbai_chai_counter_shallow_
+                       // awning_right) without changing this default — switch
+                       // live via __mr.config.edgeProps.testKey to validate it
+                       // standalone. Never lists two keys: this harness is
+                       // single-asset by design until a real segment composer
+                       // test is authorized (that is Test B, not this).
     debug: false,      // dev-only overlay (road/buffer boundaries, bounds, pivot).
                        // Live: __mr.config.edgeProps.debug = true
     safetyBuffer: 3,   // design px OUTWARD from the road boundary that no
