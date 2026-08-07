@@ -1,5 +1,49 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 51: fixed-canopy left master fails orientation validation — Test C blocked
+Objective was opposing-edge Test C (corrected fixed-canopy cart on both the left
+and right edges of the same segment). Part 1 (inspect the left master before
+touching anything) found the asset is not usable as-is, so the session stopped
+there — no game.js changes, no EDGE_PROP_DEFS entry, no Test C.
+- **Finding:** `mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v002.png`
+  (Session 48's style-corrected v002, style-only — geometry inherited from
+  v001) has the WRONG handedness for a left-edge master. Its service/display
+  counter sits on the low-x side of its own canvas and its storage/handle/gas
+  cylinder sits on the high-x side — the SAME layout as the right master,
+  not the mirror-opposite the engine expects (`edgePlacement()` in game.js
+  defines `roadFacingX` as `visualBounds.x0` for a right master and
+  `visualBounds.x1` for a left one). Drawn unmirrored (mirroring is
+  prohibited by design), it would present its handle/storage side toward the
+  playable road and its display/service side toward the city — backwards.
+- **Not a runtime-mirror artifact:** alpha-bbox measurement shows this
+  binary's silhouette (675×611) is a different size/proportion than the right
+  master's (723×625), so it's an independently rendered image, not a flipped
+  copy of the right PNG — ruling out the "casual mirror" failure mode the
+  brief asked to check for. The defect is that whoever sourced it drew the
+  same camera-left viewpoint twice instead of a true opposite angle.
+- **Confirms a pre-existing flag:** `session45_export_manifest.json` already
+  carried `temporary_orientation_note: "orientation refinement may be
+  required during runtime testing"` for this file only (not the right
+  master) — Session 51 resolved that open flag, and the answer is negative.
+- **What a correct pair looks like:** the umbrella-cart family in the same
+  brief (`mumbai_prop_vadapav_cart_umbrella_open_cart_{left,right}`) *does*
+  have opposite handedness between its left and right masters (display case,
+  gas cylinder and handle all flip sides) — proof this is achievable and that
+  the fixed-canopy left binary is the outlier, not an engine limitation.
+- **Metadata:** `mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v002.json`
+  notes extended with the full finding and evidence; tags gained
+  `orientation_invalid_wrong_handedness` / `blocked_not_wired_to_edge_prop_defs`.
+  `status` stays `draft` — this is an open blocker, not archived history.
+  v001 left unmodified (traceability; carries the same defect, inherited by
+  v002 since Session 48 only touched alpha/style, never crop or composition).
+- **Next step (not this session):** a genuinely opposite-handedness left
+  fixed-canopy source needs to be sourced/generated — style correction and
+  measurement can't fix a mirrored-composition problem. Right-edge Test B
+  (chai counter + vada-pav cart) is untouched and still the validated
+  same-edge reference; Test C stays blocked until a real left master exists.
+- **Scope held:** no game.js changes, no new PNG, no EDGE_PROP_DEFS entry, no
+  budget/spacing changes, no Test A/Test C run (nothing to test).
+
 ## 2026-08-07 — Session 50 follow-up: production-to-production claims now actually de-conflicted
 The prior Session 50 entry below shipped Test B with production claims added
 to the edge state unconditionally — spacing was hand-computed (161px) and
