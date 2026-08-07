@@ -1,5 +1,30 @@
 # Masala Run — Changelog
 
+## 2026-08-07 — Session 50 follow-up: production-to-production claims now actually de-conflicted
+The prior Session 50 entry below shipped Test B with production claims added
+to the edge state unconditionally — spacing was hand-computed (161px) and
+trusted, "by design," never verified by the composer itself. This closes that
+gap: `drawCorridorSegment()` now runs every production claim through the same
+`edgeAdmits()` overlap+budget gate procedural candidates use, in claim order
+(cart, then chai), before `addClaim()` accepts it. A production claim that
+overlapped another prop or blew the budget would now be rejected and recorded
+in `rejects`, same as any procedural reject — this was previously impossible
+to detect except by eyeballing a screenshot.
+- **`__mr.edgeComposer`** claim diagnostics gained `weight`/`anchor` fields.
+- **Runtime-validated:** both claims admitted, zero overlap, 161px measured
+  gap vs 160.5px required (cart's own `recSpacing`, the binding constraint),
+  budget at 12/13 weight and 40%/45% occupancy on the pair's segment. Two
+  fresh page loads and a camera move produced byte-identical
+  `__mr.edgeComposer` output. Live-flipping `testB` off/on produced a
+  genuinely different (1-claim vs 2-claim) cached composition and then
+  reproduced the original exactly — confirms `segCompositionSig()` keys the
+  tile cache on the real claim set, not just the config flag. Day (Z1) and
+  night (Z4) both pass, zero console errors, procedural rejects correctly
+  attributed to each production claim by id (`overlap:mumbai_vadapav_cart_…`,
+  `overlap:mumbai_chai_counter_…`).
+- **Scope:** `game.js` only — no new assets, no budget/spacing constant
+  changes, no left-edge/Test C work.
+
 ## 2026-08-07 — Session 50: PM sign-off on style correction + Test B (mixed placement) live by default
 The Session 48/49 open question — "is the deterministic style-correction pass
 good enough to proceed?" — is resolved. PM reviewed a before/after (raw AI
