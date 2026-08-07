@@ -715,7 +715,16 @@ function drawCorridorSegment(g, w, h, idx) {
   const s = ((CONFIG.propMarginFrac || 0.15) * w) / 72;
   const comp = { idx, y0: idx * h, y1: (idx + 1) * h, left: newEdgeState(), right: newEdgeState() };
   const budget = CONFIG.edgeProps.budget;
-  if (CONFIG.edgeProps.on) for (const c of productionClaims(idx)) addClaim(comp[c.edge], c);
+  // Session 50: production claims now go through the SAME edgeAdmits gate as
+  // procedural candidates, in edgePropInstances() order — so a second production
+  // prop on a shared edge (e.g. the Test B vada-pav + chai pair) is genuinely
+  // de-conflicted against the first's reserved interval and the shared budget,
+  // not just hand-spaced and trusted. A production reject is recorded like any
+  // other (comp[edge].rejects) and that prop simply never claims the edge.
+  if (CONFIG.edgeProps.on) for (const c of productionClaims(idx)) {
+    const ext = { anchor: c.anchor, weight: c.weight };
+    if (edgeAdmits(comp[c.edge], c, ext, budget)) addClaim(comp[c.edge], c);
+  }
   const pool = ["stall", "cart", "crate", "pot", "plant"];
   const deck = () => { const d = pool.slice(); for (let i = d.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; [d[i], d[j]] = [d[j], d[i]]; } return d; };
   // Try one procedural element at segment-local `ly`. Returns whether it drew.
@@ -1031,13 +1040,16 @@ function edgePlacement(key) {
 // is a TEST HARNESS, not procedural placement — there is no segment composer
 // picking these (Technical Asset Contract §10). `y` is a world y on the route.
 // Session 49 generalized the single instance behind cfg.testKey. Session 50:
-// PM approved the style-correction pipeline and asked to move straight to a
-// mixed placement so it's visible without a console command — cfg.testB (now
-// the default) draws BOTH registered right-edge props at once, spaced by hand
-// using each def's own recSpacing (the composer doesn't cross-check production
-// claims against each other — see productionClaims()/addClaim() — so this
-// harness owns keeping them apart). testKey stays available for a narrower
-// single-asset check when that's what's needed instead.
+// PM approved the style-correction pipeline and asked to see the mixed
+// placement live, not behind a console command — cfg.testB (now the default)
+// draws BOTH registered right-edge props at once. This harness still PROPOSES
+// the initial y spacing (using each def's own recSpacing as a starting gap,
+// mirroring the vertical order they'll draw in), but the proposal is no longer
+// trusted blindly: drawCorridorSegment() now runs every production claim from
+// productionClaims() through edgeAdmits() — the same overlap + budget gate
+// procedural candidates use — before addClaim() accepts it (Session 50 mixed-
+// placement test). testKey stays available for a narrower single-asset check
+// when that's what's needed instead.
 function edgePropInstances() {
   const cfg = CONFIG.edgeProps;
   if (!cfg.on || !cfg.test) return [];
@@ -1175,7 +1187,7 @@ function productionClaims(idx) {
     const gap = Math.max(cfg.budget.minGap, (y1 - y0) * cfg.budget.gapMul);
     if (y1 + gap < segY0 || y0 - gap > segY1) continue;
     out.push({
-      id: inst.key, source: "production", edge: p.edge,
+      id: inst.key, kind: inst.key, source: "production", edge: p.edge,
       y0, y1, minGapBefore: gap, minGapAfter: gap, priority: 2,
       anchor: true, weight: 3,
     });
@@ -5401,6 +5413,7 @@ window.__mr = {
       occupancy: +(st.occupied / CONFIG.corridor.tileH).toFixed(3),
       claims: st.claims.map((c) => ({
         id: c.id, source: c.source, kind: c.kind, priority: c.priority,
+        anchor: !!c.anchor, weight: c.weight || 1,
         y0: +c.y0.toFixed(1), y1: +c.y1.toFixed(1),
         gapBefore: +(c.minGapBefore || 0).toFixed(1), gapAfter: +(c.minGapAfter || 0).toFixed(1),
       })),
