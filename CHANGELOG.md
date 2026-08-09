@@ -1,5 +1,130 @@
 # Masala Run — Changelog
 
+## 2026-08-09 — Session 54: roadside edge-asset geometry runtime pilot — CONDITIONAL PASS
+Renumbered from the brief's "Session 53" — that number was already committed
+(2026-08-08, edge-prop bleed cut) before this session started; using 54 here
+to avoid two different sessions sharing one changelog number.
+
+Controlled geometry experiment only, per the brief: tests whether vertically-
+authored, road-parallel, shallow-depth cart geometry reads better than the
+current broad fixed-canopy carts — **not** production-art approval, **not**
+a broader rollout. Two PM-supplied PNGs
+(`~/Documents/Working images/1_hawker_vadapav_cart_clean_transparent.png`,
+`1_vadapav_open_cart_right_clean_transparent.png`) were copied into the repo
+as `assets/props/session54_vadapav_cart_vertical_{left,right}_test.png` — the
+PM's source files were never touched.
+- **Both sources needed cleanup despite the "clean_transparent" filename:**
+  each was a fully opaque illustration (baked vignette / flat-green
+  background) inside only a ~31-35px transparent export-padding ring, not an
+  actual cutout — confirmed by sampling alpha just inside that ring (0) vs.
+  the interior (255, uniformly). Removed on the repo test copy only: GrabCut
+  for the hawker cart (floating-range flood fill leaked through look-alike
+  hues in a couple of interior props); a border-connected chroma-key for the
+  open cart (its background is flat green, but the same floating-range leak
+  problem ruled out plain flood fill there too). A faint baked ambient-shadow
+  halo remains on both after cleanup — left deliberately rather than risk
+  eating real edges; flagged under Art Quality below, not hidden.
+- **Handedness determined from structure, not filename** (brief explicitly
+  required this): hawker cart's service/counter side sits toward the high-x
+  side of its own canvas with wheels/storage low-x, matching the validated
+  left master's pattern → classified LEFT. Open cart's support-pole + hanging
+  bucket asymmetry sits high-x (depth/storage side), matching the right-
+  master convention, and agrees with its filename → classified RIGHT.
+- **New EDGE_PROP_DEFS entries** `mumbai_vadapav_cart_vertical_{left,right}_test`,
+  bounds measured the same way as the production defs (alpha≥32 bbox;
+  footprint = the near-side ground-contact band from a per-column bottom-
+  opaque-pixel scan — a fixed bottom-N% slice clips the nearest wheel on
+  these diagonal-perspective sources, unlike the flatter production masters).
+  `heightPx: 70`, matching production exactly, for an apples-to-apples A/B.
+- **New harness**, additive only: `CONFIG.edgeProps.test54` (`on: false` by
+  default, `mode: "A"|"B"|"C"`) plus one new branch at the top of
+  `edgePropInstances()`, checked before `testC`. No existing branch touched.
+  Instances still flow through the unmodified `productionClaims()` →
+  `edgeAdmits()` → `addClaim()` path — verified live: a procedural stall and
+  a procedural plant were both correctly rejected (`overlap:` reason) against
+  the new claims, same as any registered production prop. No bypass.
+- **Bug found and fixed (in scope per the brief's "unless a real bug is
+  discovered" carve-out):** `segCompositionSig()` hashed each claim as
+  `edge + y0 + y1` only, never the claim's own id. Every registered edge prop
+  now shares `heightPx: 70` (Session 52), so two *different* asset keys
+  placed at the same world y hash identically — reproduced live: toggling
+  `cfg.testC → cfg.test54` with no page reload left `__mr.edgeComposer`
+  reporting the OLD production cart ids under the new config, a stale cached
+  tile silently surviving a real composition change. This is the exact
+  live-toggle workflow Session 53 used for screenshot verification, so it
+  was a real risk to future sessions' cache trust, not just this one. Fix:
+  fold `c.id` into the signature string. One line; re-verified the toggle
+  now rebuilds correctly and re-ran the full validation set clean.
+- **Geometry results** (heightPx 70, matching current production masters):
+  | | left prototype | right prototype | current left cart | current right cart |
+  |---|---|---|---|---|
+  | visible w:h ratio | 0.516 | 0.844 | 1.164 | 1.158 |
+  | on-screen width | 36.1px | 59.1px | 81.5px | 81.1px |
+  | road intrusion | 1.43px | 3.02px | 4.90px | 5.60px |
+  | city-side bleed | 0px | 20.7px | 41.2px | 40.1px |
+  (`intrusionAllow` stays 8px, unchanged — both prototypes pass comfortably.)
+  The left/hawker prototype lands almost exactly on the ~0.5 ratio target and
+  reads as genuinely parked along the road with zero bleed. The right/open
+  prototype is a smaller, boxier cart, not strongly vertical — a real but
+  modest improvement, not a vindication of the vertical-authoring hypothesis
+  on its own.
+- **Tests 54A/54B/54C** (each vs. its current-production equivalent, same
+  camera position, screenshots read at each step): 54A (left alone) — clear
+  win, cart sits tight to the edge vs. the current left master's visible
+  canopy/wheel reach into the lane. 54B (right alone) — modest win, still
+  visibly bulkier than 54A, meaningfully narrower than the current right
+  master but not dramatically so. 54C (opposing) — playable-road centre
+  reads calmer with both prototypes than with both current masters at the
+  same spot; no tunnel/gateway effect either way.
+- **Gameplay check** (day zone 1, night zone 4): player and the courier's
+  own sprite stay clearly readable against both prototypes at typical
+  play distance; zero console errors/exceptions across every run. Not a
+  full Gate-1 campaign — a readability check, per the brief's scope.
+- **Regression** (fresh page load, `test54` untouched): Session 50 Test B
+  (right fixed-canopy + right chai counter) and Session 51 Test C (left +
+  right fixed-canopy) reproduce their exact prior numbers
+  (`roadIntrusion` 5.60/4.90, both `ok: true`, `mirrored: false`) — Session
+  54 has zero effect on production behaviour when its flag is off, which is
+  always the default.
+- **GEOMETRY verdict: CONDITIONAL PASS.** The road-parallel vertical
+  direction is a real improvement, dramatically so for one of the two test
+  assets — but only one of the two assets actually embodies it (0.52 vs.
+  0.84 ratio); the rule is not yet validated evenly enough to freeze.
+- **ART QUALITY verdict: not production-ready, separate from geometry.**
+  Neither source arrived actually pre-cut; a residual shadow halo remains
+  post-cleanup on both; the hawker cart's raking top-down single-cart camera
+  angle doesn't match this game's flatter production look or its own
+  opposing prototype; neither has been through the Sessions 48/49 style-
+  correction pipeline the production masters have.
+- **Rule NOT frozen.** Recommend the vertical/shallow-depth direction as the
+  preferred brief for future roadside prop authoring, informed by the left
+  prototype's result, but freezing needs one more data point: a properly
+  cleaned, style-pipeline-corrected asset in this geometry, in a camera angle
+  compatible with the existing carts.
+- **Files:** `game.js` (2 new `EDGE_PROP_DEFS` entries, `CONFIG.edgeProps.test54`,
+  1 new `edgePropInstances()` branch, `segCompositionSig()` bug fix — all else
+  untouched), `assets/props/session54_vadapav_cart_vertical_{left,right}_test.png`
+  (new, test-only), `CHANGELOG.md`. Left the harness and test assets in the
+  repo, default off, matching how `testB`/`testC`/`testKey` already persist as
+  reusable harnesses rather than throwaway code.
+- **Validation:** `node --check game.js` — pass. `validate_asset_metadata.py`
+  — pass (10 records OK, unrelated `session45_export_manifest.json` skip
+  pre-existing). `validate_asset_names.py` — WARN only (test filenames don't
+  match the strict production pattern, by design; exits 0). `git diff --check`
+  — clean. Zero console errors/exceptions across every run above.
+- **Untouched, confirmed by inspection:** road-intrusion limit, safety
+  buffer, segment-composer budgets, `edgeAdmits()`, production priority,
+  deterministic seed logic, Class-C no-mirroring rule (both prototypes
+  `mirrored: false`), current production `EDGE_PROP_DEFS` geometry, frozen
+  Art/Prompt Bibles, City Kits. Did not touch the concurrent uncommitted
+  working-tree changes to `ART_BIBLE.md`, `CITY_KITS.md`,
+  `PROCEDURAL_PLACEMENT.md`, `PROMPT_BIBLE.md`, `tools/validate_asset_names.py`,
+  or the untracked `PRODUCTION_ASSET_BRIEFS.md` / `session45_export_manifest.json`
+  — left exactly as found for whoever is mid-edit on them.
+- **Open items:** neither prototype is ready to replace a production master
+  as-is; a same-style-pipeline pass on a vertically-authored asset is the
+  natural next test before freezing the rule.
+
 ## 2026-08-08 — Session 53: PM feedback on Session 52 screenshots — edge-prop bleed cut from ~58% to ~49%
 Direct PM reaction to the Gate-1 screenshots: the cart art reads as cut in
 half at the canvas edge, not an intentional treatment. Confirmed the math —

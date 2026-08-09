@@ -1013,6 +1013,72 @@ const EDGE_PROP_DEFS = {
     // right master's was.
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
+  // ---- Session 54 EXPERIMENTAL geometry pilot — NOT production ----
+  // PM-supplied prototypes testing a vertically-authored, road-parallel, shallow-
+  // depth alternative to the fixed-canopy carts above (which read as jutting
+  // across the road at ~1.16 visible width:height). Neither prototype PNG was
+  // actually pre-cut on delivery despite its "clean_transparent" filename — both
+  // carried a fully opaque baked background (vignette / flat green) inside a
+  // ~31-35px transparent export-padding ring, confirmed by sampling alpha at
+  // points just inside that ring (all 0) vs. the interior (255). Background was
+  // removed on the REPOSITORY TEST COPY only via GrabCut (left; the flat-green
+  // right source leaked through floating-range flood fill because a few interior
+  // props share the key/olive hue, so a border-connected chroma-key was used
+  // instead) — the PM's original files under ~/Documents/Working images/ were
+  // never touched. A faint baked ambient-shadow halo remains on both after
+  // cleanup (see Session 54 report); this is a known prototype-quality residual,
+  // not a segmentation bug, and not eliminated to avoid eating into real edges.
+  // Bounds MEASURED from the cleaned+cropped repo test copy, same methodology as
+  // the production defs above (alpha>=32 bbox; footprint = the near-side ground-
+  // contact band identified by a per-column bottom-opaque-pixel scan, not a
+  // fixed bottom slice — both source images are oblique/diagonal compositions
+  // where a naive bottom-N% slice clips the nearest wheel).
+  mumbai_vadapav_cart_vertical_left_test: {
+    src: "assets/props/session54_vadapav_cart_vertical_left_test.png",
+    city: "mumbai",
+    edge: "left",
+    canvas: { w: 727, h: 1301 },
+    // Matched to the production courier-height floor for a direct apples-to-
+    // apples A/B against the fixed-canopy left master at the same on-screen
+    // scale. Session 54 test-only; do not treat as a frozen value.
+    heightPx: 70,
+    tall: true,
+    // Source artwork ("1_hawker_vadapav_cart_clean_transparent.png") is a single
+    // long cart shown in raking top-down perspective, canopy/counter at the
+    // small/far end, storage crates + gas cylinder at the near/large end — the
+    // long axis runs top-to-bottom of its own canvas, i.e. already screen-
+    // vertical, which is the geometry this pilot exists to test.
+    visualBounds: { x0: 48, y0: 32, x1: 678, y1: 1252 },
+    // Handedness NOT taken from filename (ambiguous/generic). Determined from
+    // structure: the service/open counter (spice jars, vada-pav pan, cutting
+    // board) sits toward the HIGH-x side of the canvas, wheels/storage toward
+    // LOW-x — the same pattern as the validated left master (service on the
+    // canvas's high-x side). Classified LEFT on that basis.
+    footprint: { x0: 258, y0: 1172, x1: 653, y1: 1252 },
+    cropSafe: { x0: 0, y0: 0, x1: 726, y1: 1300 },
+    pivot: { x: 653, y: 1252 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
+  mumbai_vadapav_cart_vertical_right_test: {
+    src: "assets/props/session54_vadapav_cart_vertical_right_test.png",
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 606, h: 700 },
+    heightPx: 70,
+    tall: true,
+    // Source artwork ("1_vadapav_open_cart_right_clean_transparent.png") is a
+    // near-frontal boxy open shelf cart — far less vertically elongated than the
+    // left prototype (visible ratio 0.84 vs 0.52), the weaker of the two
+    // geometry tests. Filename says "right"; visual structure agrees — the
+    // support pole + hanging bucket asymmetry sits on the HIGH-x (depth/
+    // storage) side, matching the right-master convention (service/road-facing
+    // = low-x, structural depth = high-x). Classified RIGHT on both grounds.
+    visualBounds: { x0: 48, y0: 48, x1: 557, y1: 651 },
+    footprint: { x0: 74, y0: 578, x1: 499, y1: 651 },
+    cropSafe: { x0: 0, y0: 0, x1: 605, y1: 699 },
+    pivot: { x: 74, y: 651 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
 };
 const EDGE_PROP_IMGS = {};
 function loadEdgeProps() {
@@ -1137,6 +1203,24 @@ function edgePropInstances() {
   // A third of a screen up from the pickup point: on screen from the first frame
   // of the route, next to the courier — the Contract §8 approval gate's framing.
   const baseY = startY - Math.round(H * 0.32);
+  if (cfg.test54 && cfg.test54.on) {
+    // Session 54 vertical-geometry pilot. Same "independent per-edge, no shared
+    // claim list" reasoning as testC below — both prototypes may sit at the
+    // same world y since left/right are separate composer state.
+    const left = EDGE_PROP_DEFS.mumbai_vadapav_cart_vertical_left_test;
+    const right = EDGE_PROP_DEFS.mumbai_vadapav_cart_vertical_right_test;
+    const mode = cfg.test54.mode;
+    if (mode === "A") return left ? [{ key: "mumbai_vadapav_cart_vertical_left_test", y: baseY }] : [];
+    if (mode === "B") return right ? [{ key: "mumbai_vadapav_cart_vertical_right_test", y: baseY }] : [];
+    if (mode === "C") {
+      if (!left || !right) return [];
+      return [
+        { key: "mumbai_vadapav_cart_vertical_left_test", y: baseY },
+        { key: "mumbai_vadapav_cart_vertical_right_test", y: baseY },
+      ];
+    }
+    return [];
+  }
   if (cfg.testC) {
     // Session 51: opposing-edge test — the corrected cart on left (v003) and
     // right (v002) at once. Left and right are independent composer state
@@ -1329,8 +1413,19 @@ function segCompositionSig(idx) {
   const cfg = CONFIG.edgeProps;
   if (!cfg.on) return "off";
   const b = cfg.budget;
+  // Session 54 bug fix: must include the claim's id, not just edge+y-range.
+  // Every registered edge prop now shares heightPx: 70 (Session 52), so two
+  // DIFFERENT asset keys placed at the same world y produce byte-identical
+  // edge+y0+y1 strings — a live config toggle between them (e.g. testC ->
+  // test54, the exact workflow Session 53 used for screenshot verification)
+  // then served the OLD cached tile under the new config, because this
+  // signature never changed. Reproduced live pre-fix: __mr.edgeComposer still
+  // reported mumbai_vadapav_cart_fixed_canopy_right/_left as the claim id
+  // after switching cfg.testC -> cfg.test54 with no page reload. Adding c.id
+  // makes the signature asset-aware; y-range stays in for cheap invalidation
+  // when a prop's own placement moves without changing which key is claimed.
   const claims = productionClaims(idx)
-    .map((c) => c.edge[0] + Math.round(c.y0) + "_" + Math.round(c.y1))
+    .map((c) => c.edge[0] + c.id + "_" + Math.round(c.y0) + "_" + Math.round(c.y1))
     .sort().join(",");
   return (claims || "-") + "|" + b.maxAnchors + "," + b.maxElements + "," +
     b.maxWeight + "," + b.maxOccupancy + "," + b.gapMul + "," + b.minGap;
@@ -1859,6 +1954,20 @@ const CONFIG = {
     testKey: "mumbai_vadapav_cart_fixed_canopy_right", // which ONE registered
                        // EDGE_PROP_DEFS entry the harness draws when testB is
                        // false. Live-switchable: __mr.config.edgeProps.testKey.
+    test54: {          // Session 54: vertical/road-parallel geometry pilot
+                       // (mumbai_vadapav_cart_vertical_{left,right}_test).
+                       // EXPERIMENTAL, off by default — no effect on production
+                       // behaviour unless explicitly enabled. Takes priority
+                       // over testC/testB/testKey when on (same precedence
+                       // pattern testC already uses over testB), since they'd
+                       // otherwise compete for the same edge slot.
+                       // Live: __mr.config.edgeProps.test54.on = true;
+                       // __mr.config.edgeProps.test54.mode = "A"|"B"|"C".
+      on: false,
+      mode: "C",       // "A" = left prototype alone (vs left fixed-canopy) ·
+                       // "B" = right prototype alone (vs right fixed-canopy) ·
+                       // "C" = both prototypes opposing, mirrors testC.
+    },
     debug: false,      // dev-only overlay (road/buffer boundaries, bounds, pivot).
                        // Live: __mr.config.edgeProps.debug = true
     safetyBuffer: 3,   // design px OUTWARD from the road boundary that no
