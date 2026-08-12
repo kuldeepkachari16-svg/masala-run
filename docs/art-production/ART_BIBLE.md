@@ -1,22 +1,143 @@
 # Art Bible
 
-Version: 0.1
-Status: Workshop
+Version: 1.0
+Status: Frozen
+Freeze Date: 2026-07-23
+Next Production Phase: Prompt Bible authoring
 
-Freeze Policy:
-- Only completed chapters become frozen.
-- Frozen chapters are modified only through explicit creative decisions.
-- Creative authority belongs to the Art Bible authoring process.
+Post-Freeze Change Control:
+- The frozen Art Bible may be changed only through an explicit creative review.
+- A change must identify the affected chapter and rule.
+- A change must explain why the existing rule is insufficient.
+- A change must assess cross-chapter impact.
+- A change must assess gameplay, accessibility and modularity impact.
+- A change must be deliberately approved.
+- A change must update the relevant decision log or governance record.
+- Prompt results, generated images, implementation convenience, individual asset
+  needs or production pressure must never silently redefine the Art Bible.
+
+## Art Bible Authority & Global Principles
+
+The Art Bible is the highest creative authority for Masala Run.
+
+The Prompt Bible derives from the Art Bible.
+
+The Technical Asset Contract governs runtime capability, technical integration,
+and what the shipped implementation can consume.
+
+Document authority model:
+
+```text
+Art Bible
+→ Prompt Bible
+→ Technical Asset Contract
+```
+
+The Technical Asset Contract governs runtime integration but must not redefine
+approved creative intent.
+
+Masala Run remains a top-down survivors-like mobile game.
+
+Gameplay readability is the primary creative requirement.
+
+Modularity and procedural compatibility are mandatory production requirements.
+
+Every asset and system must satisfy both gameplay readability and
+modular/procedural viability.
+
+Assets must remain modular, reusable and procedurally compatible.
+
+AI generates modular assets, not complete painted backgrounds.
+
+Generated images may validate approved rules but may never redefine them.
+
+The environment supports gameplay and never competes with it.
+
+Day and night use the same gameplay language with different mood treatments.
+
+Cities may skin gameplay meaning but may not redefine it.
+
+Important gameplay communication should not depend on only one sensory cue.
+
+Global priority hierarchy:
+
+```text
+Gameplay clarity
+> accessibility and comfort
+> modular and procedural viability
+> gameplay-category recognition
+> responsiveness and feedback
+> city identity
+> charm and personality
+> beauty and spectacle
+```
+
+Chapter-specific review hierarchies may extend this global hierarchy, but they
+must not contradict it.
+
+Global cross-system consistency rule:
+
+```text
+Same gameplay meaning
+→ same readability, timing and urgency logic
+
+Different city
+→ different restrained material, palette, motif, lighting and audio flavour
+```
+
+Night changes mood, not gameplay fairness.
+
+Accessibility logic remains consistent across cities and times of day.
+
+Visual, animation, feedback, audio, haptic and accessibility systems inherit the
+same gameplay-first hierarchy.
+
+Medium-specific chapters retain their specialised rules.
+
+The Art Bible may define creative constraints that affect production, but it
+does not replace gameplay code, rendering implementation, runtime systems, input
+systems, procedural algorithms, platform integration, metadata schemas, or the
+Technical Asset Contract.
+
+Technical implementation belongs in the relevant technical documents.
+
+## Art Bible Freeze Criteria
+
+The Art Bible may be frozen only when:
+
+* no foundational creative chapter remains unresolved
+* chapter authority and priority are unambiguous
+* no approved chapters contradict one another
+* every chapter has a clear scope boundary
+* gameplay readability remains protected
+* modularity and procedural assembly remain mandatory
+* cross-city and day/night logic are consistent
+* accessibility remains reliable across every medium
+* each chapter can be translated into Prompt Bible rules
+* principles can be understood without relying on generated images
+* future cities can use the system without rewriting its foundations
+
+The Art Bible satisfies these criteria as of the Freeze Date above and is the
+stable creative authority for Prompt Bible production.
 
 ## Part I — Design Philosophy
 
 ### Chapter 1 — Core Visual Identity
 
-TODO: Define this chapter during the Art Bible authoring process.
+The core visual identity is governed by Art Bible Authority & Global Principles
+and expressed through the approved chapters that follow.
+
+Masala Run's identity is gameplay-first, readable, modular, warm, playful,
+mobile-appropriate, and city-skinnable without changing gameplay meaning.
 
 ### Chapter 2 — Gameplay Readability
 
-TODO: Define this chapter during the Art Bible authoring process.
+Gameplay readability is governed globally and reinforced by every approved
+chapter.
+
+The player, threats, hazards, pickups, attacks, movement boundaries, UI,
+feedback, audio, haptics, accessibility cues, road, edges, and city identity must
+preserve the global gameplay-first hierarchy.
 
 ### Chapter 3 — Camera & Composition
 
@@ -81,12 +202,13 @@ Gameplay readability MUST always take priority over visual complexity.
 
 #### Playable Area
 
-The collision/playable lane remains approximately 84% of the screen width.
+The playable arena occupies approximately 76-80% of the screen width.
 
-Approximately 8% per side is reserved as the collision edge band.
+The environment occupies approximately 20-24% of the screen width.
 
-The intended 20–24% environmental visual presence is achieved through wider edge
-props and frontage positioned partly off-screen so they visually bleed inward.
+Environmental visual presence is achieved through edge props and frontage
+positioned partly off-screen where useful so they visually bleed inward without
+competing with gameplay.
 
 Edge assets MUST tolerate cropping. No essential silhouette, face, or identifying
 feature should be placed in the outer half of a cropped cluster.
@@ -3131,19 +3253,570 @@ Gameplay first, charm second.
 
 ### Chapter 10 — Environment Composition
 
-TODO: Define this chapter during the Art Bible authoring process.
+Environment composition is governed by Camera & Composition, Edge Architecture,
+Environment Props & Micro-Clusters, City Identity Framework, and the global
+gameplay-first hierarchy.
+
+No separate environment-composition rules are required for this freeze.
 
 ### Chapter 11 — Roads & Play Space
 
-TODO: Define this chapter during the Art Bible authoring process.
+Roads and play space are governed by Camera & Composition and Road & Playable
+Surface.
+
+The road remains the primary gameplay canvas.
 
 ### Chapter 12 — Props & World Building
 
-TODO: Define this chapter during the Art Bible authoring process.
+Props and world building are governed by Edge Architecture, Environment Props &
+Micro-Clusters, City Identity Framework, and Modular Asset System.
 
-### Chapter 13 — City Identity
+Props must remain modular, readable, procedurally compatible, and subordinate to
+gameplay.
 
-TODO: Define this chapter during the Art Bible authoring process.
+### Chapter 13 — City Identity Framework
+
+#### 1. Core City Identity Philosophy
+
+Every Masala Run city should be a romanticized, simplified, gameplay-safe
+interpretation grounded in recognisable everyday reality.
+
+City identity should emerge through several complementary cues rather than one
+landmark, monument, cliché, colour, vehicle, food item, or cultural symbol.
+
+City flavour may change the skin of the world, but never gameplay meaning.
+
+The chapter inherits the Art Bible's global hierarchy:
+
+```text
+Gameplay clarity
+> accessibility and comfort
+> modular and procedural viability
+> gameplay-category recognition
+> responsiveness and feedback
+> city identity
+> charm and personality
+> beauty and spectacle
+```
+
+Rule:
+
+```text
+Recognisable through multiple restrained cues.
+Never dependent on one landmark or stereotype.
+```
+
+#### 2. City Research Inputs
+
+Before defining a city, structured research should cover:
+
+* everyday street life
+* materials
+* architecture and frontage
+* road and boundary treatment
+* food culture
+* local commerce
+* climate and atmosphere
+* transport and static vehicles
+* lighting character
+* ambient audio character
+* culturally meaningful visual cues
+* stereotype and tourist-poster risks
+* elements that can realistically become modular assets
+
+Research must focus on information that can be translated into reusable game
+assets and procedural systems, not on producing a general city essay.
+
+#### 3. Identity Pillars
+
+Each city should define approximately 3-5 core identity pillars.
+
+Identity pillars must be:
+
+* visually translatable
+* modular
+* reusable
+* gameplay-safe
+* recognisable without excessive detail
+* distinct enough to separate the city from other cities
+* broad enough to support several asset families
+
+Avoid using too few pillars, which may make the city generic, or too many
+pillars, which may create visual noise and production complexity.
+
+#### 4. Identity Translation System
+
+Translate the approved identity pillars into a coordinated system of:
+
+* materials
+* silhouettes
+* frontage shapes
+* boundary cues
+* road treatment
+* environmental props
+* modular micro-clusters
+* palette skin
+* lighting flavour
+* audio and ambience flavour
+* food and street-culture cues
+* restrained motif and pattern accents
+
+No single category should carry the entire city identity.
+
+#### 5. Distribution of City Identity
+
+City identity should be distributed primarily through:
+
+```text
+Edges and frontage
+→ strongest environmental identity
+
+Road and boundaries
+→ restrained material and transition identity
+
+Lighting, palette and ambience
+→ supporting mood identity
+
+Gameplay objects
+→ universal gameplay meaning with selective city flavour
+```
+
+The playable road must remain the quiet gameplay canvas.
+
+Do not use the road to compensate for weak city identity.
+
+#### 6. Materials
+
+Local materials must be expressed through simplified flat-cartoon cues rather
+than realistic textures.
+
+Examples:
+
+```text
+Sandstone
+→ warm block forms + restrained edge marks
+
+Urban metal
+→ muted fill + small flat highlight
+
+Cloth
+→ simple fold, flap or stripe cue
+
+Asphalt
+→ quiet base + faint low-contrast wear
+```
+
+Material treatment must remain consistent with the approved Style & Shape
+Language.
+
+#### 7. Architecture and Frontage
+
+Architectural identity should appear through:
+
+* broad frontage silhouettes
+* roofline hints
+* shutters
+* awnings
+* windows
+* low platforms
+* cropped walls
+* arches or edge shapes
+* boundary-adjacent architectural cues
+* simplified material masses
+
+Avoid:
+
+* complete detailed buildings
+* dominant scenery
+* deep architectural scenes
+* literal recreation
+* complete painted façades
+* architecture that becomes the main spectacle
+
+Rule:
+
+```text
+Architecture suggests place.
+Architecture does not become scenery spectacle.
+```
+
+#### 8. Landmark Policy
+
+Use landmark echoes, not regular literal landmarks.
+
+Landmark echoes may include:
+
+* roofline rhythm
+* silhouette language
+* material treatment
+* arch shape
+* colour relationship
+* structural motif
+* cropped architectural suggestion
+
+Literal landmarks should be rare, separately approved special cases and must not
+become the default city-recognition system.
+
+#### 9. Food and Street-Culture Cues
+
+Food is an important identity source, but it must not dominate every asset.
+
+Selected local food cues may appear through:
+
+* stalls
+* vessels
+* carts
+* serving objects
+* pickups
+* abilities
+* selected enemies
+* reward effects
+* audio textures
+* packaging or controlled signage shapes
+
+Avoid turning every object, sound or visual effect into food.
+
+Prefer ordinary, locally meaningful and reusable street-culture cues over
+internationally recognisable clichés.
+
+#### 10. Stereotype Avoidance
+
+A city must never be reduced to one exaggerated symbol.
+
+Reject identity logic such as:
+
+```text
+Mumbai = taxi + rain
+Jaisalmer = camel + fort
+```
+
+These elements may appear selectively, but the city identity must remain
+recognisable without them.
+
+Require multiple supporting cues across materials, silhouettes, architecture,
+food culture, road treatment, props, lighting and ambience.
+
+Avoid:
+
+* stereotype-heavy props
+* stock regional clichés
+* tourism-poster treatment
+* dense cultural decoration
+* documentary realism
+* maximum-density street clutter
+* exoticisation
+* cultural motifs used only because they look attractive
+
+#### 11. Vehicles
+
+Vehicles should be occasional parked or static supporting cues.
+
+They must remain:
+
+* muted
+* compact
+* cropped where useful
+* clearly outside the playable road
+* subordinate to gameplay
+* modular and procedurally placeable
+
+Moving vehicles and gameplay vehicle hazards remain outside this chapter unless
+separately designed.
+
+#### 12. City Archetypes
+
+Each city should begin with approximately 4-6 named edge or environmental
+archetypes.
+
+Archetypes should provide design intent for procedural placement without
+becoming fixed scenes.
+
+They must:
+
+* follow the shared edge architecture
+* remain modular
+* use one clear idea
+* support soft blending
+* include breathing gaps
+* preserve left/right asymmetry
+* avoid runner-style segmentation
+* remain subordinate to the playable road
+
+#### 13. Micro-Cluster Structure
+
+Preferred city archetypes should use modular micro-clusters structured as:
+
+```text
+Anchor asset
++ optional attachments
++ restrained city skin
++ controlled left/right or lighting variants
+```
+
+Example only:
+
+```text
+Mumbai Compact Food Corner
+
+Anchor
+→ food cart
+
+Optional attachments
+→ crate
+→ awning
+→ vessel
+→ stool
+→ abstract sign shape
+```
+
+Do not turn the example into a final Mumbai asset list.
+
+#### 14. Shared Versus City-Specific Assets
+
+Use the established modular hierarchy:
+
+```text
+Base Asset
+→ Variant
+→ City Skin
+→ Instance
+```
+
+City production should use:
+
+```text
+Shared structural library
++ shared reusable props
++ city skins
++ selected city-unique anchors
+```
+
+Do not rebuild the full asset system for each city.
+
+A completely unique asset is justified only when an existing shared asset,
+variant, skin or attachment cannot express an important identity pillar.
+
+Visual attractiveness alone is not sufficient justification for a unique asset.
+
+#### 15. Palette Skin
+
+Each city should define a restrained palette skin tied to:
+
+* materials
+* atmosphere
+* road tone
+* frontage
+* practical accents
+* day/night mood
+* gameplay contrast requirements
+
+The city palette remains subordinate to the global gameplay colour system.
+
+City palette decisions must not weaken:
+
+* player identity
+* enemy recognition
+* hazard readability
+* pickup recognition
+* attack readability
+* accessibility
+* road and boundary clarity
+
+#### 16. Day and Night Consistency
+
+Day and night must preserve:
+
+* the same identity pillars
+* the same structural asset logic
+* the same archetypes
+* the same gameplay meaning
+* the same accessibility logic
+* the same modular system
+
+Night may change mood through:
+
+* controlled palette shifts
+* localized practical lighting
+* lighting overlays
+* selected lit variants
+* ambience density
+* restrained audio changes
+
+Rule:
+
+```text
+Same city.
+Same structure.
+Different controlled mood.
+```
+
+Night must not become a separate city kit or reduce gameplay fairness.
+
+#### 17. Audio and Ambience Identity
+
+City-specific audio identity should use restrained:
+
+* ambience
+* material sounds
+* practical activity
+* environmental rhythm
+* surface response
+* selected food or street-culture cues
+* day/night mood changes
+
+Avoid:
+
+* dense realistic recordings
+* loud crowd beds
+* stereotype-heavy soundscapes
+* stock regional clichés
+* city flavour that masks gameplay cues
+
+Rule:
+
+```text
+Same gameplay audio logic.
+Different restrained city flavour.
+```
+
+#### 18. Cross-City Gameplay Consistency
+
+Preserve the global rule:
+
+```text
+Same gameplay meaning
+→ same readability, timing and urgency logic
+
+Different city
+→ different restrained material, palette, motif, lighting and audio flavour
+```
+
+The player must not need to relearn gameplay meaning when entering a new city.
+
+City identity must not redefine:
+
+* player readability
+* enemy threat language
+* pickup language
+* hazard logic
+* attack communication
+* UI behaviour
+* accessibility cues
+* audio warning logic
+* haptic hierarchy
+
+#### 19. City Approval Review
+
+Define the city-identity review order as:
+
+1. Gameplay clarity
+2. Accessibility and comfort
+3. Modular and procedural viability
+4. Gameplay-category recognition
+5. Road and movement-boundary clarity
+6. Cross-city gameplay consistency
+7. Identity recognisability through multiple cues
+8. Stereotype and landmark-dependence safety
+9. Day/night consistency
+10. Shared-versus-unique asset discipline
+11. City authenticity and restraint
+12. Charm and personality
+13. Beauty and polish
+
+A city treatment should be approved only when:
+
+* gameplay remains dominant
+* the city is identifiable through several restrained cues
+* the system is modular and procedurally usable
+* it avoids landmark dependence
+* it avoids stereotypes
+* it works consistently in day and night
+* it preserves global gameplay meaning
+* it feels warm, local and charming
+* future cities can use the same framework
+
+#### 20. Immediate Rejection Rules
+
+Reject or redesign any city treatment that:
+
+* harms gameplay readability
+* weakens accessibility
+* turns the road into decoration
+* depends on a complete painted scene
+* requires handcrafted placement
+* breaks procedural composition
+* relies primarily on landmarks
+* reduces the city to one cliché
+* uses dense cultural decoration
+* looks like a tourism poster
+* uses realistic clutter as proof of authenticity
+* changes gameplay-category meaning
+* becomes harder to read at night
+* cannot reuse the modular asset system
+* creates unnecessary unique assets
+* requires future cities to rewrite the framework
+* makes city identity more important than gameplay
+
+#### 21. Scope Boundary
+
+The City Identity Framework may define:
+
+* research inputs
+* identity-pillar methodology
+* material translation
+* silhouette and frontage direction
+* road and boundary identity
+* archetype structure
+* shared-versus-city-specific logic
+* palette, lighting and audio flavour
+* landmark restraint
+* stereotype avoidance
+* day/night consistency
+* approval and rejection rules
+
+It must not define:
+
+* final Mumbai asset kit
+* final Jaisalmer asset kit
+* exact production prompts
+* Prompt Bible wording
+* final asset catalogues
+* exact prop counts
+* exact enemy, pickup or hazard lists
+* gameplay code
+* procedural algorithms
+* rendering implementation
+* metadata schemas
+* Technical Asset Contract changes
+
+#### 22. Final Framework
+
+Summary framework:
+
+```text
+Research the real city
+→ define 3–5 identity pillars
+→ translate pillars into materials, silhouettes and everyday street cues
+→ define road and boundary treatment
+→ define 4–6 modular archetypes
+→ establish shared assets, city skins and justified unique anchors
+→ define restrained palette, lighting and audio flavour
+→ verify day/night consistency
+→ test against gameplay, accessibility and modularity
+→ reject stereotypes, landmark dependence and tourist-poster treatment
+```
+
+#### 23. Final Principle
+
+Every city in Masala Run should feel recognisable through a restrained
+combination of everyday street culture, materials, silhouettes, food cues,
+modular props, palette, lighting and ambience.
+
+City identity should emerge from several complementary cues rather than one
+landmark or stereotype.
+
+The same gameplay meaning, readability, accessibility and procedural structure
+must remain consistent across every city and time of day.
 
 ## Part III — Asset Standards
 
@@ -3160,7 +3833,21 @@ Every asset should maximize:
 - procedural flexibility
 - long-term scalability
 
-Never optimize an asset at the cost of modularity.
+Never optimize an asset at the cost of gameplay readability, modularity, or
+procedural compatibility.
+
+Gameplay readability is the primary creative requirement.
+
+Modularity and procedural compatibility are mandatory production requirements.
+
+An asset must satisfy both.
+
+A modular but unreadable asset must be rejected.
+
+A readable asset that requires handcrafted scenes or breaks procedural
+production must also be rejected.
+
+Neither requirement may invalidate the other.
 
 The production philosophy is:
 
@@ -3316,6 +4003,11 @@ Avoid unnecessary dependencies between neighbouring assets.
 
 Reject any asset that significantly reduces procedural flexibility or reuse.
 
+Reject any modular asset that harms gameplay readability.
+
+Reject any readable asset that requires handcrafted scenes or breaks procedural
+production.
+
 Beauty alone is not sufficient reason to accept an asset.
 
 #### 21. Future Scalability
@@ -3334,19 +4026,23 @@ Manual handcrafted placement should never become a production requirement.
 
 Review order:
 
-1. Modularity
-2. Gameplay Readability
+1. Gameplay Readability
+2. Modularity
 3. Reusability
 4. Procedural Compatibility
 5. City Flavour
 6. Visual Polish
 
+This review order follows the global hierarchy: gameplay readability is primary,
+while modularity and procedural compatibility remain mandatory production
+requirements.
+
 #### 24. Immediate Rejection Rule
 
 Reject or redesign any asset that:
 
-- reduces modular reuse
 - harms gameplay readability
+- reduces modular reuse
 - requires handcrafted placement
 - breaks procedural composition
 - duplicates existing functionality unnecessarily
@@ -3359,48 +4055,2534 @@ Masala Run's production pipeline should favor reusable modular assets that natur
 Rule:
 
 ```text
-Modularity first.
-Gameplay second.
-City flavour third.
-Beauty emerges from composition, not handcrafted scenes.
+Gameplay readability is the primary creative requirement.
+Modularity and procedural compatibility are mandatory production requirements.
+An asset must satisfy both.
 ```
 
 ### Chapter 14 — Asset Categories
 
-TODO: Define this chapter during the Art Bible authoring process.
+Asset categories are governed by Gameplay Objects Readability, Environment Props
+& Micro-Clusters, City Identity Framework, Modular Asset System, Animation
+Language, Visual Feedback & UI Language, Audio & Haptic Language, and
+Accessibility & Comfort Language.
+
+No separate final asset catalogue is defined by the Art Bible.
 
 ### Chapter 15 — Asset Quality Standards
 
-TODO: Define this chapter during the Art Bible authoring process.
+Asset quality is governed by the global hierarchy and each medium-specific
+chapter's review and rejection rules.
 
-### Chapter 16 — Animation Principles
+Quality requires gameplay readability, accessibility, modularity, procedural
+compatibility, category recognition, restrained city flavour, and production
+reuse.
 
-TODO: Define this chapter during the Art Bible authoring process.
+### Chapter 16 — Animation Language
+
+#### 1. Primary Role of Animation
+
+Animation in Masala Run exists primarily to communicate gameplay.
+
+Gameplay readability always takes precedence over visual spectacle.
+
+Personality is added only after gameplay clarity is preserved.
+
+Responsiveness is preferred over realism.
+
+Rule:
+
+```text
+Gameplay communication first.
+Responsiveness second.
+Personality third.
+Realism last.
+```
+
+#### 2. Player Responsiveness
+
+Player animation must feel immediate.
+
+Movement, turning, damage response, attacks, collection feedback, and recovery
+states should reinforce the feeling that the player remains under direct control.
+
+Animation must not delay input response, hide player position, obscure the
+player silhouette, or make movement feel heavy.
+
+The player may use moderate stylized exaggeration, but the exaggeration must be
+quick, readable, and subordinate to control.
+
+#### 3. Enemy Behaviour
+
+Enemy animation must make behaviour readable before it makes enemies charming.
+
+Enemy movement, approach rhythm, attack preparation, recovery, hit reaction, and
+death should clearly communicate state and threat level.
+
+Enemies may have personality, but personality must never confuse:
+
+* direction of movement
+* attack intent
+* active danger state
+* recovery state
+* enemy family identity
+
+#### 4. Attack Telegraphing
+
+Attacks should telegraph before execution.
+
+Telegraphs must be short, readable, and visually distinct from idle motion,
+ambient motion, pickups, and decorative effects.
+
+Execution should feel satisfying but brief.
+
+Impact animation should clarify that something happened, then clear quickly so
+the next gameplay read is not blocked.
+
+#### 5. Idle and Secondary Motion
+
+Idle animations should be subtle.
+
+They may add life, warmth, and recognition, but they must not compete with
+movement, attack telegraphs, hazards, pickups, or player feedback.
+
+Secondary motion is allowed when it supports readability or controlled
+personality.
+
+Avoid loose, noisy, realistic, or delayed secondary motion that makes the object
+feel disconnected from gameplay timing.
+
+#### 6. Pickup Animation
+
+Pickup animation should be restrained, inviting, and immediately readable.
+
+Pickups may pulse, bounce, shimmer, or glow where useful, but they must remain
+less urgent than active threats and attacks.
+
+Pickup animation should help the player notice collectible value without making
+the pickup look dangerous.
+
+#### 7. Death and Hit Reactions
+
+Hit reactions should be quick and readable.
+
+Death animations may be expressive, but they must remain brief.
+
+Enemy death animation should confirm removal without blocking the player,
+covering hazards, hiding other enemies, or creating persistent visual noise.
+
+Impacts should feel satisfying through timing, contrast, compression,
+exaggeration, or simple effects, not through long animation.
+
+#### 8. Environmental Motion
+
+Environmental animation should be localized and low priority.
+
+Allowed ambient motion includes:
+
+* subtle wind behaviour
+* small cloth movement
+* light sign flicker
+* gentle stall or awning motion
+* sparse practical-light shimmer
+* contained prop movement near edges
+
+Environmental motion must never imply gameplay danger unless it is attached to a
+real gameplay system.
+
+Motion near the road edge should remain especially restrained so it does not
+weaken the readable boundary defined in Camera & Composition.
+
+#### 9. Motion Priority
+
+Animation priority is:
+
+1. Player
+2. Threats
+3. Attacks
+4. Pickups
+5. Ambient Environment
+
+Higher-priority gameplay animations should never be visually obscured by
+lower-priority ambient animation.
+
+If two animations compete for attention, the lower-priority animation should be
+reduced, delayed, simplified, or removed.
+
+#### 10. Timing
+
+Animation timing should be quick and readable.
+
+Masala Run favours short animation beats over long realistic motion.
+
+Timing should communicate:
+
+* action start
+* threat build-up
+* execution
+* hit confirmation
+* recovery
+* removal
+
+Animation should only hold on a pose when the hold improves gameplay reading.
+
+#### 11. Camera Shake
+
+Camera shake must be limited.
+
+It may be used only for important impacts, boss moments, or high-value feedback,
+and must remain short, controlled, and gameplay-safe.
+
+Camera shake must never make the player, threats, hazards, pickups, attacks, road
+boundaries, or movement direction harder to read.
+
+#### 12. Silhouette, Timing, and Motion
+
+Readability should come from silhouette, timing, and motion.
+
+Animation should preserve the object's readable shape during important gameplay
+states.
+
+Important poses should be recognizable even in a busy scene.
+
+Avoid animation that hides the face, body direction, attack source, pickup
+identity, hazard edge, or gameplay category.
+
+#### 13. Reusable Animation Loops
+
+Animation loops should be short, modular, and reusable.
+
+Avoid long bespoke sequences that depend on one handcrafted scene.
+
+Animation sets should be designed so they can be reused across many enemies,
+props, pickups, cities, and procedural placements.
+
+Loop timing should avoid obvious mechanical repetition where possible, but must
+stay predictable enough for gameplay readability.
+
+#### 14. Shared Animation Language Across Cities
+
+All cities share the same animation philosophy.
+
+City identity may affect motion flavour through restrained differences in prop
+movement, environmental rhythm, material response, or practical-light behaviour.
+
+City flavour must not change gameplay animation meaning.
+
+The same player, threat, attack, pickup, and ambient priority rules apply in
+every city.
+
+#### 15. Day and Night Animation
+
+Day and night variants use the same animation philosophy.
+
+Night may add restrained practical-light motion, glow rhythm, or reduced ambient
+activity where appropriate.
+
+Night animation must not create extra visual noise, hide gameplay information, or
+make threats harder to read.
+
+#### 16. Modular Production
+
+Animation should support the Modular Asset System.
+
+Animation should work with reusable assets, reusable micro-clusters, procedural
+placement, and city-specific skins.
+
+Avoid animation that requires handcrafted scene-specific behaviour, unique
+placement logic, or non-reusable timing relationships between neighbouring
+assets.
+
+Animation should be added only where it improves gameplay communication,
+readability, responsiveness, personality, or world life.
+
+#### 17. Cross-Chapter Alignment
+
+Animation must align with Gameplay Objects Readability.
+
+Gameplay object animation must preserve player readability, enemy readability,
+pickup readability, hazard readability, attack readability, outline clarity,
+scale clarity, and overlap readability.
+
+Animation must align with Camera & Composition.
+
+Motion must preserve the playable arena as the visual hero and keep edge motion
+secondary.
+
+Animation must align with the Modular Asset System.
+
+Animated assets should remain reusable, procedurally compatible, and independent
+wherever practical.
+
+#### 18. Animation Review Order
+
+Animation reviews must follow this order:
+
+1. Gameplay Readability
+2. Responsiveness
+3. Timing
+4. Threat Communication
+5. Personality
+6. City Identity
+7. Polish
+
+If polish conflicts with readability, readability wins.
+
+#### 19. Rejection Rule
+
+Reject or redesign any animation that:
+
+* delays gameplay unnecessarily
+* reduces readability
+* prioritizes realism over responsiveness
+* creates visual noise
+* obscures gameplay information
+* cannot be reused modularly
+* depends on handcrafted scene-specific behaviour
+* prioritizes city flavour over gameplay communication
+
+#### 20. Final Principle
+
+Animation should communicate gameplay first, feel responsive, add controlled
+personality, remain modular, support procedural production, and make the world
+feel alive without distracting from survival gameplay.
+
+Rule:
+
+```text
+Gameplay first.
+Responsive motion.
+Controlled personality.
+Reusable animation.
+Alive world.
+No survival distraction.
+```
+
+### Chapter 17 — Visual Feedback & UI Language
+
+#### 1. Core Direction
+
+Masala Run uses controlled, punchy and playful visual feedback.
+
+Visual feedback exists to confirm gameplay events first and add satisfaction
+second.
+
+Feedback strength must scale with gameplay importance.
+
+Feedback must help the player understand:
+
+* what happened
+* who caused it
+* whether it was effective
+* whether immediate action is required
+
+Not every gameplay event should receive equal visual emphasis.
+
+Rule:
+
+```text
+Gameplay meaning first.
+Readability second.
+Satisfaction third.
+Personality fourth.
+Spectacle only when earned.
+```
+
+#### 2. Visual Feedback Hierarchy
+
+Use this general priority:
+
+```text
+Player damage / critical danger
+> major enemy attacks and hazards
+> major player attacks
+> ordinary enemy hits
+> ordinary player attacks
+> pickups and rewards
+> secondary feedback
+> ambient effects
+```
+
+Lower-priority feedback must never obscure higher-priority gameplay
+information.
+
+The player, immediate threats, hazards, movement boundaries, critical attacks,
+and road readability must remain readable at all times.
+
+#### 3. Basic Player Attacks
+
+Ordinary attacks should feel:
+
+* small
+* crisp
+* readable
+* responsive
+* short-lived
+* controlled during dense gameplay
+
+They may use:
+
+* compact impact shapes
+* brief flashes
+* small directional particles
+* short enemy reactions
+* restrained sound and camera response where appropriate
+
+Basic attacks must not flood the screen or hide threats.
+
+#### 4. Special and Upgraded Attacks
+
+Special or upgraded attacks may be more expressive than basic attacks.
+
+They may use:
+
+* larger impact shapes
+* stronger colour accents
+* additional particles
+* brief controlled glow
+* stronger enemy reactions
+* limited camera shake
+
+They must still preserve:
+
+* player position
+* enemy visibility
+* hazard visibility
+* movement boundaries
+* road readability
+
+No attack may become visually dominant for longer than its gameplay importance
+justifies.
+
+#### 5. Enemy Hit Feedback
+
+Enemy-hit confirmation should use a combined system rather than relying on one
+cue.
+
+Recommended combination:
+
+```text
+brief hit flash
++ short recoil
++ compact impact effect
++ optional damage number
++ visible health response where relevant
+```
+
+Hit feedback should remain readable during rapid or repeated attacks.
+
+Hit flashes must be brief and controlled.
+
+Rapid-fire attacks may throttle flash frequency to avoid flickering or visual
+noise.
+
+Enemy silhouettes must remain recognizable during hit feedback.
+
+#### 6. Player Damage Feedback
+
+Player damage should use layered but tightly controlled feedback.
+
+Possible elements:
+
+* clear player reaction
+* brief disruption of the player's protected visual identity
+* local impact effect
+* short screen-edge warning
+* small proportional camera response
+* clear health reduction
+
+Avoid prolonged full-screen overlays or effects that obscure gameplay.
+
+Screen-edge damage feedback should be:
+
+* brief
+* proportional to damage severity
+* stronger for heavy or critical damage
+* subtle for minor damage
+* never persistent enough to reduce visibility
+
+The centre of the gameplay screen must remain clear.
+
+#### 7. Camera Shake
+
+Camera shake should be used sparingly and proportionally.
+
+It may be used for:
+
+* heavy player damage
+* major enemy attacks
+* boss impacts
+* powerful special attacks
+* major upgrades
+* significant destruction or defeat moments
+
+Routine attacks should use little or no camera shake.
+
+Camera shake must never reduce movement control, player tracking, threat
+readability, or road readability.
+
+#### 8. Enemy Death and Cleanup
+
+Ordinary enemy deaths should be:
+
+* short
+* expressive
+* immediately readable
+* satisfying
+* quickly cleaned up
+
+Recommended structure:
+
+```text
+short reaction
+→ compact collapse / pop / burst
+→ fast cleanup
+```
+
+Possible defeat treatments:
+
+* small dust burst
+* stylized pop
+* compact food-themed effect where contextually appropriate
+* quick scale-down
+* rapid shadow removal
+
+Do not leave persistent defeated bodies on the playable road.
+
+Persistent remains would create visual clutter and interfere with gameplay
+readability.
+
+#### 9. Boss and Major Enemy Defeat
+
+Bosses and major enemies may receive longer and more celebratory defeat feedback
+than normal enemies.
+
+Allowed elements:
+
+* stronger reaction
+* staged collapse
+* larger controlled particles
+* reward burst
+* modest camera shake
+* short celebratory emphasis
+
+Boss defeat feedback must remain bounded and consistent with the normal visual
+language.
+
+Avoid full-screen cinematic effects that disconnect from gameplay or cover
+critical information.
+
+#### 10. Particle Style
+
+Particles should match the clean flat-cartoon visual language.
+
+They should use:
+
+* stylized flat shapes
+* simple readable silhouettes
+* one or two-tone colour treatment
+* short lifetimes
+* limited scale variation
+* clear directional behaviour where relevant
+
+Avoid:
+
+* realistic particle simulation
+* volumetric smoke
+* excessive bloom
+* painterly effects
+* dense uncontrolled particle clouds
+* realistic debris rendering
+
+Particle quantity must scale with:
+
+* gameplay importance
+* current screen density
+* overlap risk
+* readability requirements
+* device-performance constraints
+
+A powerful action does not always require many particles.
+
+Strength may instead come from clearer timing, a stronger silhouette, a larger
+single impact shape, or cleaner colour contrast.
+
+#### 11. Dust Effects
+
+Dust should be localized, short-lived and linked to specific action or
+atmosphere.
+
+Possible uses:
+
+* movement bursts
+* enemy landings
+* strong impacts
+* Jaisalmer hazards
+* selected environmental ambience
+* spawn and defeat feedback
+
+Dust should remain:
+
+* low
+* compact
+* brief
+* subordinate to gameplay objects
+
+Avoid continuous ambient dust across the playable road.
+
+#### 12. Food-Themed Effects
+
+Food-themed feedback may be used selectively to reinforce Masala Run's
+personality, humour and thematic identity.
+
+Appropriate uses may include:
+
+* food-based attacks
+* food pickups
+* enemy-specific defeat effects
+* upgrade celebrations
+* reward moments
+
+Do not use ingredient or food confetti for every action.
+
+Food effects must strengthen meaning or personality rather than become
+decorative noise.
+
+#### 13. Enemy Spawn Feedback
+
+Enemy spawns should use short readable arrival cues.
+
+Possible cues:
+
+* compact dust puff
+* short scale-in
+* shadow formation
+* brief ground cue
+* quick entry animation
+
+Spawn cues must not resemble:
+
+* pickups
+* road hazards
+* rewards
+* interaction markers
+* player attacks
+
+Spawn-warning strength should scale with threat severity.
+
+Recommended hierarchy:
+
+```text
+Ordinary enemy
+→ minimal or movement-based arrival cue
+
+Elite enemy
+→ clearer short warning
+
+Boss / high-risk spawn
+→ stronger location and timing telegraph
+```
+
+Warnings must be actionable and proportional.
+
+#### 14. Pickup Collection Feedback
+
+Pickup collection should use short, attractive confirmation feedback.
+
+Recommended sequence:
+
+```text
+small pop / bounce
+→ compact sparkle or streak
+→ quick movement toward player or HUD where appropriate
+→ clear confirmation
+```
+
+Pickups should feel rewarding without hiding enemies, hazards or movement
+information.
+
+Pickup effects must remain less urgent than immediate threats.
+
+#### 15. Damage Numbers
+
+Damage numbers are allowed, but must be restrained and prioritized.
+
+They should support:
+
+* build understanding
+* progression feedback
+* damage comparison
+* critical-hit recognition
+* status-effect recognition
+
+Rules:
+
+* combine or batch rapid low-value hits where practical
+* prioritize critical or unusually large damage
+* use compact readable typography
+* use short display lifetimes
+* prevent number stacking from covering gameplay
+* support future settings to reduce or disable damage numbers
+
+Damage-number hierarchy:
+
+```text
+Normal damage
+→ compact and neutral
+
+Critical damage
+→ slightly larger with restrained emphasis
+
+Status / special damage
+→ controlled category colour or small symbol
+
+Healing
+→ separate positive visual language
+```
+
+Avoid giving every damage type a unique font, effect or bright colour.
+
+Do not create a rainbow of competing numbers.
+
+#### 16. Enemy Health Bars
+
+Enemy health bars should appear only where they improve gameplay decisions.
+
+Recommended rules:
+
+```text
+Ordinary enemies
+→ usually no persistent health bar
+
+Durable enemies
+→ health bar may appear after damage or when relevant
+
+Elite enemies
+→ clearer health bar
+
+Bosses
+→ persistent dedicated health display
+```
+
+Avoid placing permanent health bars above every enemy.
+
+World-space health bars should be:
+
+* simple
+* compact
+* highly readable
+* minimally framed
+* stable in size
+* lightly animated
+* free from decorative city styling
+
+They are gameplay instruments, not decorative assets.
+
+#### 17. HUD
+
+HUD means Heads-Up Display.
+
+The HUD is the persistent screen-space interface used to show run and player
+information such as:
+
+* player health
+* experience or level progress
+* timer
+* currency or score
+* ability status
+* pause or settings controls
+* boss health
+* other persistent run information
+
+The HUD should be:
+
+* globally consistent across cities
+* clean
+* compact
+* lightly Masala Run-branded
+* readable on mobile
+* subordinate to the playable road
+
+The HUD may express the global Masala Run identity through:
+
+* clean flat panel shapes
+* typography
+* icon language
+* restrained accent colours
+* rounded or simplified visual forms
+
+Do not heavily reskin the HUD for each city.
+
+City identity should primarily live inside the game world, not inside persistent
+interface decoration.
+
+Avoid generic system UI, but also avoid decorative HUD treatment that competes
+with gameplay.
+
+#### 18. HUD Screen Occupancy
+
+The HUD should occupy minimal fixed zones around the screen perimeter.
+
+Recommended approach:
+
+* compact persistent status area near the top
+* limited corner controls where necessary
+* temporary notifications that clear quickly
+* no large permanent side panels
+* no persistent information over the road centre
+* preserve visibility of the approximately 76-80% playable road area
+
+The playable road must remain visually dominant.
+
+#### 19. World-Space UI vs Screen-Space UI
+
+Use world-space UI only for local, immediate and actionable information.
+
+World-space UI may include:
+
+* local enemy health
+* status icons
+* targeting cues
+* interaction markers
+* danger warnings
+* object-specific feedback
+
+Use screen-space UI for persistent player and run information.
+
+Screen-space UI may include:
+
+* player health
+* level and experience
+* timer
+* score or currency
+* ability status
+* boss health
+* pause and system controls
+* persistent progression information
+
+Rule:
+
+```text
+Local information stays near the object.
+Persistent information stays in the HUD.
+```
+
+World-space UI must not cover the road with unnecessary labels, bars or icons.
+
+#### 20. Feedback and UI Style Integration
+
+Visual feedback and UI must remain consistent with Masala Run's established
+visual language:
+
+* clean flat cartoon shapes
+* readable silhouettes
+* restrained colour use
+* controlled outlines
+* minimal shading
+* limited glow
+* no painterly effects
+* no realistic material rendering
+* no excessive decorative detail
+* no generic mobile-template appearance
+
+Gameplay category colours and contrast hierarchy must remain intact.
+
+Lighting may influence feedback slightly, but must not rewrite gameplay meaning.
+
+Day and night must use the same feedback and UI logic.
+
+Cities may add restrained flavour to specific world effects where appropriate,
+but the global readability system remains unchanged.
+
+#### 21. Performance and Density Safety
+
+Visual feedback must remain safe during dense survivors-style gameplay.
+
+The system should support:
+
+* particle-count limits
+* feedback throttling
+* damage-number batching
+* effect lifetime limits
+* overlap controls
+* reduced feedback during high-density moments
+* performance-scalable quality settings where appropriate
+
+This chapter defines visual principles only.
+
+It does not implement systems or gameplay code.
+
+#### 22. Cross-Chapter Alignment
+
+Visual feedback and UI must align with Gameplay Objects Readability.
+
+Feedback must preserve player readability, enemy readability, hazard
+readability, pickup readability, attack readability, outline clarity, overlap
+safety, and protected gameplay colour ownership.
+
+Visual feedback and UI must align with Camera & Composition.
+
+The playable arena remains the visual hero. Persistent UI, decorative feedback,
+and ambient effects must not cover the road centre or weaken movement-boundary
+readability.
+
+Visual feedback and UI must align with Animation Language.
+
+Feedback timing must stay responsive, short, readable, and proportional.
+
+Visual feedback and UI must align with Colour & Contrast Language.
+
+Feedback colour may add emphasis, but must not create new meanings that compete
+with gameplay category colours.
+
+#### 23. Review Priority
+
+Review Visual Feedback & UI Language in this order:
+
+1. Gameplay meaning
+2. Player and threat readability
+3. Timing and responsiveness
+4. Visual hierarchy
+5. Overlap safety
+6. Consistency with Animation Language
+7. Consistency with Colour & Contrast Language
+8. Density and performance safety
+9. Satisfaction
+10. Personality
+11. Polish
+
+Beauty and spectacle never override clarity.
+
+#### 24. Immediate Rejection Rule
+
+Reject or redesign any feedback or UI treatment that:
+
+* hides the player
+* hides enemies or hazards
+* obscures movement boundaries
+* covers the playable road centre
+* persists longer than necessary
+* creates excessive particles
+* creates frequent or disruptive camera shake
+* produces unreadable damage-number clutter
+* makes pickups appear more urgent than threats
+* makes world-space UI dominate gameplay
+* uses prolonged screen overlays
+* breaks the clean flat-cartoon style
+* breaks gameplay colour ownership
+* resembles unrelated gameplay categories
+* requires handcrafted scene-specific behaviour
+* cannot scale to dense procedural gameplay
+* prioritizes spectacle over gameplay communication
+
+#### 25. Final Principle
+
+Masala Run uses controlled, punchy and playful visual feedback.
+
+Feedback confirms gameplay first and adds satisfaction second.
+
+Strength scales with gameplay importance.
+
+Basic actions remain compact and readable.
+
+Major actions may become more expressive without hiding gameplay.
+
+Particles are flat, stylized, short-lived and density-controlled.
+
+Damage feedback uses layered cues without prolonged overlays.
+
+Enemy deaths are short, expressive and quickly cleaned up.
+
+Spawns are readable and proportionally telegraphed.
+
+Damage numbers are restrained and prioritized.
+
+Enemy health bars appear only where they improve decisions.
+
+World-space UI communicates local actionable information.
+
+Screen-space UI carries persistent player and run information.
+
+The HUD remains globally consistent, clean and lightly branded rather than
+heavily city-skinned.
+
+The road centre remains protected from persistent UI and decorative feedback.
+
+Rule:
+
+```text
+Gameplay meaning first.
+Readability second.
+Satisfaction third.
+Personality fourth.
+Spectacle only when earned.
+```
+
+### Chapter 18 — Audio & Haptic Language
+
+#### 1. Core Philosophy
+
+Audio exists to communicate gameplay first, then add satisfaction and world
+personality.
+
+Sound should help the player understand:
+
+* what happened
+* where it happened
+* whether it is dangerous
+* whether an action succeeded
+* whether immediate action is required
+
+Masala Run's sound personality should feel:
+
+* playful
+* tactile
+* warm
+* punchy
+* controlled
+* responsive
+* mobile-game appropriate
+
+It should not feel:
+
+* realistic and gritty
+* excessively cartoonish
+* loud and chaotic
+* arcade-generic
+* constantly comedic
+
+Rule:
+
+```text
+Gameplay meaning
+→ Readability
+→ Satisfaction
+→ Personality
+→ Spectacle only when earned
+```
+
+#### 2. Audio Priority Hierarchy
+
+Sound intensity and prominence must follow gameplay importance.
+
+Recommended priority:
+
+```text
+Critical player danger
+> boss and major enemy warnings
+> high-risk hazards
+> major player attacks
+> player damage
+> ordinary enemy attacks
+> ordinary player attacks
+> pickups and rewards
+> UI confirmation
+> ambient city sound
+```
+
+Lower-priority sounds must yield to higher-priority gameplay cues.
+
+Not every event should receive equal volume, layering, duration, frequency range,
+repetition rate, or haptic strength.
+
+#### 3. Player Movement Audio
+
+Ordinary movement audio should be subtle and rhythmic.
+
+It may:
+
+* lightly confirm movement
+* reflect broad surface categories where useful
+* use restrained sound variation
+* reduce in prominence during dense combat
+* avoid tiring continuous repetition
+
+Movement audio must never compete with attacks, hazards, enemy warnings, or
+player-damage cues.
+
+#### 4. Basic Player Attacks
+
+Basic attacks should sound:
+
+* compact
+* crisp
+* responsive
+* readable
+* short
+* repetition-safe
+
+They should use:
+
+* clear attack initiation
+* clear impact where relevant
+* short sound tails
+* subtle sound variants
+* restrained low-frequency energy
+* restrained overall volume
+
+Basic attacks must remain comfortable during rapid repetition.
+
+#### 5. Upgraded and Special Attacks
+
+Upgraded and special attacks may use stronger sound layering proportional to
+gameplay importance.
+
+They may use:
+
+* broader frequency range
+* heavier impact
+* stronger but controlled low-end
+* additional tactile or food-related texture
+* a short tonal or musical accent
+* clearer power differentiation
+
+They must not mask:
+
+* enemy telegraphs
+* boss warnings
+* player-damage cues
+* high-risk hazards
+* critical state warnings
+
+#### 6. Ability Sound Families
+
+Individual weapons and abilities should have recognizable audio identities, but
+they should belong to shared sound families rather than sounding like unrelated
+systems.
+
+Ability audio should communicate:
+
+* attack type
+* timing
+* power level
+* range or direction where relevant
+* impact behaviour where relevant
+
+Consistency should come from shared construction, timing principles, mix
+hierarchy, and material abstraction.
+
+#### 7. Enemy Audio
+
+Enemy sound exists to communicate threat first and personality second.
+
+Enemy audio should help communicate:
+
+* proximity where useful
+* arrival
+* attack wind-up
+* attack execution
+* enemy type
+* elite or boss status
+* damage reaction where useful
+* defeat
+
+Enemy personality and humour are welcome only after danger remains clear.
+
+Rule:
+
+```text
+Threat communication first.
+Personality second.
+```
+
+#### 8. Enemy Idle Sound
+
+Ordinary enemies should not produce constant idle vocalisations during large
+waves.
+
+Enemy sound should be primarily event-driven.
+
+Appropriate ordinary-enemy sound moments include:
+
+* arrival
+* attack telegraph
+* attack
+* meaningful damage reaction
+* defeat
+
+Constant enemy noise should be avoided because it would become unreadable during
+dense survivors-style gameplay.
+
+#### 9. Enemy Attack Telegraphs
+
+All meaningful enemy attacks should use clear and proportional audio telegraphs
+where sound improves readability.
+
+Hierarchy:
+
+```text
+Ordinary attack
+→ brief local cue
+
+Elite attack
+→ clearer and more recognizable warning
+
+Boss or high-risk attack
+→ strong signature or directional telegraph
+```
+
+Telegraphs must occur early enough to be actionable.
+
+Stronger danger may use clearer timing, broader sound presence, stronger
+identity, or more recognizable warning structure.
+
+#### 10. Positional Audio
+
+Positional or stereo audio may support:
+
+* offscreen threats
+* boss attacks
+* incoming projectiles
+* directional hazards
+* important spatial events
+
+However, positional audio must never be the only warning system.
+
+Gameplay must remain understandable:
+
+* with sound muted
+* through a single mobile speaker
+* through headphones
+* under accessibility settings
+
+Visual and animation telegraphs remain essential.
+
+#### 11. Ordinary Hit Audio
+
+Ordinary enemy hits should sound short, tactile and material-aware.
+
+Recommended structure:
+
+```text
+attack sound
++ compact impact
++ optional enemy reaction
+```
+
+Do not play every layer loudly for every rapid hit.
+
+The audio system should support restrained variation, batching, throttling,
+prioritisation, or simplification during rapid repeated attacks.
+
+#### 12. Player Damage Audio
+
+Player damage must be clearer and more urgent than ordinary enemy damage.
+
+Player-damage sound should include:
+
+* immediate confirmation
+* a protected player-specific identity
+* stronger feedback for heavy damage
+* distinct treatment for critical danger
+* short duration
+* high recognizability
+
+The player must immediately understand that they were hit.
+
+#### 13. Critical Health Audio
+
+Critical health may use a repeating warning system, but it must remain sparse and
+non-fatiguing.
+
+Recommended structure:
+
+* a clear initial warning
+* occasional restrained reminder
+* no constant loud heartbeat loop
+* no continuous panic-inducing sound
+* support for reduced or disabled warning settings where appropriate
+
+Urgency must not become annoyance.
+
+#### 14. Enemy Death Audio
+
+Ordinary enemy deaths should be:
+
+* short
+* expressive
+* readable
+* quickly cleared
+* repetition-safe
+
+Recommended structure:
+
+```text
+compact defeat cue
+→ brief material or personality accent
+→ immediate cleanup
+```
+
+Elite and boss defeats may use stronger and longer treatments, but they must not
+block subsequent gameplay cues.
+
+#### 15. Pickup Audio
+
+Pickup sounds should be:
+
+* attractive
+* bright
+* brief
+* rewarding
+* less urgent than threats
+
+Rule:
+
+```text
+Pickups invite.
+Threats interrupt.
+```
+
+Rapid pickup collection should support:
+
+* batching
+* throttling
+* restrained pitch variation
+* rising sequences where useful
+* prevention of uncontrolled sound stacking
+
+#### 16. Pickup Sound Families
+
+Different pickup categories may have distinct sounds within a shared reward
+family.
+
+Possible categories include:
+
+* health
+* currency
+* experience
+* temporary power
+* major upgrade
+* rare reward
+
+They should feel related while remaining identifiable.
+
+Pickup sounds must not resemble:
+
+* enemy warnings
+* hazards
+* player damage
+* hostile attacks
+* urgent system alerts
+
+#### 17. Major Upgrades and Level-Ups
+
+Major upgrades, level-ups, or significant reward moments may use celebratory and
+memorable audio.
+
+They may briefly rise above ordinary combat audio, but should:
+
+* remain short
+* feel rewarding
+* avoid masking active threats
+* preserve danger telegraphs
+* remain consistent with the playful Masala Run sound world
+* avoid long cinematic interruption
+
+#### 18. Hazard Audio
+
+Hazards should use shared functional warning logic with city-specific material
+skins.
+
+Rule:
+
+```text
+Same gameplay meaning
+→ same timing and urgency logic
+
+Different city
+→ different material flavour
+```
+
+Example:
+
+```text
+Slowdown hazard
+
+Mumbai skin
+→ shallow water, ripple or splash texture
+
+Jaisalmer skin
+→ loose sand, scrape or dust texture
+
+Shared meaning
+→ recognizable slowdown-warning structure
+```
+
+City flavour must not change the gameplay meaning.
+
+#### 19. Environmental Prop Audio
+
+Decorative environmental props should produce sound only where:
+
+* gameplay interacts with them
+* occasional ambience genuinely benefits
+* the sound remains localized and low priority
+* it does not imply interaction where none exists
+
+Decorative props should not constantly announce themselves.
+
+Ambient prop sound must never make a non-interactive object appear actionable.
+
+#### 20. Ambient City Sound
+
+City ambience should be light, layered and spacious.
+
+Possible components:
+
+* distant street presence
+* soft wind
+* occasional stall activity
+* faint architectural or material cues
+* sparse localized environmental details
+* subtle signs of life
+
+Avoid:
+
+* dense literal street recordings
+* continuous traffic-like noise
+* stereotype-heavy soundscapes
+* chaotic stock "India ambience"
+* ambience that masks gameplay cues
+* ambience that creates a realistic documentary tone
+
+Masala Run presents a romanticized street world. The ambience should support that
+same principle.
+
+#### 21. Implied Human Presence
+
+Ambient sound may imply human presence even where visible people are absent.
+
+Possible cues:
+
+* distant indistinct chatter
+* utensils
+* shutters
+* faint stall activity
+* distant movement
+* occasional non-verbal activity
+
+Avoid:
+
+* clear dialogue
+* identifiable spoken sentences
+* voices that imply visible NPCs
+* loud crowd beds
+* narrative dialogue inside ordinary ambience
+
+#### 22. Day and Night Ambience
+
+Day and night should share the same city identity while using different density
+and mood.
+
+Day may feel:
+
+* slightly livelier
+* more open
+* warmer
+* more active
+
+Night may feel:
+
+* calmer
+* more spacious
+* more localized
+* slightly cooler in inactive spaces
+* warmer around practical activity
+
+Night must not become silent, threatening, or harder to read unless a future
+gameplay mechanic deliberately requires it.
+
+#### 23. City-Specific Audio Identity
+
+Each city may use restrained audio flavour through:
+
+* local material textures
+* environmental rhythm
+* practical activity
+* ambience density
+* wind or atmospheric character
+* selected street-culture cues
+* city-specific surface response
+
+City audio must avoid:
+
+* stereotypes
+* tourist-documentary treatment
+* stock regional clichés
+* maximum-density ambience
+* city flavour overriding gameplay readability
+
+Rule:
+
+```text
+Same gameplay audio logic.
+Different restrained city flavour.
+```
+
+#### 24. Food-Themed Audio Identity
+
+Food may influence Masala Run's sound identity through controlled tactile
+flavour.
+
+Possible texture families include:
+
+* crisp
+* crunchy
+* soft
+* sizzling
+* bubbling
+* sticky
+* metallic utensil accents
+* light container or serving sounds
+
+Food-influenced sound may support:
+
+* food-based attacks
+* pickups
+* upgrades
+* selected enemy personalities
+* reward moments
+* ability identities
+
+Avoid making every sound event resemble literal cooking.
+
+Food texture must strengthen identity or gameplay meaning rather than become a
+constant joke.
+
+#### 25. UI Sound Language
+
+UI audio should feel:
+
+* clean
+* compact
+* friendly
+* lightly tactile
+* consistent
+* readable
+* restrained
+* lightly branded
+
+UI sound hierarchy should distinguish:
+
+* ordinary navigation
+* selection
+* confirmation
+* cancellation
+* warning
+* unavailable action
+* major unlock or progression event
+
+Important actions should receive stronger confirmation than routine taps.
+
+UI audio should not be heavily reskinned for each city.
+
+The UI should primarily express the global Masala Run identity.
+
+#### 26. Music Behaviour
+
+Music should adapt through broad layers rather than react to every individual
+gameplay event.
+
+Recommended structure:
+
+```text
+Base city or gameplay layer
++ increased-pressure layer
++ elite or boss layer
++ major success or transition accent
+```
+
+Music should:
+
+* support momentum
+* reinforce world personality
+* preserve gameplay cue readability
+* avoid constant micro-reactivity
+* allow important warnings to remain intelligible
+* avoid fighting the SFX mix
+
+Critical gameplay audio must remain clear during music-heavy moments.
+
+#### 27. Haptic Philosophy
+
+Masala Run should use sparse, hierarchical, optional and tightly synchronized
+haptic feedback.
+
+Haptics should complement sound, animation and visual feedback.
+
+They must not compensate for unclear gameplay communication.
+
+Haptic hierarchy:
+
+```text
+Strongest
+→ heavy player damage
+→ boss impact or major danger
+→ major upgrade or milestone
+
+Medium
+→ important player attack
+→ elite defeat
+→ significant interaction
+
+Light
+→ selected pickup
+→ meaningful UI confirmation
+→ minor event only where genuinely useful
+
+None
+→ routine movement
+→ most ordinary attacks
+→ ambient events
+→ repeated low-value hits
+```
+
+#### 28. Haptic Repetition and Comfort
+
+Haptics should:
+
+* never run continuously
+* avoid triggering for every rapid event
+* batch or throttle repeated triggers
+* remain comfortable during long sessions
+* preserve battery and device comfort where relevant
+* support reduced or disabled settings
+* avoid turning ordinary gameplay into constant vibration
+
+A stronger event should receive a stronger or more recognizable haptic pattern
+only when justified by gameplay importance.
+
+#### 29. Shared System Across Cities
+
+All cities should share:
+
+* gameplay sound hierarchy
+* danger-warning logic
+* reward logic
+* player-damage identity
+* ability-family construction
+* UI sound language
+* music-layer logic
+* haptic hierarchy
+* repetition-control principles
+* mobile comfort principles
+
+Cities may differ through restrained:
+
+* ambience
+* material skins
+* practical environmental cues
+* surface response
+* selected food or cultural texture
+* day/night sound flavour
+
+The player should not need to relearn gameplay meaning in each city.
+
+#### 30. Repetition Control
+
+Audio production and implementation should assume frequent repetition during
+dense survivors-style gameplay.
+
+The design must support:
+
+* subtle variants
+* randomised selection within controlled families
+* pitch variation where appropriate
+* volume variation where appropriate
+* cooldowns
+* throttling
+* batching
+* concurrency limits
+* priority-based voice stealing
+* reduced layering during dense moments
+* shorter tails for frequently repeated actions
+
+This chapter defines the creative requirement for repetition safety.
+
+Do not add implementation code.
+
+#### 31. Modular Audio Production
+
+Audio should follow modular production principles.
+
+Preferred structure:
+
+```text
+Base sound family
+→ gameplay variant
+→ city or material skin
+→ runtime instance
+```
+
+Day and night should reuse the same core sound language.
+
+Avoid handcrafted scene-specific audio systems that cannot scale to future
+cities.
+
+#### 32. Cross-Chapter Alignment
+
+Audio and haptics must align with Animation Language.
+
+Sound and vibration should reinforce timing, responsiveness, threat
+communication, hit confirmation, pickups, deaths, and readable motion.
+
+Audio and haptics must align with Visual Feedback & UI Language.
+
+Sound, vibration, visual feedback, and UI should share the same gameplay
+priority hierarchy and density-control logic.
+
+Audio and haptics must align with Gameplay Objects Readability.
+
+Audio cues must preserve player readability, threat readability, hazard
+readability, pickup meaning, attack communication, and overlap safety.
+
+Audio and haptics must align with the Modular Asset System.
+
+Sound families should remain reusable, city-skinnable, and compatible with
+procedural generation.
+
+#### 33. Review Priority
+
+Review Audio & Haptic Language in this order:
+
+1. Gameplay meaning
+2. Threat and state communication
+3. Player feedback clarity
+4. Timing and responsiveness
+5. Mix hierarchy
+6. Repetition safety
+7. Dense-gameplay readability
+8. Mobile comfort
+9. Consistency with Animation Language
+10. Consistency with Visual Feedback & UI Language
+11. Modularity and reuse
+12. City flavour
+13. Satisfaction
+14. Personality
+15. Polish
+
+Beauty, humour, realism, musicality and spectacle must never override gameplay
+communication.
+
+#### 34. Rejection Rules
+
+Reject or redesign any audio or haptic treatment that:
+
+* masks enemy telegraphs
+* hides critical player-damage feedback
+* makes pickups more urgent than threats
+* creates constant enemy noise
+* becomes tiring during rapid repetition
+* depends entirely on stereo positioning
+* makes gameplay unclear when sound is muted
+* uses ambience dense enough to compete with gameplay
+* uses stereotype-heavy city audio
+* turns every action into a comedy sound
+* uses excessive bass, volume, tails or layering
+* makes night gameplay harder through reduced audio readability
+* triggers haptics continuously
+* triggers haptics for every ordinary repeated event
+* causes mobile discomfort
+* breaks the shared gameplay meaning across cities
+* requires handcrafted scene-specific behaviour
+* cannot scale modularly
+* prioritizes spectacle over gameplay communication
+
+#### 35. Final Principle
+
+Masala Run uses playful, tactile and gameplay-first audio with restrained city
+ambience and sparse hierarchical haptics.
+
+Sound communicates danger, action, success and state changes before adding
+personality.
+
+Important cues remain clear during dense survivors-style play, while ordinary
+repeated actions stay compact and repetition-controlled.
+
+Shared audio families provide consistent gameplay meaning across cities, with
+restrained city-specific material and ambient flavour.
+
+Haptics are optional, proportional and reserved for meaningful events rather than
+constant stimulation.
+
+Rule:
+
+```text
+Gameplay meaning first.
+Readable sound.
+Responsive feel.
+Restrained flavour.
+Sparse haptics.
+No constant noise.
+```
+
+### Chapter 19 — Accessibility & Comfort Language
+
+#### Core Philosophy
+
+Masala Run should be readable and comfortable by default, with clear optional
+controls that allow players to adapt the experience further.
+
+Accessibility is part of the core gameplay language, not merely a settings-menu
+feature or a late-stage correction.
+
+The default presentation should already be broadly understandable, readable, and
+comfortable. Accessibility settings extend that foundation rather than compensate
+for unclear design.
+
+Accessibility must strengthen the established gameplay language without
+weakening, replacing, or visually cluttering it.
+
+This chapter defines creative, presentation, interaction, and experience
+principles. It does not define implementation architecture or platform-specific
+code.
+
+Rule:
+
+```text
+Readable and comfortable by default.
+Adaptable through clear optional controls.
+Never dependent on one sensory cue.
+```
+
+#### 1. Built-In Clarity with Optional Controls
+
+Masala Run should use built-in clarity supported by optional accessibility
+controls.
+
+The base game should already provide:
+
+* readable silhouettes
+* clear gameplay hierarchy
+* understandable category language
+* restrained visual density
+* actionable threat communication
+* comfortable motion
+* repetition-controlled audio and haptics
+* readable mobile typography
+* clear touch interaction
+
+Settings should allow further adjustment for different visual, auditory, motion,
+haptic, ergonomic, and comfort needs.
+
+Accessibility settings must not become an excuse for unclear default design.
+
+#### 2. Multi-Cue Gameplay Communication
+
+Important gameplay meaning should use at least two complementary communication
+cues where practical.
+
+Possible cue families include:
+
+* shape
+* silhouette
+* outline
+* colour
+* contrast
+* motion
+* position
+* icon
+* pattern
+* visual effect
+* sound
+* caption
+* haptic feedback
+
+Critical gameplay information may use more than two cues when justified.
+
+No important gameplay event should depend entirely on one colour, sound,
+animation, vibration, stereo position, or small text label.
+
+Rule:
+
+```text
+Important meaning should survive the loss of any one cue.
+```
+
+#### 3. Colour-Vision Safety
+
+Gameplay meaning must never depend on colour alone.
+
+Colour should work alongside non-colour communication such as:
+
+* silhouette
+* outline strength
+* shape
+* iconography
+* motion
+* boundary treatment
+* pattern
+* position
+* animation timing
+* visual hierarchy
+
+The existing semi-protected gameplay colour system remains valid, but colour
+ownership must always be reinforced by other readable cues.
+
+#### 4. Colour-Vision Support Options
+
+Masala Run should support colour-vision accessibility through:
+
+* tested preset colour treatments
+* gameplay-specific category adjustments where practical
+* preserved contrast hierarchy
+* preserved category distinction
+* stable player readability
+* stable hazard and threat recognition
+
+Preset support may include common colour-vision needs, but full-screen filtering
+alone should not be treated as sufficient.
+
+Player, enemy, hazard, pickup, attack, healing, warning, and UI categories should
+remain distinguishable through more than colour.
+
+#### 5. Hazard Accessibility
+
+Hazards should communicate danger through a combined system:
+
+```text
+shape
++ readable boundary
++ motion or state cue where appropriate
++ colour / contrast
+```
+
+Hazards must remain distinguishable from:
+
+* safe road variation
+* passive stains
+* road overlays
+* decorative effects
+* environmental props
+* pickups
+* spawn markers
+
+Persistent warning icons should not be added above every hazard by default,
+because this would create world-space UI clutter.
+
+The hazard itself should remain readable wherever possible.
+
+#### 6. Optional Player-Location Assistance
+
+The player must remain readable by default through the existing protected system
+of:
+
+* silhouette
+* outline
+* colour identity
+* contrast
+* animation
+* grounding cue
+
+Optional player-location assistance may strengthen this with restrained
+treatments such as:
+
+* stronger outline
+* clearer contact marker
+* controlled highlight
+* optional subtle ring
+* reduced surrounding visual noise
+
+Avoid permanent oversized arrows, markers, or UI elements that disconnect the
+player from the world or dominate gameplay.
+
+#### 7. Typography
+
+Masala Run should use clear, compact, lightly branded typography.
+
+Typography should preserve:
+
+* mobile readability
+* clear character distinction
+* comfortable spacing
+* rapid comprehension
+* consistency across cities
+* consistency across day and night
+* compatibility with supported text-size presets
+
+Avoid:
+
+* decorative lettering that reduces readability
+* compressed text
+* excessive stylization
+* thin low-contrast text
+* tiny labels carrying essential meaning
+* city-specific typography that changes gameplay understanding
+
+Typography may carry restrained global Masala Run personality, but readability
+always comes first.
+
+#### 8. Text-Size Presets
+
+The game should support several tested text and UI-size presets rather than
+unrestricted scaling that may break layouts.
+
+Recommended conceptual presets:
+
+* Standard
+* Large
+* Extra Large
+
+All supported presets should be intentionally designed and reviewed.
+
+Important information must remain readable and must not be clipped, overlap
+other UI, or cover critical gameplay areas.
+
+#### 9. HUD Scaling
+
+Critical HUD information and secondary controls should support different scaling
+priorities.
+
+Critical information may include:
+
+* player health
+* experience and level progress
+* boss health
+* critical status
+* important warnings
+* ability state where immediately relevant
+
+Secondary information may include:
+
+* pause controls
+* less urgent counters
+* optional run statistics
+* non-critical labels
+
+Avoid treating the entire HUD as one uniformly scaled image if that prevents
+critical information from receiving stronger accessibility support.
+
+The playable road centre must remain protected at all supported HUD scales.
+
+#### 10. HUD Information Density
+
+The persistent HUD should show essential information clearly and compactly.
+
+Secondary data may be:
+
+* optional
+* contextual
+* expandable
+* temporarily displayed
+* configurable where appropriate
+
+Avoid showing every useful metric persistently.
+
+Accessibility should improve comprehension, not create permanent UI overload.
+
+#### 11. Damage-Number Controls
+
+Damage numbers should support adjustable presentation.
+
+Possible controls should conceptually include:
+
+* enable or disable
+* reduced density
+* size presets
+* emphasis level
+* critical-hit emphasis
+* batching or simplified display
+
+Damage-number settings must preserve gameplay understanding while reducing
+visual fatigue and overlap.
+
+Essential combat feedback must not depend entirely on damage numbers.
+
+#### 12. Enemy Health-Bar Accessibility
+
+The approved enemy health-bar hierarchy remains:
+
+```text
+Ordinary enemies
+→ usually no persistent health bar
+
+Durable enemies
+→ health bar may appear after damage or when relevant
+
+Elite enemies
+→ clearer health bar
+
+Bosses
+→ persistent dedicated health display
+```
+
+Accessibility options may increase health-bar visibility, size, contrast, or
+duration where useful.
+
+Do not force persistent health bars over every ordinary enemy by default.
+
+Health bars remain gameplay instruments and must not become decorative or
+city-skinned.
+
+#### 13. Screen-Shake Controls
+
+Screen shake should support at least three conceptual levels:
+
+* Off
+* Reduced
+* Full
+
+The existing rule remains that screen shake is sparse and proportional.
+
+Reduced or disabled shake must not remove the gameplay meaning of an event.
+
+Other cues such as impact effects, animation, sound, haptics, or UI response
+must continue to communicate the event clearly.
+
+#### 14. Reduced-Motion Support
+
+Reduced-motion support should address more than camera shake.
+
+It should reduce or simplify non-essential motion such as:
+
+* rapid zoom
+* strong screen pulses
+* excessive bounce
+* repeated oscillation
+* screen displacement
+* continuous ambient movement
+* decorative parallax where applicable
+* unnecessary large-scale effect travel
+
+Reduced-motion mode must preserve:
+
+* player responsiveness
+* attack timing
+* enemy telegraphs
+* hazard timing
+* gameplay state changes
+* input feedback
+* threat recognition
+
+Do not disable all animation.
+
+Functional gameplay motion remains necessary.
+
+#### 15. Animation Under Reduced Motion
+
+Reduced-motion treatment should shorten, simplify, or replace non-essential
+movement without changing gameplay timing.
+
+Do not slow gameplay animations in ways that alter:
+
+* responsiveness
+* attack timing
+* telegraph duration
+* hit confirmation
+* hazard timing
+* enemy behaviour understanding
+
+The gameplay event remains mechanically and temporally identical.
+
+Only unnecessary visual travel, bounce, pulse, shake, or repetition should be
+reduced.
+
+#### 16. VFX and Particle Reduction
+
+Accessibility-focused VFX reduction should be distinct from technical
+graphics-quality settings.
+
+A player may need fewer effects even when using a powerful device.
+
+Reduced-effects options may limit:
+
+* decorative particles
+* repeated flashes
+* secondary trails
+* ambient effects
+* excessive impact layering
+* persistent glow
+* non-essential debris
+* duplicate feedback layers
+
+Critical telegraphs, danger boundaries, attack direction, player position, and
+essential state feedback must remain.
+
+Reduced VFX must never remove required gameplay information.
+
+#### 17. Flash and Pulse Safety
+
+Avoid rapid, repeated, high-contrast flashing.
+
+Important flashes and pulses should be:
+
+* brief
+* proportional
+* controlled
+* low in repetition
+* replaceable through safer treatments where practical
+
+Reduced-flash treatment may use:
+
+* outline changes
+* controlled colour transitions
+* shape changes
+* scale changes
+* brief opacity shifts
+* directional markers
+* animation cues
+
+Do not remove all visual emphasis, but avoid unnecessary repeated flashing and
+extreme full-screen contrast changes.
+
+#### 18. Audio Accessibility Controls
+
+Audio should support separate controls for major functional categories where
+practical.
+
+Conceptual categories may include:
+
+* master volume
+* music
+* gameplay sound effects
+* ambience
+* UI sounds
+* voice or dialogue where applicable
+* critical gameplay cues
+
+Players should be able to reduce ambience or music while preserving important
+threat and state information.
+
+Audio settings must remain clear, understandable, and free from unnecessary
+complexity.
+
+#### 19. Muted-Audio Playability
+
+Masala Run must remain understandable and playable with sound muted.
+
+All essential audio information must have a visual equivalent.
+
+This includes:
+
+* critical danger
+* player damage
+* boss warnings
+* enemy telegraphs
+* high-risk hazards
+* important state changes
+* major rewards
+* unavailable actions where relevant
+
+Sound may reinforce gameplay meaning, but it must never be the only source of
+essential information.
+
+#### 20. Subtitles and Gameplay Captions
+
+Subtitles should be used for dialogue where dialogue exists.
+
+Optional gameplay captions may communicate important non-speech sounds such as:
+
+* major off-screen threats
+* boss warnings
+* important directional danger
+* critical state changes
+* significant object-specific audio events
+
+Do not caption every ordinary attack, movement sound, pickup, or ambient sound.
+
+Captions must remain selective and actionable.
+
+#### 21. Caption Presentation
+
+Gameplay captions should be:
+
+* compact
+* readable
+* categorized where useful
+* directional where useful
+* short-lived
+* positioned away from the protected road centre
+* visually distinct from ordinary dialogue subtitles
+* consistent across cities
+
+Avoid attaching floating captions to every sound source.
+
+Captions must not create world-space clutter or become more visually urgent than
+the threat they describe.
+
+#### 22. Stereo and Mono Safety
+
+Stereo and positional audio may improve spatial awareness, but must never carry
+essential meaning alone.
+
+Important events must remain understandable through:
+
+* a single mobile speaker
+* mono output
+* headphones
+* reduced audio settings
+* captions where relevant
+* visual telegraphs
+* animation
+* timing
+* sound identity independent of position
+
+Directional audio is supportive, not exclusive.
+
+#### 23. Haptic Controls
+
+Haptic feedback should support:
+
+* Off
+* Reduced
+* Full
+
+Additional category controls may be supported where practical, but are not
+required by this chapter.
+
+Haptics remain:
+
+* optional
+* hierarchical
+* sparse
+* repetition-controlled
+* synchronized with meaningful events
+
+Haptic feedback must never be required to understand gameplay.
+
+#### 24. Touch-Control Comfort
+
+Touch controls should support meaningful ergonomic adjustment.
+
+Conceptual support should include:
+
+* control-size adjustment
+* position adjustment
+* sensitivity options
+* handedness support
+* tested safe placement
+* compatibility with different screen sizes
+* comfortable thumb reach
+* avoidance of critical HUD overlap
+
+Use tested customization options rather than unrestricted configuration that
+overwhelms players or creates unusable layouts.
+
+Touch controls must remain responsive and must not obscure critical gameplay.
+
+#### 25. Long-Session Comfort
+
+Masala Run should reduce fatigue by default.
+
+Long-session comfort should consider:
+
+* repetitive audio
+* repeated haptics
+* continuous screen motion
+* excessive particles
+* bright flashes
+* high-contrast pulses
+* prolonged warning states
+* small text
+* dense HUD information
+* continuous touch strain
+* repeated high-intensity feedback
+
+The game may support optional break reminders or comfort prompts where
+appropriate.
+
+Do not forcibly end runs after a fixed duration as an accessibility rule.
+
+Player agency should remain intact.
+
+#### 26. Difficulty-Independent Accessibility
+
+Accessibility must remain independent from gameplay difficulty.
+
+Increasing difficulty may increase:
+
+* enemy pressure
+* attack complexity
+* hazard frequency
+* decision load
+* encounter intensity
+
+It must not reduce:
+
+* player readability
+* threat clarity
+* text readability
+* audio intelligibility
+* visual accessibility
+* movement-boundary clarity
+* supported accessibility settings
+
+Accessibility options must not be treated as difficulty reductions unless a
+separate assist system explicitly defines that relationship.
+
+#### 27. Day and Night Accessibility
+
+Day and night must use the same accessibility logic.
+
+Night may change mood, palette, ambience, and localized lighting, but must not
+weaken:
+
+* player visibility
+* enemy recognition
+* hazard readability
+* pickup understanding
+* UI readability
+* subtitle readability
+* caption readability
+* movement boundaries
+* gameplay colour ownership
+
+Accessibility must not become less reliable at night.
+
+#### 28. Cross-City Consistency
+
+All cities should share the same accessibility foundations.
+
+The player should not need to relearn accessibility cues in each city.
+
+All cities must preserve consistent logic for:
+
+* player emphasis
+* enemy danger
+* hazard actionability
+* reward recognition
+* typography
+* HUD
+* captions
+* colour-vision safety
+* reduced motion
+* reduced VFX
+* audio hierarchy
+* haptic hierarchy
+* touch comfort
+
+Cities may change flavour, but not accessibility meaning.
+
+#### 29. Settings Clarity
+
+Accessibility settings should use clear, direct language.
+
+Settings should explain their effects without requiring technical knowledge.
+
+Where practical, settings should provide:
+
+* understandable names
+* concise descriptions
+* safe defaults
+* immediate preview
+* reversible changes
+* tested preset combinations
+
+Avoid hiding essential accessibility controls behind progression, payment,
+advanced menus, or unclear terminology.
+
+#### 30. Review Priority
+
+Review Accessibility & Comfort Language in this order:
+
+1. Core gameplay meaning
+2. Player and threat readability
+3. Non-colour communication
+4. Muted-audio playability
+5. Motion and flash comfort
+6. Typography and HUD readability
+7. Touch ergonomics
+8. Feedback-density control
+9. Day/night consistency
+10. Cross-city consistency
+11. Settings clarity
+12. Visual and thematic polish
+
+Accessibility must be reviewed alongside readability throughout production, not
+only after art and gameplay are complete.
+
+#### 31. Rejection Rules
+
+Reject or redesign any visual, audio, haptic, UI, animation, feedback, or
+interaction treatment that:
+
+* depends on colour alone
+* depends on sound alone
+* depends on haptics
+* depends entirely on stereo positioning
+* becomes unreadable at supported text or UI sizes
+* hides essential gameplay information in reduced-effects mode
+* removes essential telegraphs in reduced-motion mode
+* changes gameplay timing under reduced motion
+* uses unsafe repeated flashing
+* forces disruptive camera movement
+* creates unavoidable damage-number clutter
+* creates unavoidable particle clutter
+* becomes harder to understand with sound muted
+* becomes harder to read at night
+* breaks accessibility consistency between cities
+* places essential accessibility behind payment or progression
+* makes accessibility settings unnecessarily technical
+* treats accessibility as a substitute for clear default design
+* weakens the established gameplay hierarchy
+* covers the protected playable-road centre
+* requires handcrafted city-specific accessibility logic
+* cannot scale to future cities and procedural content
+
+#### 32. Final Principle
+
+Masala Run should be readable and comfortable by default, adaptable through clear
+optional controls, and understandable without dependence on any single colour,
+sound, motion, haptic, stereo-position, or text cue.
+
+Accessibility strengthens the gameplay language.
+
+It does not weaken, replace, or visually clutter it.
+
+The same accessibility logic must remain reliable across dense survivors-style
+gameplay, every city, every time of day, and future procedural expansions.
+
+Rule:
+
+```text
+Readable by default.
+Comfortable by default.
+Adaptable through clear controls.
+Never one-cue dependent.
+Consistent across cities and time of day.
+```
 
 ## Part IV — AI Production Pipeline
 
-### Chapter 17 — Prompt Philosophy
+### Chapter 20 — Prompt Philosophy
 
-TODO: Define this chapter during the Art Bible authoring process.
+Prompt philosophy derives from the frozen Art Bible.
 
-### Chapter 18 — Prompt Rules
+Prompt Bible production is the next phase and must translate these rules without
+creating new creative authority.
 
-TODO: Define this chapter during the Art Bible authoring process.
+### Chapter 21 — Prompt Rules
 
-### Chapter 19 — Asset Review Process
+Prompt rules must derive from the frozen Art Bible, preserve all chapter
+hierarchies, and remain subordinate to the Art Bible.
 
-TODO: Define this chapter during the Art Bible authoring process.
+Prompt results may validate or reveal issues, but they must not silently redefine
+approved creative intent.
+
+### Chapter 22 — Asset Review Process
+
+Asset review is governed by the relevant Art Bible chapter review orders and the
+Technical Asset Contract's runtime approval gate.
+
+Creative approval comes from Art Bible alignment; runtime acceptance comes from
+the Technical Asset Contract.
 
 ## Appendices
 
 ### Glossary
 
-TODO: Define terms during the Art Bible authoring process.
+Key terms are defined locally in the chapters where they are used.
+
+If a future shared glossary is added, it must preserve existing chapter meaning.
 
 ### Visual Checklist
 
-TODO: Define checklist items during the Art Bible authoring process.
+Visual checks derive from the review and rejection rules in each approved
+chapter.
+
+Generated images may support review but may never redefine Art Bible rules.
 
 ### Revision History
 
-TODO: Record Art Bible revisions here.
+2026-07-23 — Art Bible formally frozen for Prompt Bible production after final
+freeze audit.

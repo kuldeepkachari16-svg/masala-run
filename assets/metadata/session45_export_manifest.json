@@ -1,0 +1,70 @@
+[
+  {
+    "filename": "mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v001.png",
+    "source_file": "image-gen-1(14).png",
+    "output_dimensions_px": [
+      1120,
+      1574
+    ],
+    "visible_bounds_px": [
+      48,
+      48,
+      1072,
+      1526
+    ],
+    "transparent_padding_px": 48,
+    "alpha_channel": true,
+    "temporary_orientation_note": "Fixed-canopy left master is provisionally assigned from an approved source image; orientation refinement may be required during runtime testing."
+  },
+  {
+    "filename": "mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v001.png",
+    "source_file": "Isometric Mumbai Vada Pav Cart.png",
+    "output_dimensions_px": [
+      1120,
+      1582
+    ],
+    "visible_bounds_px": [
+      48,
+      48,
+      1072,
+      1534
+    ],
+    "transparent_padding_px": 48,
+    "alpha_channel": true,
+    "temporary_orientation_note": ""
+  },
+  {
+    "filename": "mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v001.png",
+    "source_file": "session43_candidate4_left_edge_transparent (1).png",
+    "output_dimensions_px": [
+      628,
+      917
+    ],
+    "visible_bounds_px": [
+      48,
+      48,
+      580,
+      869
+    ],
+    "transparent_padding_px": 48,
+    "alpha_channel": true,
+    "temporary_orientation_note": ""
+  },
+  {
+    "filename": "mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v001.png",
+    "source_file": "session43_candidate4_right_edge_transparent_fixed.png",
+    "output_dimensions_px": [
+      573,
+      937
+    ],
+    "visible_bounds_px": [
+      48,
+      48,
+      525,
+      889
+    ],
+    "transparent_padding_px": 48,
+    "alpha_channel": true,
+    "temporary_orientation_note": ""
+  }
+]

@@ -9,6 +9,10 @@ Every number in this contract is read from the shipped engine (`game.js`, main @
 `40f307d`, corridor build), not from aspiration. If the engine changes, this document
 changes in the same commit.
 
+Session 56 freezes the tall edge-prop geometry model below from the independently
+verified runtime audit in
+`docs/art-production/reports/session56_edge_prop_geometry_audit.html`.
+
 ---
 
 ## 1. Runtime reality (what the engine IS)
@@ -49,6 +53,9 @@ in the outer 50% of a cluster.
 
 The Art Bible chapter should be amended to note this (Codex task; see §9).
 
+For tall asset-fed edge props placed by `edgePlacement()`, the measured contract
+in §4.1 supersedes this earlier cluster-level "roughly half" approximation.
+
 ## 3. Asset categories the engine can consume
 
 | Category | Consumable today | Path / hook |
@@ -80,6 +87,85 @@ courier's 70 px drawn height unless its archetype is explicitly flagged `tall`
 (frontage silhouettes, lamp posts) — and `tall` props still never exceed ~120 px.
 The current procedural kit runs 24–60 px prop heights; that is the calibration.
 
+### 4.1 Tall edge-prop geometry contract — Session 56 freeze
+
+This section governs tall, edge-anchored props placed by `edgePlacement()`. Let:
+
+```text
+storedVisibleHeight = visualBounds.y1 - visualBounds.y0
+scale               = runtimeHeight / storedVisibleHeight
+rho (ρ)             = roadFacingVisibleDepth / storedVisibleHeight
+cityFrac            = cityFacingVisibleDepth / storedVisibleHeight
+
+roadIntrusion = ρ * runtimeHeight
+outerBleed    = max(0,
+                    cityFrac * runtimeHeight - availableCitySideScreenSpace)
+```
+
+`roadFacingVisibleDepth` is the source-space distance from the honest
+road-facing ground-contact footprint edge/pivot to the road-facing visual bound.
+`cityFacingVisibleDepth` is the distance from that pivot to the city-facing
+visual bound.
+
+#### A. Hard runtime constraints
+
+The engine's visual road-intrusion cap remains exactly `8 px`. Every applicable
+asset must declare a maximum runtime height and pass:
+
+```text
+ρ * declaredMaximumRuntimeHeight <= 8 px
+```
+
+There is no universal hard `ρ` percentage. At `90 px`, the hard maximum is
+`8 / 90 = 8.89%`; at `120 px`, it is `8 / 120 = 6.67%`. The physical footprint
+must also remain clear of the protected road. The same numeric formulas apply to
+left and right Class-C masters; each master is measured independently.
+
+#### B. Preferred production guidance
+
+New authoring should preserve `30%` headroom below the hard cap. The preferred
+maximum projected intrusion is therefore `5.6 px`:
+
+```text
+preferred ρ <= 5.6 / declaredMaximumRuntimeHeight
+```
+
+At `90 px`, preferred `ρ <= 6.22%`. Failure of this preferred target does not
+override a hard pass and does not retroactively invalidate an approved asset.
+
+#### C. Secondary visual heuristics
+
+Visible width:height around `0.5–0.6` may be used as a non-binding composition
+check for applicable tall edge props. It cannot validate road intrusion; `ρ` is
+the authoritative road-safety quantity. No universal `cityFrac` range is frozen.
+City-facing depth is measured per asset, projected against the available
+city-side screen space, and visually reviewed at intended runtime height.
+
+A normalized pivot percentage may be recorded diagnostically but is not an
+authoring target. The authoritative pivot is the honest road-facing
+ground-contact footprint edge. It must never be moved artificially to make an
+asset pass.
+
+#### D. Bounds and review requirements
+
+Stored runtime bounds are the numeric values consumed by `EDGE_PROP_DEFS` and
+`edgePlacement()`. Literal alpha-pixel bounds may differ by approximately one
+pixel because inclusive and half-open coordinate conventions differ. Every
+measurement or future validator must name its convention; existing runtime
+values must not be normalized silently.
+
+Suitable future automatic checks include stored-bounds presence, declared target
+and maximum height, road/city-facing depths, `ρ`, projected intrusion and bleed,
+hard/preferred results, pivot containment, and footprint clearance where the
+required geometry exists. Human review remains mandatory for honest semantic
+footprint selection, handedness and serving direction, readability, acceptable
+off-screen composition/clipping, city identity, and detection of a manipulated
+pivot.
+
+Runtime mirroring remains prohibited for these Class-C assets. Dedicated left
+and right art masters remain required even though their numeric limits are
+mirror-symmetric.
+
 **Road segment tile:** exactly **480 × 800**. Rules for seamlessness: side
 band/curb geometry identical on every tile; any repeating road marking must use a
 vertical rhythm that divides 800 (the engine's centre dash uses step 80). Content
@@ -108,9 +194,12 @@ one asset + palette-compatible colouring  (+ optional glow overlay)
 
 ## 6. What the renderer can and cannot do to an asset
 
-CAN: uniform scale · horizontal mirror · global alpha · white hit-flash
+CAN generally: uniform scale · horizontal mirror · global alpha · white hit-flash
 (composite-cached) · flat colour tint (composite-cached, used for flavor) ·
 pre-render to offscreen canvas once and stamp cheaply.
+
+The environmental edge-prop path is stricter: Class-C edge masters use uniform
+positive scale and are never mirrored at runtime, as frozen in §4.1.
 
 CANNOT: rotate sprites in the entity pipeline (only mirror) · hue-shift /
 recolour per-pixel at runtime · shaders, blend-mode lighting beyond

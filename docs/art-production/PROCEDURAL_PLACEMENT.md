@@ -49,6 +49,108 @@ TODO: Define gameplay-safe areas and forbidden placement zones.
 
 TODO: Define automated and visual validation steps.
 
+## Edge-Prop Authoring Envelope
+
+Tall, edge-anchored landmark-scale carts, counters, stalls, and similar anchors
+must be measured against the Session 56 contract frozen in the Technical Asset
+Contract and Production Asset Brief Framework. The supporting audit is
+`docs/art-production/reports/session56_edge_prop_geometry_audit.html`.
+
+Let `ρ` be road-facing visible depth divided by stored visible height and
+`cityFrac` be city-facing visible depth divided by stored visible height:
+
+```text
+scale         = runtimeHeight / storedVisibleHeight
+roadIntrusion = ρ * runtimeHeight
+outerBleed    = max(0,
+                    cityFrac * runtimeHeight - availableCitySideScreenSpace)
+```
+
+### A. Hard Runtime Constraints
+
+Every applicable asset declares target and maximum runtime height and passes:
+
+```text
+ρ * declaredMaximumRuntimeHeight <= 8 px
+```
+
+There is no universal hard `ρ` percentage. The physical footprint must remain
+clear of the protected road. The formula and limits are symmetric for dedicated
+left/right Class-C masters; runtime mirroring remains prohibited.
+
+### B. Preferred Production Guidance
+
+New authoring targets `30%` headroom below the hard cap: preferred projected
+road intrusion is at most `5.6 px`, or
+`ρ <= 5.6 / declaredMaximumRuntimeHeight`. A preferred-guidance miss does not
+retroactively invalidate an asset that passes the hard runtime constraint.
+
+### C. Secondary Visual Heuristics
+
+Visible W:H around `0.5–0.6` is a secondary, non-binding composition heuristic.
+It cannot validate road intrusion; `ρ` is authoritative. No universal
+`cityFrac` band is frozen. City-facing depth and outer bleed are measured and
+visually reviewed per asset/family against the available city-side screen space.
+Uniform scaling must not be used to hide unsuitable geometry by reducing a prop
+below its intended player-relative scale.
+
+Normalized pivot percentage is diagnostic only. The authoritative pivot is the
+honest road-facing ground-contact footprint edge and must not be manipulated to
+make the asset pass. Stored runtime bounds and literal alpha-pixel bounds may
+differ by approximately one pixel under inclusive versus half-open conventions;
+all measurements and future tools must state which convention they use.
+
+### D. Human Review and Existing Assets
+
+Automatic checks may later cover declared heights, stored bounds, road/city
+depths, `ρ`, projected intrusion/bleed, hard/preferred results, pivot containment,
+and footprint clearance. Human review remains required for semantic footprint
+honesty, handedness, serving direction, readability, acceptable clipping and
+on-screen visibility, city identity, and dishonest-pivot detection.
+
+Right fixed-canopy V002 remains approved, valid at its current geometry,
+grandfathered, and outside preferred future road-depth guidance. Left
+fixed-canopy V003 remains geometry-validated with metadata status `review`.
+Right chai-counter V001 remains approved and a strong road-depth example.
+Session 53/55 assets remain experimental evidence rather than production-approved
+references. No existing asset is reopened or automatically rejected by this
+forward-looking contract.
+
+## Mumbai Edge-Prop Controlled Test Preparation
+
+Session 44 prepares a documentation/data scaffold for a future controlled test
+of the Mumbai chai-counter and vada-pav cart families. Test execution is pending
+because repository-ready production PNGs are absent and the Technical Asset
+Contract records the modular edge-prop segment composer as engine work not
+started. The legacy tiled files in `assets/props/` are not substitutes.
+
+The prepared vada-pav metadata records are disabled fixtures:
+
+* `mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v001`
+* `mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v001`
+* `mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v001`
+* `mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v001`
+
+They use `placementWeight: 0`, zero measurement sentinels, `status: draft`, and
+blocked safety-buffer/playable-road zones. They must not enter a runtime pool
+until binary dimensions, pivots, bounds, spacing, metadata, and repository paths
+are validated.
+
+### Required debug overlays
+
+A future test-only renderer must show clearly labelled, non-production overlays
+for:
+
+* the protected playable road and both safety-buffer boundaries
+* the asset pivot
+* visual bounds
+* physical placement footprint
+* road-intrusion bounds
+* crop-safe bounds
+
+Temporary debug geometry may be used only for these overlays. It must never be
+stored or presented as production art.
+
 ### Test A — Single Asset
 
 Status: **EXECUTED and PASSED — Session 46, 2026-08-07.**
@@ -197,6 +299,32 @@ it without ever forcing a build.
 - **The composer is a pure subtraction.** A rejected candidate is dropped, never
   nudged or substituted. Repositioning would reshuffle the seeded stream, which
   is a deliberate trade for determinism and for leaving the shipped look intact.
+
+### Test B — Mixed Same-Edge Pair
+
+Status: **Prepared; blocked by both families' repository-ready exports and the
+renderer hook.**
+
+Place one chai-counter and one vada-pav cart on the same edge. Validate minimum
+and recommended spacing, overlap allowance, silhouette separation, attachment
+compatibility, visual hierarchy, micro-cluster compatibility, breathing gaps,
+controlled density, and absence of complete-scene appearance.
+
+### Test C — Opposing Edges
+
+Status: **Prepared; execution pending binaries and renderer hook.**
+
+Place different dedicated structures on opposite edges. Validate protected road
+width, balance, asymmetry, road-centre clarity, absence of mechanical
+duplication, canopy/umbrella clearance, gameplay-area dominance, and procedural
+repeatability.
+
+### Chai-counter dependency
+
+The chai-counter brief is validated, but no repository-ready chai-counter PNGs,
+production metadata records, or modular runtime hook exist. Test B therefore
+remains blocked. The eventual scaffold must accept the chai-counter masters
+without redesigning that family.
 
 ## TODO
 

@@ -49,12 +49,25 @@ def iter_assets(paths):
 def main():
     ap = argparse.ArgumentParser(description="Validate production asset filenames.")
     ap.add_argument("paths", nargs="*", help="files or directories to scan")
+    ap.add_argument(
+        "--name",
+        action="append",
+        default=[],
+        help="validate a planned filename without requiring the asset to exist",
+    )
     ap.add_argument("--strict", action="store_true", help="fail on legacy/non-conforming names")
     args = ap.parse_args()
 
-    paths = args.paths or DEFAULT_DIRS
+    paths = args.paths or ([] if args.name else DEFAULT_DIRS)
     checked = 0
     invalid = []
+
+    for name in args.name:
+        checked += 1
+        base = os.path.basename(name)
+        stem, ext = os.path.splitext(base)
+        if ext.lower() not in EXTS or not NAME_RE.fullmatch(stem):
+            invalid.append(name)
 
     for path in iter_assets(paths):
         checked += 1
