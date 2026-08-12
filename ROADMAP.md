@@ -32,9 +32,18 @@ intentional treatment. Cut to ~49% by dropping `heightPx` 88→70 (both cart
 masters) / 80→70 (chai counter) — the largest reduction that keeps every
 prop at-or-above the courier's own height (the Technical Asset Contract §4
 hero-scale "landmark" rule). Full frontier + reasoning in `CHANGELOG.md`.
-**Owed next:** PM visual sign-off on the `testC` left-master art (same gate
-Session 48/50 used) before flipping it live; corridor retune only if further
-play demands it.
+**Session 57 (2026-08-12):** replaced the single-fixed-instance production
+harness with a deterministic multi-segment distribution policy — every
+segment in a level now independently rolls breathing-vs-eligible, edge, and
+asset (from the 3 validated masters), live by default (`CONFIG.edgeProps.
+distribute`). Full mechanism + verification in `CHANGELOG.md`. **Flagging,
+not deciding:** the Session 57 brief explicitly listed the left cart master
+(v003) as an available validated asset for this session's catalogue, so it
+is now part of the live-default rotation — this reads as satisfying the
+sign-off gate below by inclusion, but it wasn't a separate explicit
+PM visual-approval pass the way the right cart + chai counter got before
+Session 50. Flagging so the gate is closed on purpose, not by omission.
+**Owed next:** corridor retune only if further play demands it.
 
 ---
 

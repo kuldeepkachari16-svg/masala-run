@@ -1234,20 +1234,100 @@ function edgePlacement(key) {
   };
 }
 
+// ---- Session 57: multi-segment production distribution ----
+// Sessions 46-52 validated a SINGLE production instance per level, always at the
+// same baseY (the testB/testC/test54/testKey harnesses below) — Session 52
+// confirmed that means only ~1 of the route's several segments ever carries a
+// production prop, because nothing decided per-segment placement above the
+// harness. This is that missing policy layer: for every segment in the current
+// level it deterministically decides breathing vs. eligible, which edge, and
+// which VALIDATED asset — before any of it reaches productionClaims()/
+// edgeAdmits(). Its output is just more {key, y} instances, so it plugs into
+// the exact same downstream pipeline the single-instance harnesses always used.
+//
+// Own RNG stream (own salt, distinct from drawCorridorSegment's tile seed) so a
+// distribution-config change can never perturb procedural placement and vice
+// versa. Every segment's decision is a pure function of (level, idx, config)
+// EXCEPT the repetition-control state (lastEligibleIdx/lastKey), which is why
+// this always computes the whole level's plan in one forward scan rather than
+// answering one idx at a time — that scan order is itself fixed and
+// deterministic, so the result is still identical on every call.
+//
+// Catalogue is deliberately just the Session 46-51 VALIDATED masters — the
+// Session 54/55 experimental vertical-geometry pilots stay opt-in test-only
+// (test54) and are never eligible here, per this session's asset freeze.
+const PRODUCTION_CATALOGUE_KEYS = [
+  "mumbai_vadapav_cart_fixed_canopy_right",
+  "mumbai_chai_counter_shallow_awning_right",
+  "mumbai_vadapav_cart_fixed_canopy_left",
+];
+function productionCatalogue(city, edge) {
+  return PRODUCTION_CATALOGUE_KEYS.filter((k) => {
+    const d = EDGE_PROP_DEFS[k];
+    return d && d.city === city && d.edge === edge;
+  });
+}
+// The full per-segment decision list for the CURRENT level — breathing segments
+// included, with a reason, so this doubles as the runtime diagnostic (see
+// __mr.productionDistribution). eligible:true entries carry {edge, key, y}.
+function productionDistributionPlan() {
+  if (!corridorOn() || !routeLen || !level) return [];
+  const cfg = CONFIG.edgeProps.distribution;
+  const city = curCity().key;
+  const th = CONFIG.corridor.tileH;
+  const segCount = Math.max(1, Math.ceil(routeLen / th));
+  const plan = [];
+  let lastEligibleIdx = -Infinity, lastKey = null;
+  for (let idx = 0; idx < segCount; idx++) {
+    // Fresh generator per segment, seeded from (level, idx) alone — never the
+    // tile's own drawCorridorSegment seed, and never carried across idx.
+    const rng = mulberry32((level * 746827 + idx * 15485867 + 91) >>> 0);
+    const roll = rng(), edgeRoll = rng(), assetRoll = rng(), yRoll = rng();
+    const cooldownOk = idx - lastEligibleIdx > cfg.minGapSegments;
+    if (!cooldownOk || roll >= cfg.density) {
+      plan.push({ idx, eligible: false, reason: !cooldownOk ? "cooldown" : "density" });
+      continue;
+    }
+    let edge = edgeRoll < 0.5 ? "left" : "right";
+    let pool = productionCatalogue(city, edge);
+    if (!pool.length) { edge = edge === "left" ? "right" : "left"; pool = productionCatalogue(city, edge); }
+    if (!pool.length) { plan.push({ idx, eligible: false, reason: "noCatalogue" }); continue; }
+    // Repetition control: prefer any asset OTHER than the last eligible segment's
+    // pick. Only falls back to repeating when the catalogue leaves no choice
+    // (e.g. the left edge's sole master) — a catalogue limitation, not a bug.
+    const preferred = lastKey ? pool.filter((k) => k !== lastKey) : pool;
+    const choices = preferred.length ? preferred : pool;
+    const key = choices[Math.floor(assetRoll * choices.length) % choices.length];
+    // Mid-segment, jittered within a band so the cadence never reads as pinned
+    // to a fixed grid row.
+    const y = Math.round(idx * th + th * (0.3 + yRoll * 0.4));
+    plan.push({ idx, eligible: true, edge, key, y });
+    lastEligibleIdx = idx; lastKey = key;
+  }
+  return plan;
+}
+function productionDistributionInstances() {
+  return productionDistributionPlan()
+    .filter((p) => p.eligible)
+    .map((p) => ({ key: p.key, y: p.y }));
+}
+
 // Session 46 controlled test: deterministic instances, right edge, Mumbai. This
 // is a TEST HARNESS, not procedural placement — there is no segment composer
 // picking these (Technical Asset Contract §10). `y` is a world y on the route.
 // Session 49 generalized the single instance behind cfg.testKey. Session 50:
 // PM approved the style-correction pipeline and asked to see the mixed
-// placement live, not behind a console command — cfg.testB (now the default)
-// draws BOTH registered right-edge props at once. This harness still PROPOSES
+// placement live, not behind a console command — cfg.testB drew BOTH
+// registered right-edge props at once. This harness still PROPOSES
 // the initial y spacing (using each def's own recSpacing as a starting gap,
 // mirroring the vertical order they'll draw in), but the proposal is no longer
 // trusted blindly: drawCorridorSegment() now runs every production claim from
 // productionClaims() through edgeAdmits() — the same overlap + budget gate
 // procedural candidates use — before addClaim() accepts it (Session 50 mixed-
 // placement test). testKey stays available for a narrower single-asset check
-// when that's what's needed instead.
+// when that's what's needed instead. Session 57: cfg.distribute (see above) is
+// now the live default; testB/testC/test54/testKey remain exactly as they were
+// for regression testing and explicit geometry pilots.
 function edgePropInstances() {
   const cfg = CONFIG.edgeProps;
   if (!cfg.on || !cfg.test) return [];
@@ -1288,6 +1368,7 @@ function edgePropInstances() {
       { key: "mumbai_vadapav_cart_fixed_canopy_right", y: baseY },
     ];
   }
+  if (cfg.distribute) return productionDistributionInstances();
   if (cfg.testB) {
     const cart = EDGE_PROP_DEFS.mumbai_vadapav_cart_fixed_canopy_right;
     const chai = EDGE_PROP_DEFS.mumbai_chai_counter_shallow_awning_right;
@@ -1992,11 +2073,14 @@ const CONFIG = {
     test: true,        // deterministic single-asset test placement (Session 46).
                        // Set false to silence it; procedural placement is NOT
                        // implemented yet — this is a test harness, not a system.
-    testB: true,       // Session 50: PM approved the style-correction pipeline
+    testB: false,      // Session 50: PM approved the style-correction pipeline
                        // and asked to see the mixed placement live, not behind a
                        // console flag — draws BOTH the vada-pav cart and the chai
-                       // counter (hand-spaced, see edgePropInstances()). Set
-                       // false to fall back to the single-asset testKey harness.
+                       // counter (hand-spaced, see edgePropInstances()). Superseded
+                       // as the live default by `distribute` (Session 57), which
+                       // sits at the same precedence tier one level up — flip this
+                       // back on (with distribute:false) to regression-test the
+                       // Session 50 pair in isolation.
     testC: false,      // Session 51: opposing-edge test — draws the corrected
                        // vada-pav cart on BOTH the left (v003) and right (v002)
                        // edges of the same segment. Off by default (no PM
@@ -2020,6 +2104,23 @@ const CONFIG = {
       mode: "C",       // "A" = left prototype alone (vs left fixed-canopy) ·
                        // "B" = right prototype alone (vs right fixed-canopy) ·
                        // "C" = both prototypes opposing, mirrors testC.
+    },
+    distribute: true,  // Session 57: multi-segment deterministic production
+                       // distribution — the new live default, replacing testB.
+                       // Decides, per segment, whether a production prop appears,
+                       // which edge, and which validated asset (see
+                       // productionDistributionPlan()). Same precedence tier as
+                       // testB, below testC/test54 (explicit geometry-regression
+                       // harnesses still win when flipped on). Live:
+                       // __mr.config.edgeProps.distribute = false to fall back to
+                       // testB/testKey.
+    distribution: {    // Tuning for the Session 57 policy. PROVISIONAL, same
+                       // status as budget below.
+      density: 0.6,    // per-segment eligibility roll (0-1), gated by the cooldown
+                       // below — NOT the resulting fraction of eligible segments
+                       // (cooldown suppresses some rolls that would otherwise hit).
+      minGapSegments: 1, // consecutive segments a production hit forces to breathe
+                         // before the next one is even rolled. 1 = never back-to-back.
     },
     debug: false,      // dev-only overlay (road/buffer boundaries, bounds, pivot).
                        // Live: __mr.config.edgeProps.debug = true
@@ -5668,6 +5769,11 @@ window.__mr = {
     }
     return o;
   },
+  // Session 57: the raw multi-segment distribution decision — every segment in
+  // the current level, eligible or breathing, with the edge/asset/y it picked
+  // (or the reason it didn't). Pre-admission: cross-reference with
+  // edgeComposer for what the composer actually accepted.
+  get productionDistribution() { return productionDistributionPlan(); },
   // Segment composer: the resolved edge claims for every segment currently on
   // screen — production props, accepted procedural elements, rejected candidates
   // and budget usage. This is the ground truth the tile was actually drawn from,

@@ -1,5 +1,95 @@
 # Masala Run — Changelog
 
+## 2026-08-12 — Session 57: multi-segment production distribution
+
+Replaced the single-fixed-instance production harness with a deterministic
+policy that decides, per corridor segment, whether it carries a production
+prop, which edge, and which validated asset. No new art, no asset changes, no
+Session 56 geometry touched — `game.js` only.
+
+**Problem.** `edgePropInstances()` (Sessions 46-52) always placed its
+instance(s) at one fixed `baseY` near the route start, so only ~1 of a
+level's 6 segments ever carried a production prop (Session 52 finding).
+Nothing decided placement above that single-instance harness.
+
+**Policy (`productionDistributionPlan()`, new).** For every segment `idx` in
+the level, a fresh `mulberry32` generator seeded `level*746827 + idx*15485867
++ 91` (own salt, independent of `drawCorridorSegment`'s tile seed) draws:
+eligibility roll, edge roll, asset roll, y-jitter roll.
+- **Eligibility**: `roll < density (0.6)`, gated by a cooldown
+  (`minGapSegments: 1`) that forces at least one breathing segment after any
+  hit — structurally rules out back-to-back production segments. Average
+  cadence ≈2-3 eligible segments per 6-segment level (simulated across 200
+  levels), non-alternating (independent per-segment roll, not a fixed period).
+- **Catalogue**: `PRODUCTION_CATALOGUE_KEYS` — the three Session 46-51
+  VALIDATED masters only (`..._cart_fixed_canopy_right`, `..._chai_counter_...
+  _right`, `..._cart_fixed_canopy_left`). Session 54/55 experimental
+  vertical-geometry pilots are excluded, staying opt-in via `test54` only.
+- **Edge/asset**: coin-flip edge, filtered to whichever edge actually has a
+  validated master for the current city (`productionCatalogue(city, edge)`);
+  falls back to the other edge if empty, or marks the segment `noCatalogue`
+  if neither has one (exercised live: Mumbai's second city, level 6, has no
+  catalogue yet and correctly breathes every segment).
+- **Repetition control**: prefers any asset other than the immediately
+  preceding eligible segment's pick; only repeats when the catalogue leaves
+  no choice (e.g. the left edge's sole master) — a catalogue limit, not a bug.
+- **y placement**: mid-segment, jittered 0.3-0.7 of `tileH` so instances don't
+  read as pinned to a fixed grid row.
+
+**Wiring.** `productionDistributionInstances()` returns plain `{key, y}`
+pairs — the exact shape `edgePropInstances()` already produced — so it drops
+into the existing precedence chain (`test54 > testC > distribute > testB >
+testKey`) with zero changes to `productionClaims()`, `edgeAdmits()`,
+`edgePlacement()`, or `segCompositionSig()`. Every instance still runs through
+the same production-claim → `edgeAdmits()` → procedural-de-confliction
+pipeline Session 46-50 built. `CONFIG.edgeProps.distribute: true` is now the
+live default; `testB` flipped to `false` (superseded, still available for
+isolated Session 50 regression testing). Cache identity needed no changes —
+`segCompositionSig()` already hashes `productionClaims(idx)`'s resolved
+claim ids/edges/y-ranges, which are downstream of the new policy, so a
+distribution-config change already invalidates exactly the segments it
+affects, no more and no less (verified: toggling `distribute` off/on for a
+live segment removes/restores its claim with byte-identical composition, and
+a procedural filler correctly re-admits into the freed budget slot).
+
+**Verified (headless CDP + system Chrome, `docs/verification.md` fallback
+recipe — playwright-core unavailable on this machine).** `node --check`,
+both asset validators (pre-existing WARN-only names output unchanged),
+`git diff --check` all clean. Runtime, levels 1-6, full 6-segment walks:
+- Every eligible segment's claim reached `edgeAdmits()` and was **ADMITTED**
+  (zero unexpected rejects) across 5 Mumbai levels sampled.
+- Breathing segments confirmed genuine (`density`/`cooldown` reasons), not
+  failed-claim accidents.
+- No identical asset on consecutive eligible segments in any sampled level;
+  edge selection not mechanically alternated (level 5 picked `right` twice
+  with different assets).
+- Left AND right placements both occurred across the sample; `mirrored:
+  false` on every registered def (unconditional, unchanged).
+- **Session 50 regression** (`testB`, `distribute:false`): cart + chai both
+  admitted on the shared right edge; a procedural `plant` correctly rejected
+  for overlap — unchanged from Session 50.
+- **Session 51 regression** (`testC`): left cart + right cart admitted
+  independently; a procedural reject fired on each edge from its own claim
+  (independent budgets confirmed) — unchanged from Session 51.
+- **Determinism**: two full fresh page loads produced byte-identical
+  6-level distribution plans; revisiting a level after navigating away and
+  back reproduced the same plan; matched a third, independently-run walk.
+- **Cache**: config toggle off/on round-tripped a segment's claims exactly;
+  plain revisit (no config change) reproduced the exact same composition.
+- **Day/night**: screenshots at both a left-edge and a right-edge claim, in
+  a day zone (level 1) and Mumbai's one night zone (level 4) — courier
+  dominant, road centre clear, delivery/hazard UI legible, no baked-lighting
+  clash, props visually subordinate at the edge. Zero console errors across
+  every run.
+
+Road-intrusion values unchanged (5.60 / 4.02 / 4.90 px on the three
+production masters, all ≤ the Session 56 8px hard cap) — no geometry, pivot,
+scale, or budget constant touched.
+
+**Unresolved / next.** The fresh-player Gate-1 fun/retention playtest is
+still the standing P0 (per `ROADMAP.md`). Session 57 only replaces the
+placement-policy layer; it doesn't change what Gate-1 needs to test.
+
 ## 2026-08-12 — Session 56 correction pass: edge-prop geometry contract corrected
 Codex independently reproduced Session 56's runtime decomposition and numeric
 findings from the repository and returned "ready to freeze with minor
