@@ -60,6 +60,35 @@ while settling.
 
 `--user-data-dir` grows to ~150 MB; put it in scratch and delete it after.
 
+**Dispatched keys must set `bubbles: true`.** The game's `keydown` listener is
+registered on `window`, not `document`. `document.dispatchEvent(new
+KeyboardEvent("keydown", {key:"1"}))` silently does nothing — `KeyboardEvent`
+defaults to `bubbles:false`, so it never reaches the `window` listener.
+Dispatch on `window` directly, or pass `bubbles:true` if dispatching on
+`document`. (Cost a full debug cycle in Session 57 chasing a "frozen camera"
+that was actually a stuck POWER UP modal the auto-dismiss never reached.)
+
+**A stationary teleport-heavy diagnostic walk gets the player killed.**
+Repeatedly setting `player.y` without moving lets aggro'd enemies swarm a
+target that never dodges — `hp` hits 0, `state` leaves `"playing"`, and
+`__mr.tick()` becomes a no-op forever after (it only calls `update()` when
+`state === "playing"`), which looks exactly like a frozen camera/composer.
+Set god mode (`player.maxHp = player.hp = 99`) every tick batch, not just
+once, for any walk longer than a few seconds.
+
+**Bypassing the boss lock inflates wave-gate density — don't over-tick after.**
+`CONFIG.corridor.waveGates` are spaced evenly from `startY` to the main-boss
+trigger; inflating `CONFIG.boss.mainWave` (e.g. to `999`) to dodge a real
+`startBossFight()` camera-lock during a full-route walk makes gates ~1px
+apart, so a single big teleport crosses dozens of them. The wave-advance
+check fires at most once per `update()` call, so it's tick-count-bounded —
+but "gates crossed" is jump-distance-bounded, and *both* stacked "WAVE N"
+announcement banners and elevated spawn rate follow. For a diagnostic that
+needs many small ticks anyway (a composer walk), this is cosmetic noise you
+can ignore. For a screenshot, crank `CONFIG.corridor.camLerp` (e.g. to `400`)
+instead so the camera converges in ~10 ticks rather than ~90 — far fewer
+gates get crossed in the same real time, and the shot stays clean.
+
 ## `__mr` debug API
 
 Actions:
