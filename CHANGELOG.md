@@ -1,5 +1,56 @@
 # Masala Run — Changelog
 
+## 2026-08-12 — Session 56 correction pass: edge-prop geometry contract corrected
+Codex independently reproduced Session 56's runtime decomposition and numeric
+findings from the repository and returned "ready to freeze with minor
+corrections." This pass applied those corrections directly to
+`docs/art-production/reports/session56_edge_prop_geometry_audit.html` — no
+runtime code changed, no new art generated, no new prototype run; every
+correction was resolvable from evidence already in the repo (game.js,
+CHANGELOG.md, asset metadata JSON).
+
+- **Parameterized the hard ρ rule**: `ρ × declaredMaximumRuntimeHeight ≤
+  8px`, not a fixed universal 8.9% (that number only holds at a 90px
+  declared maximum).
+- **Resolved the preferred-headroom policy** to one explicit choice — 30%
+  headroom off the hard cap — and derived every other preferred number from
+  it (preferred ρ ≤ 6.22% at h=90).
+- **Retracted cityFrac 55–75%** as a target band: it was derived from a
+  different metric (bleed-as-%-of-width) mislabeled as cityFrac-as-%-of-
+  height; the shipped production masters actually run cityFrac 93–109%. No
+  numeric band is asserted now — measure, project bleed, PM visual review.
+- **Retracted W:H 0.6–0.8**; reverted to the old ~0.5–0.6 as a non-binding
+  secondary heuristic. W:H cannot validate road intrusion — ρ is the only
+  safety variable.
+- **Demoted the pivot-position figure** (5–7% of visible width) from a rule
+  to a diagnostic. The authoritative pivot requirement is the honest
+  road-facing ground-contact footprint edge.
+- **Documented a real ~1px bounds-convention gap** on right cart v002 only:
+  metadata JSON reports an inclusive alpha-pixel bbox, game.js
+  `EDGE_PROP_DEFS` stores an exclusive-upper-bound convention. Runtime
+  values are correct as stored; no code change.
+- **Corrected asset classifications**: left cart v003's metadata `status`
+  is `"review"`, not approved/shipped (was mislabeled `(prod)` in two
+  tables) — confirmed by reading
+  `assets/metadata/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.json`
+  directly. Right cart v002 and chai counter v001 confirmed `approved`.
+  Session 54/55 prototypes reclassified as experimental evidence only, not
+  production references.
+- **Downgraded Session 55's pivot-selection confidence to Medium** — its
+  footprint was manually inferred using a 150px ground-line threshold to
+  separate two ground contacts at different isometric depths, not a pure
+  alpha measurement. The ρ formula remains exact once that pivot is
+  accepted.
+- **Restructured the proposed contract** into four explicit tiers: hard
+  runtime constraints / preferred production guidance / secondary visual
+  heuristics (non-binding) / human-review requirements (no numeric ceiling
+  asserted).
+- **Softened the "one more prototype" recommendation** from a freeze
+  prerequisite to optional, non-blocking production-quality work — the hard
+  formula is exact algebra and needs no additional art to validate.
+
+Contract status unchanged: **NOT FROZEN — pending PM/ChatGPT review.**
+
 ## 2026-08-12 — Session 55: second right-edge geometry prototype — CONDITIONAL PASS
 Renumbered from the brief's "Session 54" — that number was already committed
 (2026-08-09, the vertical/road-parallel geometry pilot) before this session

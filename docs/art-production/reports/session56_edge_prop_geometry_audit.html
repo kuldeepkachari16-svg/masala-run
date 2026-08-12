@@ -194,6 +194,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#revision">Rev · Correction pass</a>
   <a href="#model">A · Placement model</a>
   <a href="#table">B · Comparison table</a>
   <a href="#causal">C · Session 55 cause</a>
@@ -201,13 +202,29 @@
   <a href="#sensitivity">E · Height sensitivity</a>
   <a href="#family">F · Universal vs family</a>
   <a href="#heuristic">G · Old 0.5–0.6 rule</a>
-  <a href="#brief">H · Art brief</a>
+  <a href="#brief">H · Art-brief template</a>
   <a href="#symmetry">I · Left/right</a>
   <a href="#classification">J · Existing assets</a>
   <a href="#contract">K · Proposed contract</a>
   <a href="#confidence">L · Confidence</a>
   <a href="#next">Next session</a>
 </nav>
+
+<section id="revision">
+<h2>Correction pass — 2026-08-12</h2>
+<p class="lede">Codex independently reproduced the runtime decomposition and numeric findings from the repository and returned a verdict of <strong>ready to freeze with minor corrections</strong>. This revision applies those corrections. No new art was generated, no runtime code was touched, and no runtime limits changed. This pass did not run a new geometry experiment — every correction below was resolvable from evidence already in the repo (game.js, CHANGELOG.md, asset metadata JSON).</p>
+<ul>
+<li><strong>Parameterized the hard ρ rule</strong> — it is a formula (<code>ρ · declaredMaximumRuntimeHeight ≤ 8px</code>), not a fixed universal 8.9%. 8.9% was always specific to a 90px declared maximum (§D, §H, §K).</li>
+<li><strong>Resolved the preferred-headroom policy</strong> to a single explicit choice — 30% headroom on the hard cap — and derived every other preferred number from it (§D, §H, §K).</li>
+<li><strong>Demoted cityFrac 55–75%</strong> from a target band to a non-authoring observation. It isn't supported by the sample, and the shipped production masters themselves run cityFrac 93–109% — nowhere near that band (§D, §H, §K).</li>
+<li><strong>Unfroze W:H 0.6–0.8.</strong> W:H cannot validate road intrusion; the old ~0.5–0.6 range reverts to being a secondary visual/composition heuristic only (§G, §H, §K).</li>
+<li><strong>Demoted the pivot-position number</strong> (5–7% of visible width) to a diagnostic. The authoritative pivot rule is the honest road-facing ground-contact footprint edge, not a percentage (§C, §H, §K).</li>
+<li><strong>Documented the bounds-convention gap</strong> — game.js's stored <code>visualBounds</code> and the metadata JSON's reported alpha bbox differ by ~1px on one asset, an inclusive-vs-exclusive-bound convention mismatch, not a runtime error (§model, §B).</li>
+<li><strong>Corrected asset classifications</strong> — most notably Left cart v003, whose metadata status is <code>"review"</code>, not shipped/approved (§J).</li>
+<li><strong>Downgraded Session 55 pivot confidence to Medium</strong> — its footprint was manually inferred from a 150px ground-line threshold, confirmed against CHANGELOG.md (§L).</li>
+<li><strong>Restructured §K</strong> into hard constraints / preferred guidance / secondary heuristics / human-review requirements, and softened the "one more prototype" recommendation to optional, not a freeze blocker (§L, §next).</li>
+</ul>
+</section>
 
 <section id="summary">
 <h2>Headline finding</h2>
@@ -271,6 +288,12 @@ ok = footprintClear(footprint vs roadEdgeX) AND (roadIntrusion &lt;= intrusionAl
 
 <p><strong>How alpha bounds feed in:</strong> <code>visualBounds</code>/<code>footprint</code> are measured once, offline, at a fixed alpha ≥ 32 threshold per the repo's own convention (stated inline at every <code>EDGE_PROP_DEFS</code> entry) — the runtime never re-measures alpha. A different threshold would shift <code>vb.x0/x1</code> and therefore <code>ρ</code>/<code>ratio</code> directly; the formulas below are only as trustworthy as that threshold staying consistent across every future asset.</p>
 
+<div class="callout">
+<span class="label">Bounds convention — two numbers, same underlying measurement</span>
+<p>Two different things both get called "the alpha≥32 bounds" in this project, and they are off by ~1px on at least one registered asset: <strong>stored runtime bounds</strong> — the <code>visualBounds</code>/<code>footprint</code> object literals inside <code>EDGE_PROP_DEFS</code> in game.js, which is what <code>edgePlacement()</code> actually reads — versus <strong>literal alpha-pixel bbox</strong> — the raw last-opaque-pixel index reported in the asset's metadata JSON <code>notes</code> field at export time.</p>
+<p>Confirmed example: right cart v002's metadata JSON records the measured alpha≥32 bbox as <code>(226,431)–(949,1056)</code> (inclusive last-opaque-pixel indices); game.js's <code>EDGE_PROP_DEFS</code> stores <code>visualBounds: {x0:226, y0:432, x1:950, y1:1057}</code> — y0/x1/y1 each shifted by exactly 1px, x0 untouched. That's consistent with an inclusive-index vs. exclusive-upper-bound (width/height) convention difference at export time, not a measurement error — the two production props checked against their own metadata (chai counter v001, left cart v003) show zero drift. <strong>Runtime calculations are correct as stored and should not change.</strong> Future tooling that re-derives bounds from raw alpha scans should target the game.js-stored convention (exclusive upper bound), not the metadata JSON's inclusive-pixel convention, to avoid silently reproducing this ~1px gap on new assets.</p>
+</div>
+
 <p><strong>How height/scaling feeds in:</strong> everything derived from source-px distances (<code>roadIntrusion</code>, on-screen width, footprint width) scales <em>purely linearly</em> with <code>heightPx</code>, because <code>s</code> is directly proportional to it. <code>bleed</code> does <strong>not</strong> scale purely linearly — it's affine, because it's measured against the fixed screen constant <code>W − pivotX</code> (35.4px), which does not grow with the asset. This split — one clean-linear quantity, one affine-with-a-fixed-offset quantity — is exactly why <code>ρ</code> alone predicts intrusion risk across scales while bleed needs the full formula.</p>
 </section>
 
@@ -293,7 +316,7 @@ ok = footprintClear(footprint vs roadEdgeX) AND (roadIntrusion &lt;= intrusionAl
 </tr></thead>
 <tbody>
 <tr><td class="rowlabel">Right cart v002 <em>(prod)</em></td><td>right</td><td class="num">724×625</td><td class="num">1.158</td><td class="num">0.069</td><td class="num">8.00%</td><td class="num">107.84%</td><td class="num">81.09px</td><td class="num">5.60px</td><td class="num"><span class="state good">30%</span></td><td class="num">40.09px</td></tr>
-<tr><td class="rowlabel">Left cart v003 <em>(prod)</em></td><td>left</td><td class="num">632×543</td><td class="num">1.164</td><td class="num">0.940</td><td class="num">7.00%</td><td class="num">109.39%</td><td class="num">81.47px</td><td class="num">4.90px</td><td class="num"><span class="state good">39%</span></td><td class="num">41.17px</td></tr>
+<tr><td class="rowlabel">Left cart v003 <em>(registered — review)</em></td><td>left</td><td class="num">632×543</td><td class="num">1.164</td><td class="num">0.940</td><td class="num">7.00%</td><td class="num">109.39%</td><td class="num">81.47px</td><td class="num">4.90px</td><td class="num"><span class="state good">39%</span></td><td class="num">41.17px</td></tr>
 <tr><td class="rowlabel">Chai counter v001 <em>(prod)</em></td><td>right</td><td class="num">602×610</td><td class="num">0.987</td><td class="num">0.058</td><td class="num">5.74%</td><td class="num">92.95%</td><td class="num">69.08px</td><td class="num">4.02px</td><td class="num"><span class="state good">50%</span></td><td class="num">29.67px</td></tr>
 <tr><td class="rowlabel">Vertical LEFT proto (S54)</td><td>left</td><td class="num">630×1220</td><td class="num">0.516</td><td class="num">0.960</td><td class="num">2.05%</td><td class="num">49.59%</td><td class="num">36.15px</td><td class="num">1.43px</td><td class="num"><span class="state good">82%</span></td><td class="num">0.00px</td></tr>
 <tr><td class="rowlabel">Vertical RIGHT proto #1 (S54)</td><td>right</td><td class="num">509×603</td><td class="num">0.844</td><td class="num">0.051</td><td class="num">4.31%</td><td class="num">80.10%</td><td class="num">59.09px</td><td class="num">3.02px</td><td class="num"><span class="state good">62%</span></td><td class="num">20.67px</td></tr>
@@ -307,7 +330,7 @@ ok = footprintClear(footprint vs roadEdgeX) AND (roadIntrusion &lt;= intrusionAl
 <h2><span class="tag">C</span> Why the Session 55 prototype nearly failed</h2>
 <p class="lede">Not a measurement artifact — a structural property of that specific silhouette, isolated by <code>ρ</code>.</p>
 
-<p>Look at the <strong>pivot-normalized position</strong> column above: every other registered asset — cart, counter, both prior vertical prototypes — places its pivot within <strong>5–7% (right) / 94–96% (left)</strong> of its own visible width, measured from the road-facing edge. The Session 55 prototype's pivot sits at <strong>18.0%</strong> — two-and-a-half to three-and-a-half times further in.</p>
+<p>Look at the <strong>pivot-normalized position</strong> column above: every other registered asset — cart, counter, both prior vertical prototypes — places its pivot within <strong>5–7% (right) / 94–96% (left)</strong> of its own visible width, measured from the road-facing edge. The Session 55 prototype's pivot sits at <strong>18.0%</strong> — two-and-a-half to three-and-a-half times further in. <strong>This percentage is diagnostic, not an authored target</strong> — it's useful here for spotting the outlier, but it is not the road-safety rule itself (see §H): the authoritative requirement is that the pivot sit on the honest road-facing ground-contact footprint edge, whatever normalized position that produces for a given silhouette.</p>
 
 <p>That inset is not decorative; it is the geometric quantity <code>roadIntrusion</code> literally measures. Because the pivot is pinned to the <em>footprint's</em> road edge (the wheelbase), and <code>roadIntrusion</code> is the distance from that pivot out to the <em>silhouette's</em> road-facing-most point, a pivot sitting deep inside the silhouette means the service counter/shelf structure reaches a long way road-ward of the wheels before the art runs out. Converted to <code>ρ</code> — the same overhang expressed as a fraction of the asset's total height, independent of overall width — this source measures <strong>11.16%</strong>, against 4.3–8.0% for every comparator, including the current production masters.</p>
 
@@ -322,22 +345,40 @@ ok = footprintClear(footprint vs roadEdgeX) AND (roadIntrusion &lt;= intrusionAl
 <p class="lede">Every number below is read directly off the <code>roadIntrusion(h)=ρ·h</code> / <code>bleed(h)=cityFrac·h−35.4</code> identities — not chosen by eye.</p>
 
 <h3>Road-facing (ρ) — the safety-critical axis</h3>
-<div class="formula">hard ceiling:      ρ ≤ 8 / h_worst        <span class="c">// exactly exhausts the 8px cap</span>
-preferred ceiling: ρ ≤ 0.70 × (8 / h_worst)  <span class="c">// ≥30% headroom, matching the weakest comfortable production asset</span>
+<p>The hard rule is a <strong>formula</strong>, parameterized by each asset's own <em>declared maximum runtime height</em> — the highest <code>heightPx</code> that asset is ever allowed to run at — not a single universal percentage:</p>
+<div class="formula">roadIntrusion(h) = ρ × h
 
-at h_worst = 90px (top of the stated 70–90px landmark band):
-  hard      ρ ≤ 8.89%
-  preferred ρ ≤ 6.22%   (round to ≤ 6.0–6.5%)</div>
-<p>Sized against <strong>h=90</strong>, the top of the stated landmark range, deliberately — not against whatever a given prop happens to run at today. <code>heightPx</code> has already been retuned twice in this project's history (88→80→70, Session 53), always upward-compatible art was assumed; an art asset authored to a ρ that's merely safe at 70 could silently fail a future re-tune toward 90 with zero code change. Sizing the art contract for the top of the stated band removes that failure mode entirely.</p>
+hard requirement:      ρ × declaredMaximumRuntimeHeight ≤ 8px
+  ⇒ ρ_hard-max        = 8 / declaredMaximumRuntimeHeight
+
+preferred production policy — 30% headroom on the hard cap (the explicit,
+single headroom policy this contract adopts; every other preferred number
+below is derived from it, not independently chosen):
+  ⇒ ρ_preferred-max   = 0.70 × ρ_hard-max
+                       = 5.6 / declaredMaximumRuntimeHeight</div>
+<div class="callout warn">
+<span class="label">8.9% is an example, not a universal constant</span>
+<p>The Session 56 draft stated "ρ ≤ 8.9%" as if it were a fixed law. It is not — it is the specific output of the formula above when <strong>declaredMaximumRuntimeHeight = 90px</strong>, which happens to be the top of the current landmark family's 70–90px stated range:</p>
+<div class="formula">at declaredMaximumRuntimeHeight = 90px:
+  hard      ρ ≤ 8.89%   (= 8 / 90)
+  preferred ρ ≤ 6.22%   (= 5.6 / 90)
+
+at declaredMaximumRuntimeHeight = 120px (hypothetical — e.g. a taller landmark family):
+  hard      ρ ≤ 6.67%   (= 8 / 120)
+  preferred ρ ≤ 4.67%   (= 5.6 / 120)</div>
+<p>A future asset family declared to run taller than 90px must recompute its own ceiling from the formula — it may <strong>not</strong> reuse 8.9%/6.22%. Every asset brief (§H) must state its own declared maximum runtime height for exactly this reason.</p>
+</div>
+<p>Sized against the asset's <strong>own declared maximum</strong>, not against whatever height a prop happens to run at today. <code>heightPx</code> has already been retuned twice in this project's history (88→80→70, Session 53); an art asset authored to a ρ that's merely safe at its current running height could silently fail a future re-tune upward with zero code change.</p>
 
 <h3>City-facing (cityFrac) — a design axis, not a safety one</h3>
-<p>There is <strong>no runtime cap</strong> on bleed — <code>ok</code> never checks it. It's PM-judgment territory only, tracked in the changelog as "how much of the sprite runs off the city side," which Session 53 flagged as too high (~58%) and Session 55 flagged the opposite failure mode as untested (0.19px — nobody has PM-reviewed whether near-zero bleed reads as "tucked to the edge" or "floating, disconnected from the city"). Recommend a target <em>band</em>, not a ceiling:</p>
+<p>There is <strong>no runtime cap</strong> on bleed — <code>ok</code> never checks it. It's PM-judgment territory only, tracked in the changelog as "how much of the sprite runs off the city side," which Session 53 flagged as too high (~58%) and Session 55 flagged the opposite failure mode as untested (0.19px — nobody has PM-reviewed whether near-zero bleed reads as "tucked to the edge" or "floating, disconnected from the city").</p>
 <div class="formula">zero-bleed threshold:  cityFrac = 35.4 / h
-  at h=70: 50.6%   at h=80: 44.3%   at h=90: 39.3%
-
-target band (keeps bleed in the PM-approved 40–55%-of-onscreen-width
-range seen in the current, already-shipped production masters):
-  cityFrac ≈ 55–75% of the asset's own height</div>
+  at h=70: 50.6%   at h=80: 44.3%   at h=90: 39.3%</div>
+<div class="callout warn">
+<span class="label">cityFrac 55–75% is retracted as a target band</span>
+<p>The Session 56 draft proposed cityFrac ≈ 55–75% as a target band, citing "the PM-approved 40–55%-of-onscreen-width bleed range." That justification conflates two different metrics — bleed as a percentage of on-screen <em>width</em> is not the same quantity as cityFrac as a percentage of source <em>height</em> — and the conflation is visible directly in this session's own table (§B): the actual shipped, approved production masters run cityFrac <strong>92.95–109.39%</strong>, nowhere near the 55–75% band this draft was about to freeze. A 3-asset production sample (one of which, the chai counter, is a different silhouette family from the two carts) plus 3 prototypes explicitly built to explore the opposite, narrow end of the space is not evidence for a universal band either way.</p>
+<p><strong>Status: demoted from target band to measured observation.</strong> City-facing depth stays <em>measurable</em> (report cityFrac and projected bleed at the asset's intended height), <em>projected</em> for bleed before art is finalized, and <em>visually PM-reviewed</em> — with no numeric ceiling or band asserted until a larger, more deliberately-sampled measurement set exists. It may turn out to be family-specific (a cart and a counter plausibly do not share one number) rather than universal.</p>
+</div>
 </section>
 
 <section id="sensitivity">
@@ -374,71 +415,95 @@ range seen in the current, already-shipped production masters):
 <h2><span class="tag">G</span> Status of the old ~0.5–0.6 W:H guidance</h2>
 <div class="callout">
 <span class="label">Verdict: option 3 — demote to a secondary check</span>
-<p>The old heuristic is <code>ratio = ρ + cityFrac</code> with no visibility into the split. It correctly predicts <strong>bleed risk</strong> (a low ratio at a given pivot position tends toward lower cityFrac, hence less bleed) — that's genuinely why it emerged from Session 53's bleed complaint. It has <strong>zero predictive power over road intrusion</strong>, which depends on ρ alone; Session 55 is the direct proof, hitting the target band (0.620) while nearly maxing the intrusion budget.</p>
-<p>Keep it as a coarse, secondary framing/bleed check ("does this read as tucked to the edge") <em>after</em> ρ has been verified independently — never as a stand-in for road-safety review again.</p>
+<p>The old heuristic is <code>ratio = ρ + cityFrac</code> with no visibility into the split. It correctly predicts <strong>bleed risk</strong> (a low ratio at a given pivot position tends toward lower cityFrac, hence less bleed) — that's genuinely why it emerged from Session 53's bleed complaint. It has <strong>zero predictive power over road intrusion</strong>, which depends on ρ alone; Session 55 is the direct proof, landing at the old heuristic's preferred narrow ratio (0.620) while nearly maxing the intrusion budget.</p>
+<p><strong>W:H cannot validate road intrusion. The authoritative road-safety variable is ρ.</strong> Keep the old ~0.5–0.6 W:H range as a coarse, secondary visual/composition heuristic ("does this read as tucked to the edge") applied only <em>after</em> ρ has been verified independently — never as a stand-in for road-safety review, and never re-derived upward from the now-retracted cityFrac band (see §D). A wider range (0.6–0.8) is not adopted here — that number depended on the cityFrac 55–75% band this pass retracted.</p>
 </div>
 </section>
 
 <section id="brief">
-<h2><span class="tag">H</span> Measurable art-brief requirements</h2>
-<p class="lede">Written for a pipeline that can measure alpha bounds, not judge silhouettes by eye.</p>
+<h2><span class="tag">H</span> Asset-brief template — measurable, per-asset fields</h2>
+<p class="lede">Written for a pipeline that can measure alpha bounds, not judge silhouettes by eye. Every future tall edge-prop brief should declare these fields explicitly, in this order, so the hard formula (§D) can be checked directly against the brief before art is finalized.</p>
+
+<h3>Required fields</h3>
 <ol>
-<li><strong>Road-facing depth</strong> — the distance from the ground-contact wheelbase's road-facing edge to the silhouette's road-facing-most point (counter lip, canopy corner, whatever extends furthest toward the road) — must be <strong>≤ 6.5% of the asset's total visible height</strong> (preferred; ≤6.0% for extra margin), and never exceed <strong>8.9%</strong> under any circumstance.</li>
-<li><strong>Placement of the road-facing service edge</strong> — should land within roughly the <strong>first 5–7% of the silhouette's own width</strong>, measured from the road-facing side (matches every currently-shipped master; this is a restatement of #1 in width terms, not an independent rule).</li>
-<li><strong>City-facing depth</strong> (structural mass, storage, canopy overhang, handles) — target <strong>55–75% of total visible height</strong>. No hard ceiling; below ~40–50% of height risks reading as disconnected from the street rather than parked along it (untested — flag for PM visual review, not a geometry law).</li>
-<li><strong>Total visible W:H</strong> falls out of #1+#3, not authored directly — expect roughly <strong>0.6–0.8</strong> at these targets, not the previously-guessed 0.5–0.6 (that band under-counted city-facing mass).</li>
-<li><strong>Keep most structural mass city-side of the wheelbase</strong>, not overall silhouette narrowness — the operative instruction is "shallow counter/service overhang relative to total height," not "narrow cart."</li>
+<li><strong>Target runtime height</strong> — the <code>heightPx</code> this asset is expected to actually run at today.</li>
+<li><strong>Maximum runtime height</strong> — the highest <code>heightPx</code> this asset is declared to ever run at (may equal target height; if a future re-tune is plausible, declare the top of that range — see §D's ρ formula, which is sized against this number, not the target height).</li>
+<li><strong>Stored visible bounds</strong> — the silhouette bbox as it will be stored in <code>EDGE_PROP_DEFS</code> (game.js convention — see the bounds-convention note in §A), distinct from the literal alpha-pixel bbox an export tool may report.</li>
+<li><strong>Footprint / ground-contact pivot</strong> — the honest road-facing ground-contact footprint edge. <strong>This is the authoritative pivot rule</strong> — not a normalized-percentage target. The 5–7% figure discussed in §C is a diagnostic for spotting outliers after the fact, not a value to author toward.</li>
+<li><strong>Road-facing depth</strong> — the source-px distance from the ground-contact wheelbase's road-facing edge to the silhouette's road-facing-most point (counter lip, canopy corner, whatever extends furthest toward the road).</li>
+<li><strong>ρ</strong> — road-facing depth ÷ total visible height.</li>
+<li><strong>Projected road intrusion at target height and at maximum height</strong> — <code>ρ × h</code> evaluated at both declared heights; the maximum-height figure is what's checked against the 8px hard cap (§D).</li>
+<li><strong>City-facing depth</strong> — source-px distance covering structural mass, storage, canopy overhang, handles on the city-facing side. Measure and report; no fixed target is asserted (§D).</li>
+<li><strong>Projected outer bleed</strong> — <code>max(0, cityFrac·h − 35.4)</code> at the target height; report so it's a visible decision, not a discovered surprise post-ship (as it was in Session 53).</li>
+<li><strong>Preferred road-intrusion headroom</strong> — state which headroom policy the brief is authored against (this contract's default: 30% below the hard cap at declared maximum height — see §D).</li>
+<li><strong>Acceptable visual/on-screen visibility</strong> — a PM sign-off field: does the projected bleed/intrusion combination read correctly on screen at the target height. Human-review, not a computed number.</li>
 </ol>
+
+<h3>What is explicitly not a fixed rule here</h3>
+<ul>
+<li><strong>Total visible W:H</strong> — falls out of ρ and city-facing depth, but is not itself authored toward, and cannot substitute for checking ρ directly (§G). Use the old ~0.5–0.6 range only as a secondary, non-binding visual/composition check.</li>
+<li><strong>cityFrac target band</strong> — no band is asserted (§D). Measure and project bleed; don't author toward a percentage.</li>
+<li><strong>Pivot normalized position</strong> — diagnostic only (§C); the footprint-edge rule in field 4 above is the real requirement.</li>
+</ul>
 </section>
 
 <section id="symmetry">
 <h2><span class="tag">I</span> Left/right symmetry</h2>
-<p><strong>Numeric envelope: symmetric. Art: never mirrored.</strong> The production masters' own ρ values (right 8.00%, left 7.00%) and pivot-norm values (right 0.069, left 0.940 → mirror-equivalent 0.060) already sit close to each other despite being two completely independently authored sources — the runtime's road/city direction flip (<code>dir</code>, <code>roadFacingVisX</code> selection) is exactly mirror-symmetric by construction, so a single numeric ceiling applies to both edges without adjustment. This does not relax Class-C's no-runtime-mirroring rule: left and right still need dedicated art masters, each independently measured against the same ρ/cityFrac targets, never a flipped copy of the other edge's PNG.</p>
+<p><strong>Numeric envelope: symmetric. Art: never mirrored.</strong> The production masters' own ρ values (right 8.00%, left 7.00%) and pivot-norm values (right 0.069, left 0.940 → mirror-equivalent 0.060) already sit close to each other despite being two completely independently authored sources — the runtime's road/city direction flip (<code>dir</code>, <code>roadFacingVisX</code> selection) is exactly mirror-symmetric by construction, so a single numeric ceiling applies to both edges without adjustment. This does not relax Class-C's no-runtime-mirroring rule: left and right still need dedicated art masters, each independently measured against the same ρ targets, never a flipped copy of the other edge's PNG.</p>
+<p><strong>Contract scope:</strong> the hard formula (<code>ρ × declaredMaximumRuntimeHeight ≤ 8px</code>, §D) applies symmetrically to dedicated LEFT and RIGHT Class-C assets using this placement system. Runtime mirroring remains prohibited — this is a shared numeric ceiling, not a shared PNG.</p>
 </section>
 
 <section id="classification">
 <h2><span class="tag">J</span> Classification of existing assets against the proposed envelope</h2>
+<p class="lede">Corrected against actual repository status (metadata JSON <code>status</code> field), not assumed from being registered in <code>EDGE_PROP_DEFS</code> — registration in the runtime def table means an asset is wired in and drawable, not that its metadata status is "approved."</p>
 <div class="tablewrap"><table>
 <thead><tr><th>Asset</th><th>Classification</th><th>Basis</th></tr></thead>
 <tbody>
-<tr><td class="rowlabel">Right cart v002 <em>(prod)</em></td><td><span class="state warn">inside, low headroom</span></td><td>ρ 8.00% — above the 6.5% preferred line; comfortable at 70px (30%), thin at 90px (10%). No runtime blocker at its actual running height — no rework required.</td></tr>
-<tr><td class="rowlabel">Left cart v003 <em>(prod)</em></td><td><span class="state warn">inside, low headroom</span></td><td>ρ 7.00% — same pattern as the right master, slightly better margin.</td></tr>
-<tr><td class="rowlabel">Chai counter v001 <em>(prod)</em></td><td><span class="state good">comfortably inside</span></td><td>ρ 5.74%, under the preferred ceiling at every tested height.</td></tr>
-<tr><td class="rowlabel">Vertical LEFT proto (S54)</td><td><span class="state good">best-in-class reference</span></td><td>ρ 2.05%, ratio 0.516 (old band), zero bleed at 70px. Not production-ready on art-quality grounds (Session 54), but the strongest geometry data point in the whole set.</td></tr>
-<tr><td class="rowlabel">Vertical RIGHT proto #1 (S54)</td><td><span class="state good">comfortably inside on ρ</span> / <span class="state warn">outside preferred on ratio</span></td><td>ρ 4.31% is fine; ratio 0.844 is too wide, driving 20.67px bleed. Good half of a reference, not a full one.</td></tr>
-<tr><td class="rowlabel">Vertical RIGHT proto v2 (S55)</td><td><span class="state bad">unsuitable for road-facing reference</span> / <span class="state good">good bleed reference</span></td><td>ρ 11.16% fails the preferred ceiling and the 90px hard cap; never shipped, so no rework question applies. Its cityFrac/bleed performance (0.620 ratio, 0.19px bleed) remains a valid reference for that axis alone.</td></tr>
+<tr><td class="rowlabel">Right cart v002</td><td><span class="state good">approved</span> / <span class="state warn">outside preferred future guidance</span></td><td>Metadata status <code>approved</code>. Valid at its actual running height (70px, hard cap comfortably clear). ρ 8.00% sits above the 6.22% preferred ceiling derived at declaredMaximumRuntimeHeight=90px (§D) — <strong>grandfathered</strong>: no rework required at 70px, but not the reference to copy for new art.</td></tr>
+<tr><td class="rowlabel">Left cart v003</td><td><span class="state warn">geometry validated, metadata status: review</span></td><td>Metadata JSON <code>status: "review"</code>, confirmed by reading <code>assets/metadata/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.json</code> directly — <strong>not</strong> shipped/approved, despite being registered in <code>EDGE_PROP_DEFS</code> and drawable. Its geometry is valid at 70px (ρ 7.00%, comfortably inside the hard cap). Do not describe as shipped or approved until the metadata status changes.</td></tr>
+<tr><td class="rowlabel">Chai counter v001</td><td><span class="state good">approved</span></td><td>Metadata status <code>approved</code>. ρ 5.74% — the strongest road-depth example among the production masters, under the preferred ceiling at every tested height. Its city-side geometry (cityFrac 92.95%) should not be judged against the retracted 55–75% band (§D) — no cityFrac target currently exists to judge it against.</td></tr>
+<tr><td class="rowlabel">Vertical LEFT proto (S54)</td><td><span class="state warn">experimental evidence only</span></td><td>ρ 2.05% is the strongest road-depth data point in the sample, but this and all Session 54/55 assets are <strong>experimental evidence, not complete production references</strong> — useful for isolating geometry variables (ρ vs. ratio vs. cityFrac independently), not art-quality-ready and never shipped.</td></tr>
+<tr><td class="rowlabel">Vertical RIGHT proto #1 (S54)</td><td><span class="state warn">experimental evidence only</span></td><td>ρ 4.31% is fine in isolation; ratio 0.844 drove 20.67px bleed. Isolates the ρ-vs-bleed tradeoff; not a production reference.</td></tr>
+<tr><td class="rowlabel">Vertical RIGHT proto v2 (S55)</td><td><span class="state bad">experimental evidence only, fails hard cap at declared max height</span></td><td>ρ 11.16% exceeds the hard cap once declaredMaximumRuntimeHeight reaches ~72px, and clearly fails at 90px (10.04px intrusion). Never shipped. Isolates the pivot-inset/ρ mechanism (§C) — real evidence for that mechanism, not a production reference, and its pivot measurement itself carries only Medium confidence (§L).</td></tr>
 </tbody>
 </table></div>
-<p style="font-size:13px;color:var(--text-dim)">No production asset requires rework under this analysis — every shipped master passes the hard cap at its actual running height (70px). The "low headroom" flags are forward-looking, only relevant if <code>heightPx</code> is ever retuned upward.</p>
+<p style="font-size:13px;color:var(--text-dim)">No production asset requires rework under this analysis — every shipped, approved master passes the hard cap at its actual running height (70px). The "outside preferred guidance" flag on the right cart is forward-looking, only relevant if <code>heightPx</code> is ever retuned upward for that family.</p>
 </section>
 
 <section id="contract">
 <h2><span class="tag">K</span> Proposed geometry contract — <span style="color:var(--warn)">NOT FROZEN</span></h2>
+<p class="lede">PROPOSED TALL EDGE-PROP GEOMETRY CONTRACT. Restructured into four explicit tiers so "must never" is never confused with "should aim for." PM/ChatGPT make the freeze call, not this report.</p>
 <div class="contract">
-  <h4>Runtime</h4>
+  <h4>A · Hard runtime constraints</h4>
   <dl>
-    <dt>Intended height range</dt><dd>70–90px</dd>
-    <dt>Hard road-intrusion limit</dt><dd>8px (unchanged, not touched)</dd>
-    <dt>Preferred road-intrusion limit</dt><dd>≤ 6px at h=90 (≥25% headroom)</dd>
-    <dt>Minimum safety headroom</dt><dd>≥30% at h=90 for new authoring targets</dd>
+    <dt>Applies to</dt><dd>dedicated LEFT and RIGHT Class-C edge assets, symmetrically</dd>
+    <dt>Hard road-intrusion limit</dt><dd>8px (unchanged runtime constant, <code>cfg.intrusionAllow</code>)</dd>
+    <dt>Hard ρ formula</dt><dd><code>ρ × declaredMaximumRuntimeHeight ≤ 8px</code></dd>
+    <dt>Hard ρ ceiling — example at h=90px</dt><dd>ρ ≤ 8.89% (only valid when declaredMaximumRuntimeHeight = 90px — recompute per asset)</dd>
+    <dt>Footprint clearance</dt><dd><code>footprintClear</code> vs. <code>roadEdgeX</code> — unchanged, not touched</dd>
+    <dt>Runtime mirroring</dt><dd>prohibited — left/right always separately authored art masters</dd>
   </dl>
-  <h4>Art silhouette</h4>
+  <h4>B · Preferred production guidance</h4>
   <dl>
-    <dt>Max road-facing depth (ρ)</dt><dd>8.9% of total visible height (hard, sized at h=90)</dd>
-    <dt>Preferred road-facing depth (ρ)</dt><dd>6.0–6.5% of total visible height</dd>
-    <dt>Max city-facing depth</dt><dd>no hard cap; flag anything &gt;90% of height for PM bleed review</dd>
-    <dt>Preferred total city-facing depth</dt><dd>55–75% of total visible height</dd>
-    <dt>Resulting preferred total W:H</dt><dd>≈ 0.6–0.8 (derived, not authored directly)</dd>
-    <dt>Acceptable pivot position</dt><dd>within first 5–7% of visible width from the road-facing edge</dd>
+    <dt>Headroom policy (this contract's choice)</dt><dd>30% below the hard ρ ceiling, at declaredMaximumRuntimeHeight</dd>
+    <dt>Preferred ρ formula</dt><dd><code>ρ × declaredMaximumRuntimeHeight ≤ 5.6px</code> (= 0.70 × hard cap)</dd>
+    <dt>Preferred ρ ceiling — example at h=90px</dt><dd>ρ ≤ 6.22% (only valid at declaredMaximumRuntimeHeight = 90px)</dd>
+    <dt>Intended height range (current landmark family)</dt><dd>70–90px</dd>
   </dl>
-  <h4>Left / right</h4>
+  <h4>C · Secondary visual heuristics (non-binding)</h4>
   <dl>
-    <dt>Numeric envelope</dt><dd>identical for both edges (mirror-symmetric by construction)</dd>
-    <dt>Art masters</dt><dd>always separately authored; runtime mirroring stays prohibited</dd>
+    <dt>Total visible W:H</dt><dd>~0.5–0.6 as a coarse composition check only — cannot validate road intrusion, never a substitute for ρ (§G)</dd>
+    <dt>Pivot normalized position</dt><dd>diagnostic only (typically 5–7% from the road-facing edge on current assets) — not an authored target; the real rule is field 4 in §H</dd>
   </dl>
-  <h4>Validation</h4>
+  <h4>D · Human-review requirements (no numeric ceiling asserted)</h4>
   <dl>
-    <dt>Required checks</dt><dd>ρ at h=90, cityFrac at intended h, footprintClear, mirrored:false</dd>
+    <dt>City-facing depth (cityFrac)</dt><dd>measure, project bleed at intended height, PM visual review — <strong>55–75% band retracted</strong>, possibly family-specific, insufficient evidence to freeze (§D)</dd>
+    <dt>Acceptable on-screen visibility</dt><dd>PM sign-off per asset — does the projected bleed/intrusion read correctly at the target height</dd>
+    <dt>Metadata status</dt><dd>an asset's <code>status</code> field (approved/review/draft) is authoritative for shipped/approved claims — registration in <code>EDGE_PROP_DEFS</code> alone is not (§J)</dd>
+  </dl>
+  <h4>Validation (unchanged)</h4>
+  <dl>
+    <dt>Required checks</dt><dd>ρ at declaredMaximumRuntimeHeight, cityFrac at intended height (reported, not gated), footprintClear, mirrored:false</dd>
     <dt>Regression scope</dt><dd>only if game.js changes — Session 50 Test B, Session 51 Test C</dd>
   </dl>
 </div>
@@ -451,31 +516,35 @@ range seen in the current, already-shipped production masters):
 <ul>
 <li>The <code>ρ</code>/<code>cityFrac</code> decomposition and both closed-form formulas — not fitted, derived directly from <code>edgePlacement()</code>, and independently reproduce eight separate historical numbers across three changelog entries (81.09/5.60/40.09, 4.90/41.17, 7.81/0.19, plus the ~49%/~51%/~43% bleed percentages) exactly.</li>
 <li>Road intrusion is governed by ρ alone, with zero dependency on overall ratio — an algebraic fact of the current runtime, not a correlation observed in a small sample.</li>
-<li>The Session 55 near-failure's causal mechanism (pivot-inset / ρ, not the overall silhouette ratio).</li>
+<li>The Session 55 near-failure's causal mechanism (pivot-inset / ρ, not the overall silhouette ratio) — <strong>the formula itself is exact once the pivot is accepted</strong> (see Medium-confidence note below on the pivot measurement specifically).</li>
+<li>The hard ρ formula (<code>ρ × declaredMaximumRuntimeHeight ≤ 8px</code>) and the derived preferred formula at 30% headroom — both are exact algebra, not sample-dependent.</li>
 </ul>
 
-<h3>Medium confidence <span class="confband med">small sample</span></h3>
+<h3>Medium confidence <span class="confband med">small sample / manually inferred</span></h3>
 <ul>
-<li>The specific preferred-ceiling numbers (ρ ≤ 6.0–6.5%, cityFrac 55–75%) — reasonable interpolations from a 6-asset sample, only 2 of which are genuinely narrow/vertical-authored. Treat as a working target, not a proven optimum.</li>
+<li>The choice of 30% as the headroom policy (§D/§K-B) — a reasonable, explicit choice, not a proven optimum. A different headroom % would rescale every preferred number downstream.</li>
 <li>The universal-vs-family verdict (§F) — defensible on current evidence, but the sample has zero wide/deep archetypes to stress-test against.</li>
+<li><strong>Session 55's physical pivot selection</strong> — downgraded from the prior draft's implicit High confidence. Its footprint (and therefore its pivot) was manually inferred using a 150px-of-the-true-ground-line threshold to separate two ground contacts at very different isometric depths (CHANGELOG.md, 2026-08-12 entry), a judgment call, not an alpha-only measurement. The <strong>ρ formula is exact once that pivot is accepted</strong> — the uncertainty is in the footprint measurement input, not the math applied to it.</li>
 </ul>
 
 <h3>Open / missing <span class="confband low">unresolved</span></h3>
 <ul>
-<li>No asset has ever been measured or screenshotted at actual 80px/90px runtime scale — the sensitivity table is a mathematically exact projection from the verified 70px formula, not an in-engine observation. Worth one real toggle test before locking numbers.</li>
-<li>Exactly one sample (S54 left prototype) hits <em>both</em> a low ρ and the old target ratio simultaneously. Every other narrow attempt traded one for the other. The "both good" corner of the envelope is validated by a single data point.</li>
+<li>No asset has ever been measured or screenshotted at actual 80px/90px runtime scale — the sensitivity table is a mathematically exact projection from the verified 70px formula, not an in-engine observation. Worth one real toggle test before locking numbers (retained from the prior draft — this is a runtime-verification check, not an art-generation ask, so it isn't affected by the "no further prototype" finding below).</li>
+<li>Exactly one sample (S54 left prototype) hits <em>both</em> a low ρ and the old ~0.5–0.6 ratio heuristic simultaneously. Every other narrow attempt traded one for the other. The "both good" corner of the envelope is validated by a single data point.</li>
+<li>No genuine unresolved contradiction was found while making this correction pass — every item Codex flagged was resolvable from existing repository evidence (CHANGELOG.md, metadata JSON, game.js) without a new experiment.</li>
 </ul>
 
 <h3>Is another prototype needed?</h3>
-<p><strong>Yes, one — with a specific, narrow ask, not "another cart."</strong> Commission a <em>right-edge</em> vertical prototype briefed explicitly against §H's measurable requirements: road-facing depth (counter/service-shelf overhang beyond the wheelbase) ≤ 6% of total asset height, independent of and in addition to keeping the overall silhouette narrow. This directly tests whether a right-edge source can hit ρ and ratio together — the one gap in the current evidence — and would be the first asset in this family qualified purely by the derived contract rather than by eye.</p>
+<p><strong>No additional prototype is required to freeze the hard runtime geometry model.</strong> The hard formula (<code>ρ × declaredMaximumRuntimeHeight ≤ 8px</code>) is exact algebra derived from <code>edgePlacement()</code> itself, not a sample-fitted rule — no amount of additional art changes what the formula says. The prior draft's "commission a right-edge prototype hitting both ρ and the old ratio heuristic" recommendation is <strong>downgraded from a freeze prerequisite to an optional production-quality goal</strong>: it would produce a nicer reference asset, but the contract in §K does not depend on it existing.</p>
 </section>
 
 <section id="next">
 <h2>Recommended next session</h2>
 <ol>
-<li>PM review of this contract (§K) — adjust the 6.0–6.5% preferred ρ / 55–75% cityFrac targets if the tradeoffs read differently than expected.</li>
-<li>Once approved: freeze into a real doc (Art Bible / Prompt Bible / Technical Asset Contract, PM's call which), <em>then</em> commission the targeted right-edge prototype from §L against the frozen numbers.</li>
-<li>Do a single live 80px/90px toggle screenshot on an existing production master before freezing, to convert the sensitivity table from "verified formula" to "verified formula + observed."</li>
+<li>PM/ChatGPT review of this corrected contract (§K) and make the freeze decision — this report does not freeze it.</li>
+<li>Once approved: freeze into a real doc (Art Bible / Prompt Bible / Technical Asset Contract, PM's call which). No prototype is a prerequisite (§L).</li>
+<li>Do a single live 80px/90px toggle screenshot on an existing production master, to convert the sensitivity table from "verified formula" to "verified formula + observed" — this is a runtime check, not new art, and can happen independently of the freeze decision.</li>
+<li>Optional, non-blocking: commission a right-edge vertical prototype briefed against §H's asset-brief template, if a cleaner production reference is wanted later.</li>
 </ol>
 </section>
 
