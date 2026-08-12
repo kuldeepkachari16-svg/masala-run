@@ -1,5 +1,163 @@
 # Masala Run — Changelog
 
+## 2026-08-12 — Session 55: second right-edge geometry prototype — CONDITIONAL PASS
+Renumbered from the brief's "Session 54" — that number was already committed
+(2026-08-09, the vertical/road-parallel geometry pilot) before this session
+started, same reason that pilot itself renumbered from "Session 53."
+
+Follow-up to Session 54's right-edge result: the first vertical right
+prototype only reached 0.844 visible width:height (a modest win, not a
+vindication of the road-parallel/shallow hypothesis the left prototype
+showed at 0.516). This session tests a second, independently-authored right
+source aimed deliberately at the 0.5–0.6 target band.
+
+- **Source inspection** (`~/Documents/Working images/cart right.png`, PM-
+  supplied): 1024×1536 RGBA. Genuinely isolated on arrival, unlike both
+  Session 54 sources — verified, not assumed: alpha histogram is 99.2%
+  concentrated at the extremes (>=229 or <25), only ~0.8% partial/AA-edge
+  pixels; corner and border alpha = 0; a full-canvas connected-component scan
+  found exactly 1 stray pixel outside the main silhouette. No baked
+  background, no baked shadow/dust, no cleanup performed. Complete structure:
+  canopy, both wheels, handle, propane tank, storage baskets, hanging bulb.
+  No text/logo/second cart/people. Copied unmodified into the repo as
+  `assets/props/session55_vadapav_cart_vertical_right_test_v2.png`; the PM's
+  original under `~/Documents/Working images/` was never touched.
+- **Handedness** determined from structure, not filename: service/counter
+  shelf (spice jars, trays, condiment bins) sits on the canvas's LOW-x, near-
+  bottom side; propane tank, storage baskets and push handle sit HIGH-x —
+  same low-x-is-road-facing pattern as every registered right master.
+  Classified RIGHT; no mirroring performed.
+- **New EDGE_PROP_DEFS entry** `mumbai_vadapav_cart_vertical_right_test_v2`,
+  bounds measured at alpha>=32 (repo convention). Footprint required a
+  different method than any prior def: this source is a steep isometric
+  composition with TWO ground contacts at very different canvas depths (a
+  small near-side caster that bottoms out at the true ground line, and the
+  main wheel ~120px higher, set back in the isometric depth) — a per-column
+  bottom-opaque-pixel scan, bounding box of all columns within 150px of the
+  true ground line, captures both wheels as the genuine physical footprint
+  without clipping either. Documented inline in game.js.
+- **No new CONFIG, no new `edgePropInstances()` branch.** Ran the comparison
+  through the already-existing single-asset `cfg.testKey` harness
+  (`__mr.config.edgeProps.testKey = "..."`, with testB/testC/test54 off) —
+  simpler than Session 54's approach, which needed a new `test54` harness
+  because it compared two prototypes simultaneously. This session only ever
+  swaps one asset at a time against the current production master, so the
+  pre-existing single-asset harness was sufficient. Zero lines of runtime
+  logic changed; the only diff in game.js is the one new data-only
+  `EDGE_PROP_DEFS` entry.
+- **Geometry results** (heightPx 70, same apples-to-apples basis as Session 54):
+
+  | | v2 (this session) | Session 54 right prototype | current right master (V002) |
+  |---|---|---|---|
+  | visible w:h ratio | 0.620 | 0.844 | 1.158 |
+  | on-screen width | 43.40px | 59.09px | 81.09px |
+  | road intrusion | 7.81px | 3.02px | 5.60px |
+  | outer-edge bleed | 0.19px | 20.67px | 40.09px |
+  | road-intrusion headroom | 0.19px (2.4%) | 4.98px (62%) | 2.40px (30%) |
+
+  (`intrusionAllow` stays 8px, unchanged.) Read live via `__mr.edgeProps` at
+  runtime, not derived from source pixels alone — confirms the same 0.620
+  ratio survives uniform scaling (43.40/70 = 0.620).
+- **Real finding, reported rather than tuned away:** road intrusion passes
+  (7.81 ≤ 8) but with only a 2.4% margin — the thinnest of any registered
+  edge prop, current or prototype. The cause is structural, not a
+  measurement artifact: the counter/service shelf overhangs the wheelbase by
+  11.1% of the asset's own height (165 of 1480 source px), a LARGER
+  proportional overhang than the current production master's 8.0% (50 of 625
+  px) or the first Session 54 prototype's 4.3% (26 of 603 px). The shallow/
+  narrow silhouette that eliminated outer-edge bleed did not come with a
+  shallow counter overhang — those are independent properties of the source
+  art, and this source improved one while regressing the other. Did not
+  relax `intrusionAllow` or retune the footprint to manufacture more
+  headroom; the number is reported as measured.
+- **Style/camera finding, reported per the brief's Part 3 requirement:** the
+  source is a steep, raking isometric composition with directional beauty-
+  shot lighting — a lit hanging bulb, a soft backlit rim-glow around the
+  canopy edge (confirmed to composite away cleanly to full transparency, not
+  a defect — checked by compositing the delivered alpha onto solid gray and
+  white; no halo residue), a dark vignette, and notably higher saturation
+  (bright blue/white checkerboard canopy, vivid red gas cylinder, orange
+  sunburst signage) than the muted, restrained-contrast production masters.
+  This is a beauty-shot render, not the flatter bird's-eye, restrained-
+  palette style Part 3 calls for — a real, visible mismatch, though at
+  gameplay scale (43px wide) it still reads recognizably as a Mumbai cart
+  (verified in the day/night screenshots below).
+- **Gameplay check** (day zone 1, night zone 4, `mumbai_vadapav_cart_
+  vertical_right_test_v2` live via `testKey`): player stays clearly more
+  salient than the prototype at typical play distance in both lighting
+  conditions; road centre reads calm, no tunnel/gateway effect; zero
+  feature-related console errors or exceptions. Six pre-existing 404s for
+  missing sprite PNGs (`bland.png`, `courier.png`, etc. — the SVG-fallback
+  gap noted in the art-pipeline docs) reproduce identically with this
+  session's changes reverted; unrelated, not introduced here.
+- **Procedural de-confliction:** with the new asset claimed via `testKey`,
+  the same four procedural claims (`stall@4070`, `crate@4262`, `cart@4569`,
+  `plant@4752`) were accepted on the right edge regardless of which right-
+  edge asset (`v2` vs. V002) was active — confirms the new claim is
+  correctly routed through the unmodified `productionClaims()` →
+  `edgeAdmits()` → `addClaim()` composer path, same budget gate as any
+  other registered prop, not a bypass.
+- **Determinism / cache:** live-toggled `testKey` between the new asset and
+  V002 with no page reload, three times — `__mr.edgeComposer`'s claim ids
+  updated correctly on every switch and restoring the original config
+  reproduced byte-identical claim ids (Session 54's `segCompositionSig()`
+  fix — folding `c.id` into the cache signature — still holds; not touched
+  this session).
+- **Regression** (fresh `goLevel(1)`, then toggled live): Session 50 Test B
+  (`testB`: right fixed-canopy cart + right chai counter) and Session 51
+  Test C (`testC`: left + right fixed-canopy) both reproduce their exact
+  prior numbers — cart `roadIntrusion` 5.60, left cart 4.90, both `ok: true`,
+  `mirrored: false`. Adding the new def had zero effect on either regression
+  path.
+- **GEOMETRY verdict: CONDITIONAL PASS.** A real improvement over the first
+  right prototype on both axes that matter most (ratio 0.620 vs 0.844,
+  bleed 0.19px vs 20.67px) and lands just above the 0.5–0.6 target band —
+  but it does so partly by trading away road-intrusion headroom (2.4%
+  margin vs. the current master's 30%), which the brief's own success
+  criteria call out as the thing that should NOT get worse. Not a clean
+  pass on the full criteria set.
+- **ART QUALITY verdict: not production-ready**, separate from geometry —
+  steep beauty-shot isometric camera and saturated palette, both explicitly
+  against Part 3's required style, though not disqualifying at gameplay
+  scale.
+- **Rule NOT frozen.** The 0.5–0.6 road-parallel target is now supported by
+  one strong data point (Session 54's left prototype, 0.516, comfortable
+  intrusion headroom) and two weaker right-edge data points (0.844 and now
+  0.620, both authored independently and both landing outside or at the
+  edge of the target with real tradeoffs). Two-for-two right-edge sources
+  missing the target — one high, one at the boundary with a cost elsewhere —
+  is a pattern, not noise; recommend the next right-edge test deliberately
+  target the LOW end of the band (~0.5) with an explicit ask to keep the
+  service-counter overhang shallow relative to the wheelbase, not just the
+  overall silhouette narrow, before freezing anything asymmetric between
+  left and right.
+- **Files:** `game.js` (1 new `EDGE_PROP_DEFS` entry only — no `CONFIG`
+  changes, no new `edgePropInstances()` branch, nothing else touched),
+  `assets/props/session55_vadapav_cart_vertical_right_test_v2.png` (new,
+  test-only), `CHANGELOG.md`.
+- **Validation:** `node --check game.js` — pass. `validate_asset_metadata.py`
+  — pass (10 records OK, unrelated `session45_export_manifest.json` skip
+  pre-existing). `validate_asset_names.py` — WARN only (test filenames don't
+  match the strict production pattern, by design; exits 0). `git diff
+  --check` — clean.
+- **Untouched, confirmed by inspection:** road-intrusion limit, safety
+  buffer, segment-composer budgets, `edgeAdmits()`, production priority,
+  deterministic seed logic, Class-C no-mirroring rule (`mirrored: false`),
+  current production `EDGE_PROP_DEFS` geometry, the Session 54 test defs and
+  harness, frozen Art/Prompt Bibles, City Kits. Did not touch the concurrent
+  uncommitted working-tree changes to `ART_BIBLE.md`, `CITY_KITS.md`,
+  `PROCEDURAL_PLACEMENT.md`, `PROMPT_BIBLE.md`,
+  `tools/validate_asset_names.py`, or the untracked
+  `PRODUCTION_ASSET_BRIEFS.md` / `session45_export_manifest.json` — left
+  exactly as found.
+- **Open items:** road-intrusion headroom on this prototype is thin enough
+  that any future re-measurement (different threshold, different scale)
+  could tip it over 8px — worth a second look before this asset is used for
+  anything beyond A/B comparison. Neither right-edge prototype is ready to
+  replace V002. The style/camera mismatch means even a geometrically ideal
+  version of this specific source would still need a style-correction pass
+  (the Sessions 48/49 pipeline) before production consideration.
+
 ## 2026-08-09 — Session 54: roadside edge-asset geometry runtime pilot — CONDITIONAL PASS
 Renumbered from the brief's "Session 53" — that number was already committed
 (2026-08-08, edge-prop bleed cut) before this session started; using 54 here

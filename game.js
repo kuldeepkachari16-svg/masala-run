@@ -1079,6 +1079,59 @@ const EDGE_PROP_DEFS = {
     pivot: { x: 74, y: 651 },
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
+  // ---- Session 55 EXPERIMENTAL geometry pilot — NOT production ----
+  // Renumbered from the brief's "Session 54" — that number was already used by
+  // the geometry pilot above (mumbai_vadapav_cart_vertical_{left,right}_test),
+  // committed as "Session 54" in CHANGELOG.md/git history. Same reason that
+  // pilot renumbered itself from the "Session 53" brief it was given.
+  //
+  // PM-supplied second right-edge prototype ("cart right.png", copied here
+  // unmodified as session55_vadapav_cart_vertical_right_test_v2.png — the PM's
+  // original under ~/Documents/Working images/ was never touched), purpose-
+  // built to test whether a NEW right-edge source can land closer to the
+  // 0.5-0.6 visible width:height target than mumbai_vadapav_cart_vertical_
+  // right_test above did (0.844 — a modest, not strong, win last session).
+  // Unlike both Session 54 sources, this one arrived genuinely isolated: alpha
+  // is near-binary (99.2% of the visible-region pixels are >=229 or <25, only
+  // ~0.8% partial/AA-edge — verified by histogram, not assumed from RGBA mode),
+  // corners/border alpha = 0, and a full-canvas connected-component scan found
+  // exactly 1 stray pixel outside the main cart silhouette. No baked
+  // background, no cleanup performed on the repo copy.
+  // visualBounds MEASURED at alpha>=32 (repo convention, matches every def
+  // above): 918x1480 px, ratio 0.620 — just above the 0.5-0.6 target window,
+  // materially better than the 0.844 first right prototype.
+  // Handedness determined from structure, not filename: the service/counter
+  // shelf (spice jars, vada-pav trays, condiment bins) sits on the LOW-x, near-
+  // bottom side of the canvas; the propane tank, storage baskets and push
+  // handle sit on the HIGH-x, upper side — same low-x-is-road-facing pattern as
+  // every registered right master. Classified RIGHT; no mirroring performed.
+  // footprint: this source is a steep isometric composition with TWO separate
+  // ground contacts at very different canvas depths — a small front caster
+  // (nearest the road, bottoms out at the true ground line, y=1499) and the
+  // main wheel further back (bottoms out ~120px higher, y~1380) — unlike the
+  // flatter production masters' single continuous ground-contact band. Bounds
+  // below are the union of both: per-column bottom-opaque-pixel scan, all
+  // columns whose lowest opaque pixel reaches within 150px of the true ground
+  // line (bottom_y >= 1350) — this captures both wheels as the genuine
+  // physical footprint while excluding the counter/canopy/handle structure
+  // that floats well above ground everywhere else in the silhouette.
+  mumbai_vadapav_cart_vertical_right_test_v2: {
+    src: "assets/props/session55_vadapav_cart_vertical_right_test_v2.png",
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 1024, h: 1536 },
+    // Matched to the production courier-height floor and to the first Session
+    // 54 right prototype, for a direct apples-to-apples comparison against both.
+    // Session 55 test-only; do not treat as a frozen value.
+    heightPx: 70,
+    tall: true,
+    visualBounds: { x0: 96, y0: 20, x1: 1013, y1: 1499 },
+    footprint: { x0: 261, y0: 1350, x1: 544, y1: 1499 },
+    // No crop performed on the repo copy — cropSafe is the full delivered canvas.
+    cropSafe: { x0: 0, y0: 0, x1: 1023, y1: 1535 },
+    pivot: { x: 261, y: 1499 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
 };
 const EDGE_PROP_IMGS = {};
 function loadEdgeProps() {
