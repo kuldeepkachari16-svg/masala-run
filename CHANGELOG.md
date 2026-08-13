@@ -1,5 +1,98 @@
 # Masala Run — Changelog
 
+## 2026-08-13 — Session 61: umbrella-cart pair promoted to production
+
+Closes the gap Session 60 flagged ("Umbrella-cart pair inspected, not
+promoted... suitable for Session 61"): the umbrella/open-cart v002 pair had
+clean, correctly-handed pixels but no footprint/pivot measurement and
+disabled-draft metadata. This is that measurement-and-registration pass — no
+new art, no PNG pixel touched, both binaries used as-is.
+
+**Measurement.** Own-pixel re-measurement of both v002 PNGs (not the prior
+notes' numbers, though they turned out accurate): left canvas 628x917, alpha>=32
+main-component bbox (111,219)-(571,670); right canvas 573x937, main-component
+bbox (102,219)-(469,674) — 2px tighter than the raw alpha>=32 bbox (676), which
+included two single-pixel dust islands the connected-component scan separated
+out. Footprint located on both by an alpha-column scan of the cart's underside:
+the counter/skirt panel's stable band gives way to the wheel silhouette at a
+sharp corner recession (left: x0 211->246 at y=604-608; right: x0 recedes then
+restabilizes at y~609), confirmed by a two-sample convergence check on each
+(left: y=610/614 agree within 2px; right: y=610/612 agree within 1-2px) — the
+same methodology the fixed-canopy-left v003 record used. No baked directional
+ground-contact shadow on either: the soft alpha halo around each wheel is the
+same alpha-cleanup dilation artifact already present (and already shipped) on
+`fixed_canopy_right`, verified by a side-by-side crop, not a defect. Handedness
+verified from pixel structure on both independently: left has display
+case/food bowl high-x, gas cylinder/handle low-x (matches the validated left
+convention); right has them mirrored (matches the validated right convention).
+Different umbrella colour layouts and different wheel configurations (one big
+spoked wheel + 2 casters on the left, 3 plain casters on the right) confirm
+these are genuinely separate renders, not a flip of one file.
+
+**Geometry contract (Session 56), at the family's standard `heightPx: 70`:**
+
+| | left | right |
+|---|---|---|
+| road intrusion | 4.50 px | 1.85 px |
+| ρ (source-px ratio) | 0.0643 | 0.0264 |
+| declared max height (8px cap) | 124.4 px | 303.3 px |
+| hard cap (<=8px) | PASS | PASS |
+| preferred guidance (<=5.6px) | PASS | PASS |
+
+Both land **PRODUCTION-PASS** — inside preferred guidance, not just under the
+hard cap. footprintClear and `!mirrored` verified live via `edgePlacement()`;
+runtime-reported intrusion matched the offline pixel measurement to 3 decimal
+places on both (4.501px / 1.846px).
+
+**Registration.** Added `EDGE_PROP_DEFS.mumbai_vadapav_cart_umbrella_open_cart_{left,right}`
+(full measured bounds/pivot/footprint, same shape as the fixed-canopy pair) and
+both keys to `PRODUCTION_CATALOGUE_KEYS`, so they participate in the Session
+57/60 distribution system on equal footing with the fixed-canopy pair and chai
+counter. Catalogue grows from L1/R2 to **L2/R3**. `segCompositionSig()` and
+`EDGE_PROP_NIGHT` needed no changes — both are already generic over
+`EDGE_PROP_DEFS`/claim id, verified by switching a live segment between
+`testUmbrella` and `testC`: the claim id swapped from
+`mumbai_vadapav_cart_umbrella_open_cart_{left,right}` to
+`mumbai_vadapav_cart_fixed_canopy_{left,right}` on the same segment/edge with
+no stale tile — the exact class of bug Session 54 hit with claim ids. Metadata
+(`assets/metadata/..._v002.json` for both) moved from disabled-draft
+sentinels (`dimensions`/`anchor` at 0, `status: "draft"`) to measured records
+(`status: "review"`, pending PM visual sign-off, same gate the fixed-canopy-left
+v003 record used) with the full measurement trail in `notes`.
+
+Added `testUmbrella` (`CONFIG.edgeProps.testUmbrella`, off by default), an
+opposing-edge harness for this pair matching `testC`'s shape exactly, for
+isolated regression checks independent of the live `distribute` default.
+
+**Validation.** `node --check`, `validate_asset_metadata.py`,
+`validate_asset_names.py`, `git diff --check` all clean. Full existing
+regression suite (Sessions 50/51/56/57/60) still green, unaffected by the new
+keys. New standalone probe: runtime geometry cross-check (exact match to
+offline measurement), day + night render via `testUmbrella` (zero console
+errors, night treatment applies and looks correctly seated — same darken/
+desaturate/warm-wash treatment as the rest of the family, no code change
+needed since `edgePropNightCanvas()` is already generic per-key), standalone
+single-asset checks via `testKey` for both. Multi-segment distribution
+re-checked live across Mumbai zones 1-5 with the pair in the real catalogue:
+both new keys get selected, deterministic, no in-route repeats observed in
+this sample (small sample — not a repetition-ceiling claim, see Session 59/60
+for the methodology that would produce one).
+
+**Not done, flagged for the next session.** `sw.js`'s offline precache list
+still names only the three pre-existing masters (`fixed_canopy_right`,
+`fixed_canopy_left` v003, `chai_counter`) — `sw.js` is outside this session's
+file ownership. The two new masters now ship live (`distribute: true` is the
+default, and they're in `PRODUCTION_CATALOGUE_KEYS`), and `loadEdgeProps()`
+downloads them for every player same as the others, so **online play is
+unaffected** — network-first caching means they still cache on first fetch —
+but a player who goes offline before that first fetch completes won't have
+them in the offline snapshot (degrades to the standard missing-asset contract:
+never breaks, just doesn't draw). Per this repo's CLAUDE.md ship convention,
+`BUILD_TAG` and `sw.js`'s `CACHE` version should bump together in the same
+commit that adds these two PNGs to `sw.js`'s precache list — deliberately not
+done here to avoid a partial/inconsistent ship signal from editing `game.js`'s
+`BUILD_TAG` without its paired `sw.js` change.
+
 ## 2026-08-13 — Session 60: Mumbai environmental runtime foundation
 
 Engineering-first session. No art generated, no asset binary added or replaced.

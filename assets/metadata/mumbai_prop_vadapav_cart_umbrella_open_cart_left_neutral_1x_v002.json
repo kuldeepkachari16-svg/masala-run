@@ -3,8 +3,8 @@
   "city": "mumbai",
   "category": "prop",
   "dimensions": {
-    "width": 0,
-    "height": 0,
+    "width": 628,
+    "height": 917,
     "unit": "px"
   },
   "collision": {
@@ -22,11 +22,11 @@
     ],
     "minSpacing": 0,
     "alignTo": "road_facing_edge_right",
-    "notes": "Disabled draft, same as v001. Service faces right; structural depth extends left. Spacing, anchor and visual/footprint bounds still await controlled placement testing (Session-46-equivalent measurement pass) - this record only carries the Session 48 style correction of the binary, not a placement approval. Zero dimensions/anchor are disabled-draft sentinels, not validated measurements."
+    "notes": "Session 61: controlled measurement/placement pass complete. Dimensions/anchor below are real measured values, not disabled-draft sentinels. minSpacing/placementWeight stay 0 for the same reason as every other master in this family: no procedural pool exists, this record must not enter a runtime pool on its own — the composer weight used at runtime comes from productionClaims()/propRole() in game.js, not from this field."
   },
   "anchor": {
-    "x": 0,
-    "y": 0,
+    "x": 542,
+    "y": 670,
     "origin": "custom"
   },
   "lightingCompatibility": [],
@@ -47,21 +47,23 @@
     "city_facing_edge_left",
     "runtime_mirroring_prohibited",
     "pivot_road_facing_ground_contact_centre",
-    "micro_cluster_anchor_or_secondary_anchor",
+    "micro_cluster_anchor",
     "transparent_background_required",
     "creative_direction_approved",
-    "repository_export_pending",
-    "runtime_integration_pending",
     "version_2",
     "supersedes_v001",
     "runtime_style_correction",
     "session_48_pilot",
     "alpha_dust_cleaned",
-    "contact_shadow_removed",
     "painterly_contrast_reduced",
-    "orientation_unverified",
-    "placement_measurement_pending"
+    "orientation_verified",
+    "handedness_verified_session_61",
+    "geometry_measured_session_61",
+    "footprint_pivot_measured",
+    "session_56_geometry_contract_passed",
+    "preferred_guidance_passed",
+    "pending_pm_review"
   ],
-  "status": "draft",
-  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1, umbrella-open-cart left-edge master. Session 48 applied the same deterministic style-correction pipeline used on the fixed-canopy masters. Source v001 canvas is 628x917, alpha>=32 bbox (111,219)-(571,673), including 3,910 sub-alpha-8 dust pixels and a baked ground-contact shadow under the wheels (same visual defect family as the other three carts). Correction: alpha cleanup keeps only a Gaussian-smoothed (sigma 1.5) alpha>=200 core plus a 4px Euclidean dilation, then original alpha values restored for surviving pixels. Result: dust 3,910->925 (remaining are legitimate edge antialiasing, verified visually), contact shadow removed, alpha>=32 bbox tightens by 3px at the bottom (671->670) - the shadow's blend zone here, not cart structure (wheels/spokes/umbrella ribs all intact, verified visually). Style flattening: cv2.pyrMeanShiftFiltering (sp=18, sr=45) + light bilateral + PIL contrast x0.78 / saturation x0.75 / brightness x1.06 - identical parameters to the fixed-canopy corrections, for family consistency. Measured: Laplacian-std texture 72.4->55.7, greyscale-contrast std 64.8->49.4, mean HSV saturation 152->97 (the umbrella's red/blue/yellow stripes were the most saturated element in the whole vada-pav family; now visibly closer to the game's muted palette). IMPORTANT: this record is style-correction only, not a placement approval - like v001, this asset has never been through a Session-46-style controlled measurement/placement test. Dimensions/anchor stay at the disabled-draft 0/0 sentinel. Do not wire this into EDGE_PROP_DEFS or a runtime pool without that measurement pass first. Superseded from mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v001, kept unmodified on disk for traceability."
+  "status": "review",
+  "notes": "PAB-MUMBAI-ENVPROP-VADA-PAV-CART-V1, umbrella-open-cart left-edge master. Session 48 applied the deterministic style-correction pipeline used on the rest of the family (see this file's prior revision for that trail). Session 60 re-inspected the corrected v002 binary and confirmed it clean (near-binary alpha, corner alpha 0, no baked background) but flagged it not yet registered pending a controlled measurement pass. This is that pass, Session 61. Own-pixel measurements, not copied from any other def: canvas 628x917 (matches the Session-48 note's claim, re-verified directly rather than trusted). Alpha>=32 bbox (111,219)-(571,670); connected-component analysis found 7 components, the main one exactly filling that bbox at 110,064px, the other 6 totalling 11px (1-5px each) and never extending the bbox - legitimate residual AA, not a defect requiring further cleanup (v001's equivalent scan found 45 components / 81px of dust, so the Session-48 alpha cleanup is measurably real). Handedness verified from pixel structure, not filename (Session 51 precedent: a filename lied once in this family): display case, food bowl and open shelving sit on the HIGH-x (right, ~x380-571) side of the canvas; gas cylinder and the wood push-handle sit on the LOW-x (left, ~x111-260) side - matching the validated fixed-canopy-left v003 master's service-high-x/storage-low-x convention. Cross-checked against the right master below (different umbrella colour layout, different wheel configuration - one large spoked wagon wheel plus two casters here vs three plain casters there) to confirm these are genuinely separate renders, not one file's mirror. No baked directional ground-contact shadow found: a soft ~4px alpha halo rings the wheel silhouette (dark RGB ~(15-24,15-23,13-18), partial alpha 15-200), but the identical halo appears around the wheel in the already-shipped, PM-approved mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002.png master (verified by side-by-side crop) - this is the family's standard alpha-cleanup dilation artifact, not a shadow defect specific to this asset. Footprint identified by an alpha-column scan of the cart's underside: the wide, stable counter/side-panel band above y~605 (203-561px wide across y=534-598) is the skirt, not ground contact - its bottom-left corner recedes sharply at y=604-608 (x0 217->246) as the panel gives way to the wheel silhouette beneath. Two convergence samples inside the resulting band: y=610 gives (245,542), y=614 gives (247,542) - 2px drift, confirming a real structural edge rather than sampling noise. footprint = (245,608)-(542,670). cropSafe = visualBounds +/-48px, clamped to canvas = (63,171)-(619,718); the canvas itself is not tightly cropped to this (real margins run 111/219/246px left/top/bottom, only the right side at 56px sits close to the 48px minimum). pivot = road_facing_ground_contact_centre: x = footprint's road-facing (right, high-x) boundary = 542, matching alignTo: road_facing_edge_right; y = footprint.y1 = 670 (ground line). heightPx set to 70, matching every other master in this family (the Session 58 courier-height-floor value, not the original 88) - same physical archetype, same on-screen scale. Geometry contract (Session 56): scale s = 70/(670-219) = 0.15521; roadFacingVisX = visualBounds.x1 = 571 (this is a left-edge master, road-facing side is high-x); roadIntrusion = |pivot.x - roadFacingVisX| * s = |542-571| * 0.15521 = 4.50px against the 8px hard cap - PASS, and within the 5.6px preferred-guidance band. rho (source-px intrusion ratio) = 29/451 = 0.0643; declared maximum runtime height before the hard cap fails = 8/0.0643 = 124.4px, well above the 70px shipped value. Registered as EDGE_PROP_DEFS.mumbai_vadapav_cart_umbrella_open_cart_left and added to PRODUCTION_CATALOGUE_KEYS alongside the fixed-canopy pair; runtime day/night render, console-clean status and composer/cache regression are recorded in CHANGELOG.md's Session 61 entry, not duplicated here. Not yet PM-reviewed for visual/creative sign-off - status held at 'review', not 'approved', consistent with the fixed-canopy-left v003 gate. Supersedes mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v001, kept unmodified on disk for traceability."
 }

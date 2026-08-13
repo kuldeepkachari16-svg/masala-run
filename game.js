@@ -1269,6 +1269,86 @@ const EDGE_PROP_DEFS = {
     // right master's was.
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
+  // Mumbai vada-pav cart, umbrella/open-cart variant, dedicated LEFT-edge
+  // master. Session 48 style-corrected the v002 binary; Session 60 inspected it
+  // (alpha, handedness, day/night) and found it clean but never registered — no
+  // footprint/pivot measurement, metadata still the disabled-draft sentinel
+  // (dimensions/anchor at 0). This is that measurement pass, Session 61. Bounds
+  // MEASURED from the delivered v002 PNG (own geometry, not copied from any
+  // other def in this family).
+  mumbai_vadapav_cart_umbrella_open_cart_left: {
+    src: "assets/props/mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v002.png",
+    city: "mumbai",
+    edge: "left",
+    canvas: { w: 628, h: 917 },
+    // Same courier-height floor as the rest of the family — same physical
+    // archetype, same on-screen scale across all four masters. Tune here and
+    // nowhere else.
+    heightPx: 70,
+    tall: true,
+    // visual_bounds — the COMPLETE visible silhouette at alpha >= 32: umbrella
+    // canopy, pole, display case, food bowl, storage, big spoked wheel, two
+    // casters, handle, gas cylinder. Measured off the MAIN connected component
+    // (110,064 px) — 6 stray islands of 1-5px sit inside this bbox already and
+    // never extend it, so excluding them as dust costs nothing.
+    visualBounds: { x0: 111, y0: 219, x1: 571, y1: 670 },
+    // placement_footprint — ground contact only, found by an alpha-column scan
+    // of the cart's underside. The wide stable band above y~605 (203-561px
+    // wide) is the counter/side-panel skirt, which never touches the ground:
+    // its bottom-left corner visibly recedes at y=604-608 (x0 211 -> 246) as
+    // the panel gives way to the wheel silhouette beneath it. Two samples in
+    // the resulting band converge — y=610 gives (245,542), y=614 gives
+    // (247,542), a 2px drift — confirming a real structural edge, not sampling
+    // noise. The umbrella canopy overhangs well above this band and the handle
+    // floats left of the body at y~429-459; neither reaches the ground, same
+    // asymmetry the fixed-canopy pair's footprints already encode.
+    footprint: { x0: 245, y0: 608, x1: 542, y1: 670 },
+    // crop_safe_bounds — silhouette plus the 48px transparent padding the
+    // export contract requires. This canvas is NOT tightly cropped to it (the
+    // fixed-canopy-right master isn't either) — real margins run 111/219/246px
+    // left/top/bottom, only the right side (56px) sits close to the minimum.
+    cropSafe: { x0: 63, y0: 171, x1: 619, y1: 718 },
+    // Pivot: road_facing_ground_contact_centre, matching alignTo:
+    // road_facing_edge_right — a left-edge master's road-facing side is the
+    // canvas's HIGH-x side, the mirror of a right master's. x = footprint's
+    // road-facing (right) boundary = 542. y = footprint.y1 = 670 (ground line).
+    pivot: { x: 542, y: 670 },
+    // Same family spacing as the fixed-canopy pair — provisional, carried for
+    // consistency pending a real segment-composer exercise.
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
+  // Mumbai vada-pav cart, umbrella/open-cart variant, dedicated RIGHT-edge
+  // master. Same Session 48/60/61 history as the left master above; own
+  // geometry, measured independently from this PNG.
+  mumbai_vadapav_cart_umbrella_open_cart_right: {
+    src: "assets/props/mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v002.png",
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 573, h: 937 },
+    heightPx: 70,
+    tall: true,
+    // visual_bounds — MEASURED off the main connected component (95,835 px).
+    // The raw alpha>=32 bbox reaches y1=676, but that's 2 single-pixel dust
+    // islands sitting below the real silhouette (main component bottoms out at
+    // y=674) — excluded here as dust, not cart geometry.
+    visualBounds: { x0: 102, y0: 219, x1: 469, y1: 674 },
+    // placement_footprint — same methodology as the left master, mirrored. The
+    // panel/skirt band gives way to the wheel silhouette around y~609 (x0
+    // recedes off the panel's 113-119, briefly dips, restabilizes at 114-117).
+    // Two samples converge: y=610 gives (115,394), y=612 gives (117,395), a
+    // 1-2px drift. Handle and gas cylinder float on the cityward (high-x) side
+    // well above this band and never reach it.
+    footprint: { x0: 114, y0: 609, x1: 395, y1: 674 },
+    // crop_safe_bounds — silhouette plus 48px. Real canvas margins (54/171/
+    // 104/262px L/T/R/B) run well past the minimum on every side; not tightly
+    // cropped, same as the left master and the fixed-canopy-right source.
+    cropSafe: { x0: 54, y0: 171, x1: 517, y1: 722 },
+    // Pivot: road_facing_ground_contact_centre, matching alignTo:
+    // road_facing_edge_left. x = footprint's road-facing (left) boundary = 114.
+    // y = footprint.y1 = 674 (ground line).
+    pivot: { x: 114, y: 674 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
   // ---- Session 54 EXPERIMENTAL geometry pilot — NOT production ----
   // PM-supplied prototypes testing a vertically-authored, road-parallel, shallow-
   // depth alternative to the fixed-canopy carts above (which read as jutting
@@ -1668,6 +1748,11 @@ const PRODUCTION_CATALOGUE_KEYS = [
   "mumbai_vadapav_cart_fixed_canopy_right",
   "mumbai_chai_counter_shallow_awning_right",
   "mumbai_vadapav_cart_fixed_canopy_left",
+  // Session 61: umbrella/open-cart pair promoted after the Session 60
+  // measurement-pending flag was resolved (see EDGE_PROP_DEFS above) — both
+  // pass the Session 56 geometry contract inside the preferred-guidance band.
+  "mumbai_vadapav_cart_umbrella_open_cart_right",
+  "mumbai_vadapav_cart_umbrella_open_cart_left",
 ];
 // Session 60: the catalogue is now role-aware. `role` defaults to "anchor" so
 // every pre-existing key keeps its exact meaning.
@@ -1894,6 +1979,18 @@ function edgePropInstances() {
     return [
       { key: "mumbai_vadapav_cart_fixed_canopy_left", y: baseY },
       { key: "mumbai_vadapav_cart_fixed_canopy_right", y: baseY },
+    ];
+  }
+  if (cfg.testUmbrella) {
+    // Session 61: opposing-edge test for the umbrella/open-cart pair, mirrors
+    // testC's shape exactly (same independent-composer-state reasoning — both
+    // can sit at the same world y).
+    const left = EDGE_PROP_DEFS.mumbai_vadapav_cart_umbrella_open_cart_left;
+    const right = EDGE_PROP_DEFS.mumbai_vadapav_cart_umbrella_open_cart_right;
+    if (!left || !right) return [];
+    return [
+      { key: "mumbai_vadapav_cart_umbrella_open_cart_left", y: baseY },
+      { key: "mumbai_vadapav_cart_umbrella_open_cart_right", y: baseY },
     ];
   }
   if (cfg.distribute) return productionDistributionInstances();
@@ -2695,6 +2792,13 @@ const CONFIG = {
                        // via __mr.config.edgeProps.testC. Takes priority over
                        // testB when both are true, since they'd otherwise both
                        // try to own the right-edge cart slot.
+    testUmbrella: false, // Session 61: opposing-edge test for the umbrella/
+                       // open-cart pair, same shape as testC. Off by default
+                       // (the pair ships live via `distribute`/
+                       // PRODUCTION_CATALOGUE_KEYS instead); live-switchable
+                       // via __mr.config.edgeProps.testUmbrella for an isolated
+                       // regression check. Same precedence tier as testC —
+                       // takes priority over distribute/testB/testKey.
     testKey: "mumbai_vadapav_cart_fixed_canopy_right", // which ONE registered
                        // EDGE_PROP_DEFS entry the harness draws when testB is
                        // false. Live-switchable: __mr.config.edgeProps.testKey.

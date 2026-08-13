@@ -50,6 +50,16 @@ a deeper deterministic selection policy, the Mumbai **procedural frontage
 band** (the first architecture in the corridor, and the first thing that makes
 Mumbai read as Mumbai with no cart on screen), and a minimal safe-road-overlay
 path for Pillar 2. Full mechanism + measurements in `CHANGELOG.md`.
+**Session 61 (2026-08-13):** umbrella/open-cart pair (left + right) measured,
+registered and promoted into `PRODUCTION_CATALOGUE_KEYS` — both PRODUCTION-PASS
+inside preferred guidance (4.50px / 1.85px intrusion against the 8px cap).
+Mumbai's live catalogue is now L2/R3 (was L1/R2). Same not-a-separate-visual-
+sign-off-pass caveat as the Session 57 left-cart flag above applies here too:
+promotion follows the same measured-registration gate the fixed-canopy pair
+used, `status: "review"` in metadata, not an explicit PM creative pass. Full
+measurement trail in `CHANGELOG.md`. **Owed next:** add the two new masters to
+`sw.js`'s offline precache list and bump `BUILD_TAG`/`CACHE` together (flagged,
+not done — outside that session's file ownership).
 **Owed next:** corridor retune only if further play demands it.
 
 ---
