@@ -43,6 +43,13 @@ is now part of the live-default rotation — this reads as satisfying the
 sign-off gate below by inclusion, but it wasn't a separate explicit
 PM visual-approval pass the way the right cart + chai counter got before
 Session 50. Flagging so the gate is closed on purpose, not by omission.
+**Session 60 (2026-08-13):** engineering-first foundation pass — runtime night
+treatment for authored props (they previously kept daylight pixels on a night
+road, measured live), an additive `anchor + attachment` production role model,
+a deeper deterministic selection policy, the Mumbai **procedural frontage
+band** (the first architecture in the corridor, and the first thing that makes
+Mumbai read as Mumbai with no cart on screen), and a minimal safe-road-overlay
+path for Pillar 2. Full mechanism + measurements in `CHANGELOG.md`.
 **Owed next:** corridor retune only if further play demands it.
 
 ---
@@ -61,7 +68,7 @@ monetization are now **first-class**, gated on proof.
 4. **Distribution** — solo + no UA budget ⇒ the realistic path to a *hit* is a casual-games **publisher who funds user acquisition**. They sign only on proven CPI/retention. So the real gate is an *instrumented, retentive* build — no shortcut around the metrics.
 
 **Critical path:**
-- **P0 — Validate fun (now, in this JS prototype; cheap):** (a) Gate-1 playtest — *still the immediate gate, still undone* (Phase 1 item 5). (b) Build the flavor **build system** + a minimal **meta loop**, then re-test for "one more run."
+- **P0 — Validate fun:** (a) Gate-1 playtest — **PM states (2026-08-13) that Session 58 completed and passed the Fresh-Player Fun & Retention Gate** after the wave-3 tuning change, and that the Production-Integration Gate passed in Session 52. Recorded on the PM's authority. ⚠️ *Evidence gap, flagged not silently reconciled:* the repo carries no record of that playtest — the Session 58 Phase 3 `CHANGELOG.md` entry, written at the time, says the opposite twice ("the real human Gate-1 playtest (still the standing P0)"), and explicitly notes the bot data "doesn't independently prove reachability gains." If the playtest happened, its findings should be written up; if the PM means the bot-driven diagnostic satisfied the gate, that reading should be stated so the two records stop contradicting each other. **Downstream work is no longer blocked on this either way.** (b) Build the flavor **build system** + a minimal **meta loop**, then re-test for "one more run."
 - **P1 — Productionize (only if P0 passes):** analytics first (measure retention for real) → port/wrap for stores (Unity/Godot, or Capacitor as a cheap first test) → ads + IAP → ASO.
 - **P2 — Soft-launch + publisher:** small-geo test, measure CPI/D1/D7, pitch a publisher or self-fund UA.
 
@@ -89,7 +96,9 @@ GitHub + Pages deploy, mobile viewport/joystick/speed fixes.
    unaided? found a recipe unaided? when did retrying stop, and why?
 
 **⛔ Gate 1:** no voluntary retries → fix the loop before building more.
-Feedback orders Phase 2.
+Feedback orders Phase 2. **Status (2026-08-13):** PM states this gate passed at
+Session 58; see the P0 line under the commercial north-star above for the
+evidence gap that should be closed in the record.
 
 ## Phase 2 — v0.75 retention
 6. Pre-run loadout draft (choose which foods can drop)

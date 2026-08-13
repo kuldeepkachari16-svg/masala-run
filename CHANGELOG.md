@@ -1,5 +1,145 @@
 # Masala Run — Changelog
 
+## 2026-08-13 — Session 60: Mumbai environmental runtime foundation
+
+Engineering-first session. No art generated, no asset binary added or replaced.
+Closes the three runtime blockers Session 59 identified as preceding any Mumbai
+art production, and builds the missing architectural layer. `BUILD_TAG` 60.0,
+`sw.js` CACHE v32.
+
+**1. Authored props ignored night entirely — confirmed live, then fixed.**
+Session 59 asserted this from code reading. Verified this session over CDP
+(the Claude-in-Chrome bridge fails in this profile; `docs/verification.md`'s raw
+CDP fallback works). Naive sampling of the prop's `visualBounds` is meaningless
+— most of that rect is transparent PNG showing road through it — so the measure
+rebuilds `drawEdgeProps()`' exact transform offscreen and samples only pixels
+where the source PNG's alpha is 255. Same asset, Mumbai zone 3 vs zone 4:
+
+| | day | night | Δ |
+|---|---|---|---|
+| road luminance | 178.78 | 43.52 | −75.7% |
+| authored prop | 56.92 | 55.18 | **−3.1%** |
+| prop:road ratio | 0.318 | **1.268** | inverts |
+
+The prop did not merely fail to darken — it went from clearly darker than the
+road to *brighter* than it, which is what made it read as a sticker. Fix is a
+composite-cached tint (`edgePropNightCanvas`), matching the idiom the Technical
+Asset Contract §6 already sanctions: each master is tinted once into an
+offscreen canvas and stamped thereafter, so per-frame cost is unchanged (one
+`drawImage`) and no PNG is edited. Three passes — filtered darken/desaturate,
+`source-atop` cool cast, `source-atop` warm wash over the lower body for the
+practical-light character the City Kit asks for. `source-atop` cannot spill past
+the silhouette, so the warm pass is physically incapable of becoming a glow pool.
+Parameters chosen off a live 36-point sweep: **night ratio 1.268 → 0.610**,
+saturation held at 0.207 (~⅔ of daylight's 0.313 — restrained, deliberately not
+the industrial greyscale the kit prohibits). Day is bit-identical before/after.
+
+**2. Production role model — attachments are now expressible.**
+`productionClaims()` hardcoded `anchor: true, weight: 3` for every production
+prop, so a small authored prop could not be registered at all: it would have
+eaten one of the edge's 3 anchor slots and 3 of its 13 weight. Roles now come
+off the def (`propRole`), defaulting to the old values so every existing def is
+bit-identical. `productionDistributionPlan()` can emit `anchor + attachments`;
+`attachmentY()` derives the offset from both props' real placement envelopes.
+Attachments are **not** exempt from the composer — they go through the same
+`edgeAdmits()` gate. Verified live on both edges and both sides: anchor
+`anchor=true w=3` + attachment `anchor=false w=2` co-admitted, 25–26 px apart,
+budgets respected (one test segment sits at anchors 3/3 — as an anchor the
+attachment would have been rejected there, which is the whole point).
+
+Two `test: true` probe defs re-point at already-validated masters at attachment
+scale to exercise the path without generating art. They add zero bytes (those
+masters are already downloaded), are absent from `PRODUCTION_CATALOGUE_KEYS`,
+and reach the pool only via `attachments.testKeys`, off by default. Delete them
+when Session 61 registers a real small-prop family.
+
+**3. Selection policy — depth over catalogue size.**
+Replaced one-deep `lastKey` avoidance with a bounded recent-history window plus
+least-used tie-breaking and a zone-derived rotation. Still a pure function of
+`(level, idx, config)` — no cross-level state. Measured with the real function
+extracted from `game.js`, Mumbai zones 1–5:
+
+| catalogue | policy | in-route repeats | most-repeated |
+|---|---|---|---|
+| L1/R2 (today) | old → new | 4/5 → **3/5** | 8× → 8× |
+| L2/R2 (4) | old → new | 1/5 → **0/5** | 6× → **5×** |
+| **L3/R3 (6)** | old → new | 1/5 → **0/5** | 5× → **4×** |
+| L4/R4 (8) | old → new | 0/5 → 0/5 | 4× → 4× |
+
+Never worse than the old policy anywhere; strictly better at the 6-master target
+Session 59 recommended. The rotation was added after measurement showed
+per-route state alone made all five zones start identically and concentrate
+usage — without it, 8 masters was marginally *worse* than the old policy on
+across-city spread.
+
+**4. Mumbai procedural frontage band — the missing architectural layer.**
+Pillar 3 "Mixed-Age Practical Architecture" had zero representation in any asset
+or code path; the corridor edge was a flat colour band plus a 2 px curb, and the
+props standing on it come from a kit Jaisalmer reskins by swapping palette hexes.
+With the three authored carts off screen — 3–4 of every 6–9 segments — Mumbai
+had no architectural identity at all.
+
+**Ownership decision: a background architectural layer, NOT a composer claim.**
+The composer resolves competing vertical intervals in one column per edge —
+"two objects want this ground, who wins". Frontage answers no such question: it
+is continuous by definition, so it would blow `maxOccupancy 0.45` on the first
+call and need a permanent exemption, which is not using the composer while
+pretending to. It also never contends with props for ground; props stand *in
+front of* it, which is why it paints first. Its constraints are structural
+instead: `depthMax 0.92` as a fraction of the edge band means the deepest bay
+reaches 35.3 px against a 38.4 px boundary, so the protected lane is safe by
+construction, not by a check that can rot. Own RNG stream and salt, so the
+playtested procedural deck is untouched.
+
+Layout is split from painting (`frontagePlan` / `drawFrontageBand`) so the
+invariant is assertable on numbers rather than inferred from screenshots.
+Measured across all of Mumbai: 692 bays, deepest reach 35.3 px (< 38.4),
+22–33% gap bays (the guard against a continuous wall / tunnel effect),
+deterministic across repeat calls and level re-entry. Six bay kinds — shutter,
+grille, awning, pipe, balcony, gap — carrying Pillars 1, 2 and 3. Style is
+declared per city (`CITIES[].frontage`), so **Jaisalmer's plan is `null` and the
+city is completely untouched**, which is half of why the two read as the same
+street before.
+
+Placeholder-grade on purpose: flat primitives in the shipped shape language,
+proving the delivery path. Authored frontage masters later enrich it; they are
+no longer required for Mumbai to possess architecture.
+
+**5. Safe road overlays — Pillar 2's foundation.**
+Minimal path so later surface work has a home. The hard rule is hazard
+separation, and it is enforced by making overlays the opposite of hazards on
+every axis a player reads at a glance: hazards are elliptical, rim-contrasted,
+glossy, centre-lane and actionable; overlays are angular, low-contrast, matte,
+kerb-hugging and inert. Nothing here draws an ellipse or a highlight.
+
+**Cache.** `segCompositionSig` now folds in the frontage style (city key + bay
+vocabulary + geometry config) and the overlay config — both paint into the tile,
+so both must invalidate it. Verified: config changes round-trip to identical
+composition, and toggling attachments changes then restores the claim set.
+
+**Regression.** Session 50 Test B (same-edge pair, 127.7 px gap, no overlap),
+Session 51 Test C (opposing edges, both geometry-valid, neither mirrored),
+Session 56 geometry contract (all three masters, intrusion 5.6 / 4.02 / 4.90 px
+against the 8 px hard cap, footprints clear), Session 57 distribution
+(deterministic across repeat calls and level re-entry, no back-to-back eligible
+segments, never every segment) — all pass. Full 5-zone route walk, day and
+night, zero console errors.
+
+**Umbrella-cart pair inspected, not promoted.** Both v002 binaries are clean:
+near-binary alpha (0.5% partial), corner alpha 0 (no baked background), padding
+above the 48 px contract minimum, 172–198 KB. Handedness verified structurally
+rather than from filenames — the Session 51 precedent is that a filename lied —
+and both are correct: handle and gas cylinder sit on the cityward side in each,
+and they are genuinely separate renders, not a flip. Still needed before
+registration: footprint / pivot / cropSafe measurement (so ρ is currently
+uncomputable), and full metadata authoring — the JSONs are disabled draft
+sentinels (`dimensions` 0, `anchor` 0, `placementWeight` 0). Suitable for
+Session 61.
+
+**Not done, by design:** no frontage art batch, no new props, no Jaisalmer, no
+Art/Prompt/City-Kit changes, no composer budget increases, no changes to the
+Session 56 geometry gate.
+
 ## 2026-08-13 — Session 59: asset payload pass (first load 10.5 MB → ~0.35 MB)
 
 Audit of what the shipped build actually puts on the wire. `ACTIVE_THEME` is

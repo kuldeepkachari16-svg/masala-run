@@ -416,6 +416,16 @@ const DAY_BASE = {
   hazard: "rgba(70,120,150,0.30)", hazardEdge: "rgba(40,80,110,0.45)",
   // Warm lamp pool — only drawn on night zones.
   lamp: "rgba(255, 214, 140, 0.12)",
+  // ---- Frontage band (Session 60) ----
+  // The base architectural layer down each edge. Deliberately LOW-contrast
+  // against `path`: this is the backdrop props stand in front of, and the City
+  // Kit puts frontages at "strong" treatment for identity but never at the
+  // expense of the road centre reading first. Cities override these; a city
+  // that defines no `frontage` style simply never draws the band.
+  frWall: "#b7a077", frWallAlt: "#ab9068", frWallDk: "#96795a",
+  frPlinth: "#8d7150", frShutter: "#8f8b7a", frShutterDk: "#77735f",
+  frGrille: "#6f6656", frAwningA: "#a8563f", frAwningB: "#3f6f74",
+  frPipe: "#8a7b64", frPatch: "#a89170",
 };
 const DAY = { ...DAY_BASE };
 let zoneNight = false; // is the current zone a night zone? (drives palette + vignette)
@@ -570,6 +580,243 @@ const DAY_ELEMENT_EXTENT = {
   cat:   { up: 32, down: 5, weight: 1, anchor: false, rngDraws: 0 },
 };
 
+// ---------- Mumbai frontage band (Session 60) ----------
+// THE MISSING LAYER. Before this, the corridor edge was a flat colour band plus
+// a 2 px curb line, and every object standing on it came from a city-agnostic
+// procedural kit that Jaisalmer reskins by swapping palette hexes — so with the
+// three authored carts off screen (3-4 of every 6-9 segments) Mumbai had no
+// architectural identity at all, and Pillar 3 "Mixed-Age Practical
+// Architecture" had zero representation in any system.
+//
+// OWNERSHIP DECISION — this is a BACKGROUND ARCHITECTURAL LAYER, deliberately
+// NOT a composer claim. The segment composer models competing vertical
+// intervals in one column per edge: two objects want the same strip of ground,
+// and the interval test decides. Frontage answers no such question. It is
+// continuous by definition (it covers the full segment height), so pushing it
+// through edgeAdmits() would blow maxOccupancy 0.45 on the first call and force
+// a permanent exemption — which is "not using the composer" wearing a costume.
+// It also never contends with props for ground: props stand IN FRONT of
+// frontage, at a different depth, which is exactly why it draws first here.
+// Its own constraints are simpler and are enforced structurally below: it never
+// crosses the edge-wall boundary toward the road, and it never becomes a solid
+// wall (see the `gap` bays).
+//
+// Determinism: its OWN rng stream with its own salt, never the tile's. Adding
+// draws to drawCorridorSegment's generator would shift the procedural deck and
+// silently recompose every already-playtested segment — the same reasoning
+// productionDistributionPlan() uses for its separate stream.
+//
+// Placeholder-grade on purpose. Session 60 is barred from generating art; this
+// proves the delivery path (bay rhythm, material vocabulary, per-segment
+// variation, day/night, left/right, cropped continuation) using flat primitives
+// in the shipped shape language. Authored frontage masters later enrich it;
+// they are not required for Mumbai to possess architecture.
+function frontageStyle() {
+  const c = curCity();
+  return (CONFIG.frontage && CONFIG.frontage.on && c && c.frontage) ? c.frontage : null;
+}
+// One bay, drawn into the band. `x0` is the SCREEN-EDGE side of the band and
+// `depth` runs inward toward the road; the caller supplies a signed inward
+// direction so left and right are authored once, not mirrored at runtime.
+function frontageBay(g, x0, dir, depth, y, bh, kind, tone) {
+  const inner = x0 + dir * depth;              // road-facing face of this bay
+  const xa = Math.min(x0, inner), xb = Math.max(x0, inner);
+  const bw = xb - xa;
+  if (kind === "gap") {
+    // A deliberate breathing break in the frontage rhythm: shallow ground only,
+    // no mass. This is what stops the band reading as a continuous wall or a
+    // tunnel, which the City Kit prohibits.
+    g.fillStyle = DAY.frWallDk;
+    g.fillRect(xa, y, bw * 0.28, bh);
+    return;
+  }
+  // Base wall mass. Alternating wall tones give the "mixed-age" irregularity
+  // without any extra geometry. `tone` comes from the plan, so this painter
+  // consumes no randomness and the plan alone determines the output.
+  g.fillStyle = tone ? DAY.frWallAlt : DAY.frWall;
+  g.fillRect(xa, y, bw, bh);
+  // Plinth: the grounded base line every bay shares, so the rhythm reads as one
+  // street rather than free-floating blocks.
+  g.fillStyle = DAY.frPlinth;
+  g.fillRect(xa, y + bh - Math.max(2, bh * 0.06), bw, Math.max(2, bh * 0.06));
+  // Vertical bay division on the road-facing face — the repeated edge that
+  // makes a run of bays read as separate buildings.
+  g.fillStyle = DAY.frWallDk;
+  const dx = dir > 0 ? xb - 2 : xa;
+  g.fillRect(dx, y, 2, bh);
+  if (kind === "shutter") {
+    // Horizontal shutter slat rhythm — Pillar 1/3's most recognisable motif.
+    const iy = y + bh * 0.30, ih = bh * 0.52;
+    g.fillStyle = DAY.frShutter;
+    g.fillRect(xa + bw * 0.14, iy, bw * 0.72, ih);
+    g.fillStyle = DAY.frShutterDk;
+    for (let sy = iy + 2; sy < iy + ih - 1; sy += 4) g.fillRect(xa + bw * 0.14, sy, bw * 0.72, 1.6);
+  } else if (kind === "grille") {
+    // Grilled opening: a recessed rectangle with bar rhythm.
+    const iy = y + bh * 0.22, ih = bh * 0.4, ix = xa + bw * 0.2, iw = bw * 0.6;
+    g.fillStyle = DAY.frGrille;
+    g.fillRect(ix, iy, iw, ih);
+    g.fillStyle = DAY.frWallDk;
+    for (let gy = iy + 3; gy < iy + ih; gy += 5) g.fillRect(ix, gy, iw, 1.2);
+  } else if (kind === "awning") {
+    // Shallow awning band over an opening — the shopfront beat.
+    const ay = y + bh * 0.24, ah = Math.max(4, bh * 0.12);
+    const n = 4, aw = bw * 0.86, ax = xa + bw * 0.07;
+    for (let i = 0; i < n; i++) {
+      g.fillStyle = i % 2 ? DAY.frAwningB : DAY.frAwningA;
+      g.fillRect(ax + (i * aw) / n, ay, aw / n + 0.5, ah);
+    }
+    g.fillStyle = DAY.frGrille;
+    g.fillRect(xa + bw * 0.2, ay + ah, bw * 0.6, bh * 0.3);
+  } else if (kind === "pipe") {
+    // Exterior pipe run + a repair patch: Pillar 2's material language, carried
+    // by the architecture rather than by a separate weather system.
+    const px = dir > 0 ? xa + bw * 0.16 : xb - bw * 0.16 - 3;
+    g.fillStyle = DAY.frPipe;
+    g.fillRect(px, y + bh * 0.1, 3, bh * 0.8);
+    g.fillStyle = DAY.frPatch;
+    g.fillRect(xa + bw * 0.45, y + bh * 0.5, bw * 0.32, bh * 0.22);
+  } else if (kind === "balcony") {
+    // Compact balcony band — a shallow horizontal ledge with a rail rhythm.
+    const by = y + bh * 0.3, bhh = Math.max(5, bh * 0.14);
+    g.fillStyle = DAY.frWallDk;
+    g.fillRect(xa + bw * 0.1, by, bw * 0.8, bhh);
+    g.fillStyle = DAY.frGrille;
+    for (let rx = xa + bw * 0.14; rx < xa + bw * 0.86; rx += 4) g.fillRect(rx, by - 3, 1.4, 3);
+  }
+}
+// LAYOUT for one segment tile, both edges — deliberately split from painting so
+// the geometry is inspectable without reading pixels (__mr.frontagePlan). The
+// road-protection invariant is a property of THIS function, so it can be
+// asserted directly on numbers instead of being inferred from a screenshot.
+// Pure: same (level, idx, config) always yields the same bays.
+function frontagePlan(idx, w) {
+  const st = frontageStyle();
+  if (!st) return null;
+  const width = w || W;
+  const mw = (CONFIG.edgeWalls.w || 0.15) * width;
+  const cfg = CONFIG.frontage;
+  const h = CONFIG.corridor.tileH;
+  // Own stream, own salt (see the header note).
+  const rng = mulberry32((level * 2246822519 + idx * 3266489917 + 7919) >>> 0);
+  const kinds = st.kinds || ["shutter", "grille", "awning", "pipe", "balcony"];
+  const out = { idx, mw, left: [], right: [] };
+  for (const edge of ["left", "right"]) {
+    const isLeft = edge === "left";
+    // x0 = the screen edge; dir points INWARD, toward the road. depth is capped
+    // by depthMax < 1 as a FRACTION of mw, so the deepest possible bay stops
+    // short of the edge-wall boundary — the protected lane is safe by
+    // construction rather than by a runtime check that could rot.
+    const x0 = isLeft ? 0 : width;
+    const dir = isLeft ? 1 : -1;
+    // Independent vertical phase per edge so the two sides never line up
+    // row-for-row (same reasoning as the procedural deck's startPhase).
+    let y = -Math.round(rng() * cfg.bayMax);
+    let guard = 0;
+    while (y < h && guard++ < 64) {
+      const bh = Math.round(cfg.bayMin + rng() * (cfg.bayMax - cfg.bayMin));
+      // Depth varies per bay so the band has an irregular road-facing profile
+      // rather than a flat ribbon — "irregular but readable frontage bays".
+      const depth = mw * (cfg.depthMin + rng() * (cfg.depthMax - cfg.depthMin));
+      const kind = rng() < cfg.gapChance ? "gap" : kinds[(rng() * kinds.length) | 0];
+      // tone is drawn here rather than inside the painter so the plan fully
+      // determines the output and the painter consumes no randomness at all.
+      const tone = rng() < 0.5 ? 0 : 1;
+      const inner = x0 + dir * depth;
+      out[edge].push({
+        y, h: bh, kind, depth, tone,
+        x0: Math.min(x0, inner), x1: Math.max(x0, inner),
+        // How far this bay reaches toward the road. Must stay < mw.
+        reach: isLeft ? inner : width - inner,
+      });
+      y += bh;
+    }
+  }
+  return out;
+}
+// ---------- Safe road overlays (Session 60 foundation) ----------
+// Pillar 2 "Monsoon-Worn Urban Surfaces" had no runtime home at all: the road
+// was a flat fill plus stipple, and the only wet/worn thing in the game was the
+// puddle HAZARD. This is the minimal path so later Mumbai surface work has
+// somewhere to land — road wear, repair traces, drainage cues.
+//
+// THE HARD RULE IS HAZARD SEPARATION. The City Kit prohibits passive overlays
+// that resemble gameplay hazards, and the engine's hazards are ELLIPSES with
+// rim contrast and a gloss highlight (see drawHazard). So overlays here are
+// deliberately the opposite on every axis a player reads at a glance:
+//   hazard  = elliptical · rim-contrasted · glossy · centre-lane · actionable
+//   overlay = ANGULAR    · low-contrast   · MATTE  · kerb-hugging · inert
+// Nothing here draws an ellipse or a highlight, and everything sits at low
+// alpha near the kerbs, leaving the centre lane — the gameplay canvas — clear.
+function drawRoadOverlays(g, w, h, idx) {
+  const st = frontageStyle();          // same city gate as the frontage band
+  const cfg = CONFIG.roadOverlays;
+  if (!st || !cfg || !cfg.on) return;
+  const mw = (CONFIG.edgeWalls.w || 0.15) * w;
+  // Own stream, own salt — never the tile's, for the same reason the frontage
+  // band has its own: adding draws to the tile rng would recompose the
+  // playtested procedural deck.
+  const rng = mulberry32((level * 40503 + idx * 2654435761 + 1319) >>> 0);
+  g.save();
+  for (let i = 0; i < cfg.count; i++) {
+    const side = rng() < 0.5 ? 0 : 1;
+    // Band the patches to the kerb-adjacent strip: starts just inside the road
+    // boundary and never reaches the centre third.
+    const inset = mw + rng() * (w * 0.5 - mw) * cfg.spread;
+    const x = side ? w - inset : inset;
+    const y = rng() * h;
+    const pw = 14 + rng() * 30, ph = 8 + rng() * 16;
+    const kind = rng();
+    g.globalAlpha = cfg.alpha * (0.6 + rng() * 0.4);
+    if (kind < 0.55) {
+      // Repair patch: a plain angular rectangle, slightly skewed so a run of
+      // them doesn't read as a grid.
+      g.fillStyle = DAY.frPatch;
+      g.beginPath();
+      const sk = (rng() - 0.5) * 6;
+      g.moveTo(x - pw / 2 + sk, y - ph / 2);
+      g.lineTo(x + pw / 2, y - ph / 2 + sk * 0.5);
+      g.lineTo(x + pw / 2 - sk, y + ph / 2);
+      g.lineTo(x - pw / 2, y + ph / 2 - sk * 0.5);
+      g.closePath(); g.fill();
+    } else if (kind < 0.85) {
+      // Repair seam: a thin straight run, the "patched asphalt" cue.
+      g.strokeStyle = DAY.frWallDk;
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(x - pw / 2, y);
+      g.lineTo(x + pw / 2, y + (rng() - 0.5) * 8);
+      g.stroke();
+    } else {
+      // Drainage cue at the kerb: a short slotted grate, always parallel to the
+      // kerb so it reads as infrastructure rather than an object on the road.
+      const gx = side ? w - mw - 10 : mw + 2;
+      g.fillStyle = DAY.frGrille;
+      g.fillRect(gx, y, 8, 16);
+      g.fillStyle = DAY.frWallDk;
+      for (let s = 2; s < 16; s += 4) g.fillRect(gx + 1, y + s, 6, 1.4);
+    }
+  }
+  g.restore();
+}
+
+// Paint a plan into the tile. `idx` is the segment index so the rhythm advances
+// down the route instead of repeating per tile.
+function drawFrontageBand(g, w, h, idx) {
+  const plan = frontagePlan(idx, w);
+  if (!plan) return;
+  for (const edge of ["left", "right"]) {
+    const isLeft = edge === "left";
+    const x0 = isLeft ? 0 : w, dir = isLeft ? 1 : -1;
+    for (const b of plan[edge]) {
+      // Bays straddling the tile edge are painted anyway and clipped by the
+      // tile — that IS the cropped continuation, and it makes the rhythm carry
+      // across seams instead of restarting at every joint.
+      frontageBay(g, x0, dir, b.depth, b.y, b.h, b.kind, b.tone);
+    }
+  }
+}
+
 // Draw the whole day street for the current level (seeded, stable per level).
 function drawDayStreet(g, w, h) {
   g.fillStyle = DAY.ground; g.fillRect(0, 0, w, h);
@@ -696,7 +943,16 @@ function drawCorridorSegment(g, w, h, idx) {
     g.fillRect(x + rng() * 18, y + rng() * 18, 2, 2);
   // Side bands + curbs — same geometry every tile, so seams are invisible.
   g.fillStyle = DAY.path; g.fillRect(0, 0, mw, h); g.fillRect(w - mw, 0, mw, h);
+  // Frontage FIRST, then the curb over it: the curb is the boundary between
+  // architecture and road, so it must read as the front-most edge of the band.
+  // This sits below every prop (procedural and authored) by draw order, which is
+  // the whole point — it is the backdrop they stand in front of.
+  drawFrontageBand(g, w, h, idx);
   g.fillStyle = DAY.curb; g.fillRect(mw - 2, 0, 2, h); g.fillRect(w - mw, 0, 2, h);
+  // Safe road overlays: on the road surface, under every gameplay layer and
+  // under the centre dashes, so they can never be mistaken for a marking or a
+  // hazard. Inert decoration only — see drawRoadOverlays' hazard-separation rule.
+  drawRoadOverlays(g, w, h, idx);
   // Centre dashes: step divides tileH, so the rhythm carries across seams.
   g.fillStyle = DAY.dash;
   for (let y = 20; y < h; y += 80) g.fillRect(w / 2 - 3, y, 6, 34);
@@ -1135,6 +1391,52 @@ const EDGE_PROP_DEFS = {
     pivot: { x: 261, y: 1499 },
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
+  // ---- Session 60 ATTACHMENT-ROLE HARNESS — NOT production art ----
+  // The attachment role needs SOMETHING registered to prove the path end to end
+  // (selection -> attachmentY -> productionClaims -> edgeAdmits -> draw), and
+  // this session is explicitly barred from generating art. These two defs
+  // therefore re-point at ALREADY-VALIDATED production masters at attachment
+  // scale: same PNG, same measured bounds, same pivot — only `heightPx`, `role`
+  // and `weight` differ. They are honest about being the same artwork shrunk;
+  // they exist to exercise plumbing, not to look like a real attachment family.
+  //
+  // `test: true` keeps them off the preload path (they add ZERO bytes — both
+  // masters are already downloaded for their production role) and out of
+  // PRODUCTION_CATALOGUE_KEYS. They reach the attachment pool only when
+  // CONFIG.edgeProps.attachments.testKeys is on. Session 61's real small-prop
+  // family replaces them; delete these two defs at that point.
+  mumbai_attachment_probe_right_test: {
+    src: "assets/props/mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.png",
+    test: true,
+    role: "attachment",
+    weight: 2,
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 699, h: 709 },
+    heightPx: 30,          // attachment scale — well under the 70 px courier floor
+    tall: false,
+    visualBounds: { x0: 48, y0: 48, x1: 650, y1: 658 },
+    footprint: { x0: 83, y0: 580, x1: 606, y1: 658 },
+    cropSafe: { x0: 0, y0: 0, x1: 698, y1: 706 },
+    pivot: { x: 83, y: 658 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
+  mumbai_attachment_probe_left_test: {
+    src: "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.png",
+    test: true,
+    role: "attachment",
+    weight: 2,
+    city: "mumbai",
+    edge: "left",
+    canvas: { w: 729, h: 640 },
+    heightPx: 30,
+    tall: false,
+    visualBounds: { x0: 48, y0: 48, x1: 680, y1: 591 },
+    footprint: { x0: 146, y0: 498, x1: 642, y1: 591 },
+    cropSafe: { x0: 0, y0: 0, x1: 728, y1: 639 },
+    pivot: { x: 642, y: 591 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
 };
 const EDGE_PROP_IMGS = {};
 // Start ONE def's image download, once. Idempotent, so the per-frame callers in
@@ -1163,6 +1465,96 @@ loadEdgeProps();
 function edgePropReady(k) {
   const im = EDGE_PROP_IMGS[k];
   return !!(im && im.complete && im.naturalWidth);
+}
+
+// ---------- Night treatment for authored props (Session 60) ----------
+// THE PROBLEM, measured live before this existed: in a night zone the road
+// palette swaps (applyCityTheme) and every procedural element redraws from the
+// night palette, but drawEdgeProps() applied only translate + uniform scale +
+// globalAlpha — so an authored master kept its daylight pixels exactly. Measured
+// on Mumbai zone 3 (day) vs zone 4 (night), same asset, sampling only the
+// sprite's fully-opaque pixels via an alpha mask rebuilt from the source PNG:
+//
+//   road luminance   178.78 -> 43.52   (-75.7%)
+//   PROP luminance    56.92 -> 55.18   ( -3.1%)   <- effectively unchanged
+//   prop:road ratio    0.318 ->  1.268
+//
+// The prop does not merely fail to darken: it INVERTS its relationship to the
+// world, going from clearly darker than the road (0.32) to brighter than it
+// (1.27), which is what made it read as a sticker pasted on the night street.
+//
+// THE FIX IS A CACHED COMPOSITE, NOT A PER-FRAME FILTER. The Technical Asset
+// Contract §5 fixes the production model as "one asset + palette-compatible
+// colouring (+ optional glow overlay)" and §6 already sanctions "flat colour
+// tint (composite-cached)" as a thing this renderer does — this is that same
+// idiom applied to the edge-prop layer. Each master is tinted ONCE into an
+// offscreen canvas and stamped every frame thereafter, so the per-frame cost is
+// identical to before (one drawImage) and no PNG binary is edited.
+//
+// Alpha is preserved exactly: every pass is either a filtered drawImage (which
+// carries source alpha through) or `source-atop` (which writes only where alpha
+// already exists). Silhouette, geometry, pivot, bounds and every composer claim
+// are therefore untouched — this changes colour and nothing else.
+const EDGE_PROP_NIGHT = {};
+// Signature of everything the baked night canvas depends on, so live tuning via
+// __mr.config.edgeProps.night rebuilds instead of serving a stale bake.
+function nightTreatSig() {
+  const n = CONFIG.edgeProps.night;
+  return [n.on, n.brightness, n.saturate, n.tint, n.tintAlpha, n.warm, n.warmAlpha].join("|");
+}
+// The night-treated canvas for one key, built on demand and memoised. Returns
+// null if the treatment is off or the source image has not decoded yet — both
+// callers fall back to the untreated image, which is the same missing-asset
+// contract used everywhere else here.
+function edgePropNightCanvas(k) {
+  const cfg = CONFIG.edgeProps.night;
+  if (!cfg.on || !edgePropReady(k)) return null;
+  const sig = nightTreatSig();
+  const hit = EDGE_PROP_NIGHT[k];
+  if (hit && hit.sig === sig) return hit.canvas;
+  const im = EDGE_PROP_IMGS[k];
+  const c = document.createElement("canvas");
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const g = c.getContext("2d");
+  // Pass 1 — darken + desaturate. ctx.filter is a BUILD-TIME cost here (once per
+  // master per config), never per frame. Where filter is unsupported the string
+  // is ignored and the sprite simply arrives untouched, leaving passes 2-3 to do
+  // the work: degraded, never broken.
+  g.filter = "brightness(" + cfg.brightness + ") saturate(" + cfg.saturate + ")";
+  g.drawImage(im, 0, 0);
+  g.filter = "none";
+  // Pass 2 — cool ambient cast, clipped to the existing alpha. This is what
+  // seats the prop in the night palette rather than leaving it a warm cutout.
+  g.globalCompositeOperation = "source-atop";
+  g.globalAlpha = cfg.tintAlpha;
+  g.fillStyle = cfg.tint;
+  g.fillRect(0, 0, c.width, c.height);
+  // Pass 3 — a restrained WARM wash over the lower body, so the practical-light
+  // character the City Kit asks for survives (painted bulbs, counter, serving
+  // surface stay legible) without lifting the whole master back to daylight.
+  // Deliberately a gradient inside the sprite's own alpha, NOT a glow pool cast
+  // onto the road: the kit prohibits large permanent glow and neon spectacle,
+  // and source-atop cannot spill past the silhouette by construction.
+  if (cfg.warmAlpha > 0) {
+    const gr = g.createLinearGradient(0, c.height, 0, c.height * 0.45);
+    gr.addColorStop(0, cfg.warm);
+    gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.globalAlpha = cfg.warmAlpha;
+    g.fillStyle = gr;
+    g.fillRect(0, 0, c.width, c.height);
+  }
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = "source-over";
+  EDGE_PROP_NIGHT[k] = { sig, canvas: c };
+  return c;
+}
+// What drawEdgeProps() should stamp for this key right now.
+function edgePropPaintable(k) {
+  if (zoneNight) {
+    const n = edgePropNightCanvas(k);
+    if (n) return n;
+  }
+  return EDGE_PROP_IMGS[k];
 }
 
 // The PLACEMENT ENVELOPE: everything the runtime (and later the segment
@@ -1277,11 +1669,58 @@ const PRODUCTION_CATALOGUE_KEYS = [
   "mumbai_chai_counter_shallow_awning_right",
   "mumbai_vadapav_cart_fixed_canopy_left",
 ];
-function productionCatalogue(city, edge) {
+// Session 60: the catalogue is now role-aware. `role` defaults to "anchor" so
+// every pre-existing key keeps its exact meaning.
+function productionCatalogue(city, edge, role) {
+  const want = role || "anchor";
   return PRODUCTION_CATALOGUE_KEYS.filter((k) => {
     const d = EDGE_PROP_DEFS[k];
-    return d && d.city === city && d.edge === edge;
+    return d && d.city === city && d.edge === edge && (d.role || "anchor") === want;
   });
+}
+// ---- Session 60: deterministic recent-history selection ----
+// Session 59 simulated the shipped policy over Mumbai zones 1-5 and found the
+// repetition ceiling was the SELECTION POLICY, not the catalogue: going from 3
+// masters to 6 cut in-route repeats from 4/5 routes to 1/5, but going 6 -> 8
+// bought only one fewer repeat across the entire city, because avoidance was
+// one-deep (`lastKey`) and could not see any further back.
+//
+// This replaces that with a bounded recent-history window plus least-used
+// tie-breaking. It is still a pure forward scan over (level, idx), so the whole
+// plan remains a deterministic function of the same inputs.
+//
+// Degradation is explicit and ordered, never a reroll loop:
+//   1. prefer keys outside the recent-history window AND least-used so far
+//   2. if the window excludes everything, ignore the window, keep least-used
+//   3. if the pool has one key, use it (the left edge's position before this
+//      session, and still correct behaviour — a catalogue limit, not a bug)
+// Nothing here can loop or fail to return: every branch narrows a non-empty
+// array, and the final pick is an index into it.
+//
+// `rot` is a caller-supplied rotation (the zone number in practice). The history
+// and usage state are deliberately PER-ROUTE — in-route repetition is what a
+// player actually perceives, seeing 2-4 props in one ~2 minute run, whereas the
+// 11-17 placements across all of Mumbai are spread over many minutes and menus.
+// But per-route state alone means all five zones start from an identical state
+// and converge on the same early picks, which measurably concentrated usage
+// across the city. Rotating the tie-break by zone de-phases them for free and
+// keeps the whole plan a pure function of (level, idx, config) — no cross-level
+// state, so Session 57's determinism guarantee is untouched. Measured over
+// Mumbai zones 1-5 at a 9-segment route, 3 masters per edge: without rotation
+// 0/5 in-route repeats and a most-repeated master appearing 5x; with rotation
+// 0/5 and 4x. It never made any tested configuration worse.
+function selectProductionKey(pool, hist, used, roll, rot) {
+  if (pool.length <= 1) return pool[0];
+  // Window depth scales with the pool so a 2-key edge still alternates rather
+  // than deadlocking, while a 4-key edge gets real spacing. Capped at 3: beyond
+  // that the policy becomes mechanical alternation, which the brief rules out.
+  const depth = Math.max(1, Math.min(3, pool.length - 1));
+  const recent = hist.slice(-depth);
+  let cand = pool.filter((k) => !recent.includes(k));
+  if (!cand.length) cand = pool.slice();
+  const lo = Math.min(...cand.map((k) => used[k] || 0));
+  cand = cand.filter((k) => (used[k] || 0) === lo);
+  return cand[(Math.floor(roll * cand.length) + (rot || 0)) % cand.length];
 }
 // The full per-segment decision list for the CURRENT level — breathing segments
 // included, with a reason, so this doubles as the runtime diagnostic (see
@@ -1293,11 +1732,20 @@ function productionDistributionPlan() {
   const th = CONFIG.corridor.tileH;
   const segCount = Math.max(1, Math.ceil(routeLen / th));
   const plan = [];
-  let lastEligibleIdx = -Infinity, lastKey = null;
+  let lastEligibleIdx = -Infinity;
+  // Per-route selection state. `hist` is the recent-pick window, `used` the
+  // per-key usage count — both scoped to this level, so every route starts from
+  // the same clean state and the plan stays a pure function of (level, config).
+  const hist = [], used = {};
   for (let idx = 0; idx < segCount; idx++) {
     // Fresh generator per segment, seeded from (level, idx) alone — never the
     // tile's own drawCorridorSegment seed, and never carried across idx.
     const rng = mulberry32((level * 746827 + idx * 15485867 + 91) >>> 0);
+    // THE FIRST FOUR DRAWS ARE FROZEN, in this order, for Session 57 parity:
+    // eligibility, edge, asset, y-jitter. Session 60 only changes how assetRoll
+    // is USED (see selectProductionKey) and appends attachment draws AFTER
+    // these — so which segments are eligible, on which edge, at which y is
+    // bit-identical to Session 57. Never insert a draw above this line.
     const roll = rng(), edgeRoll = rng(), assetRoll = rng(), yRoll = rng();
     const cooldownOk = idx - lastEligibleIdx > cfg.minGapSegments;
     if (!cooldownOk || roll >= cfg.density) {
@@ -1308,24 +1756,84 @@ function productionDistributionPlan() {
     let pool = productionCatalogue(city, edge);
     if (!pool.length) { edge = edge === "left" ? "right" : "left"; pool = productionCatalogue(city, edge); }
     if (!pool.length) { plan.push({ idx, eligible: false, reason: "noCatalogue" }); continue; }
-    // Repetition control: prefer any asset OTHER than the last eligible segment's
-    // pick. Only falls back to repeating when the catalogue leaves no choice
-    // (e.g. the left edge's sole master) — a catalogue limitation, not a bug.
-    const preferred = lastKey ? pool.filter((k) => k !== lastKey) : pool;
-    const choices = preferred.length ? preferred : pool;
-    const key = choices[Math.floor(assetRoll * choices.length) % choices.length];
+    const key = selectProductionKey(pool, hist, used, assetRoll, level);
     // Mid-segment, jittered within a band so the cadence never reads as pinned
     // to a fixed grid row.
     const y = Math.round(idx * th + th * (0.3 + yRoll * 0.4));
-    plan.push({ idx, eligible: true, edge, key, y });
-    lastEligibleIdx = idx; lastKey = key;
+    const entry = { idx, eligible: true, edge, key, y, role: "anchor", attachments: [] };
+    hist.push(key); used[key] = (used[key] || 0) + 1;
+    lastEligibleIdx = idx;
+    // ---- Attachments (Session 60) ----
+    // The frozen production grammar is "anchor + optional attachments +
+    // breathing gaps". These draws are deliberately LAST so the anchor decision
+    // above is untouched when attachments are off or the pool is empty.
+    // NB: `cfg` above is CONFIG.edgeProps.DISTRIBUTION; attachments live one
+    // level up on CONFIG.edgeProps, alongside budget/night.
+    const ac = CONFIG.edgeProps.attachments;
+    if (ac && ac.on) {
+      const apool = productionCatalogue(city, edge, "attachment");
+      // Session 60 harness only: the attachment-probe defs are test-gated and
+      // therefore absent from PRODUCTION_CATALOGUE_KEYS. This is the one door
+      // they come through, and it stays shut unless testKeys is explicitly on.
+      if (ac.testKeys) {
+        for (const k in EDGE_PROP_DEFS) {
+          const d = EDGE_PROP_DEFS[k];
+          if (d.test && (d.role || "anchor") === "attachment" &&
+              d.city === city && d.edge === edge) { ensureEdgeProp(k); apool.push(k); }
+        }
+      }
+      const ahist = [];
+      // Every skip records a reason, mirroring how the composer records every
+      // rejection — a silently-absent attachment is indistinguishable from a
+      // broken pool otherwise.
+      entry.attachmentSkips = [];
+      for (let n = 0; n < ac.max; n++) {
+        const aRoll = rng(), aPick = rng(), aSide = rng();
+        if (!apool.length) { entry.attachmentSkips.push({ slot: n, why: "emptyPool" }); continue; }
+        if (aRoll >= ac.chance) { entry.attachmentSkips.push({ slot: n, why: "chance" }); continue; }
+        const akey = selectProductionKey(apool, ahist, {}, aPick, level);
+        if (!akey) { entry.attachmentSkips.push({ slot: n, why: "noKey" }); continue; }
+        const ay = attachmentY(key, y, akey, aSide < 0.5 ? -1 : 1);
+        if (ay == null) { entry.attachmentSkips.push({ slot: n, why: "noPlacement", key: akey }); continue; }
+        ahist.push(akey);
+        entry.attachments.push({ key: akey, y: ay, role: "attachment" });
+      }
+    }
+    plan.push(entry);
   }
   return plan;
 }
+// Where an attachment sits relative to its anchor: immediately OUTSIDE the
+// anchor's reserved breathing gap, on the requested side (-1 = up-route,
+// +1 = down-route). Derived from both props' real placement envelopes, never a
+// hardcoded offset, so it stays correct when either prop's heightPx is tuned.
+//
+// This deliberately does NOT reach inside the anchor's gap. The composer's
+// overlap rule is the thing that stops decoration landing on a canopy, and an
+// attachment is not exempt from it (the brief is explicit: do not bypass the
+// composer because an object is classified as an attachment). Sitting just past
+// the reserved gap still reads as one cluster — the gap is ~35% of the anchor's
+// height, so a 70 px anchor and a small attachment end up ~25 px apart.
+function attachmentY(anchorKey, anchorY, attachKey, side) {
+  const pa = edgePlacement(anchorKey), pt = edgePlacement(attachKey);
+  if (!pa || !pt) return null;
+  const b = CONFIG.edgeProps.budget;
+  const av = pa.bounds.visual, tv = pt.bounds.visual;
+  const aGap = Math.max(b.minGap, (av.y1 - av.y0) * b.gapMul);
+  const tGap = Math.max(b.minGap, (tv.y1 - tv.y0) * b.gapMul);
+  const pad = Math.max(aGap, tGap) + 1; // +1 so the interval test is strictly clear
+  return side < 0
+    ? Math.round(anchorY + av.y0 - pad - tv.y1)   // above: attachment's bottom clears the anchor's top
+    : Math.round(anchorY + av.y1 + pad - tv.y0);  // below: attachment's top clears the anchor's bottom
+}
 function productionDistributionInstances() {
-  return productionDistributionPlan()
-    .filter((p) => p.eligible)
-    .map((p) => ({ key: p.key, y: p.y }));
+  const out = [];
+  for (const p of productionDistributionPlan()) {
+    if (!p.eligible) continue;
+    out.push({ key: p.key, y: p.y });
+    for (const a of p.attachments || []) out.push({ key: a.key, y: a.y });
+  }
+  return out;
 }
 
 // Session 46 controlled test: deterministic instances, right edge, Mumbai. This
@@ -1433,7 +1941,10 @@ function drawEdgeProps() {
     const dy = inst.y - d.pivot.y * s;
     ctx.save();
     ctx.globalAlpha = cfg.alpha;
-    ctx.drawImage(EDGE_PROP_IMGS[inst.key], dx, dy, d.canvas.w * s, d.canvas.h * s);
+    // Session 60: in a night zone this is the cached night-treated canvas rather
+    // than the raw master. Same size, same alpha, same transform — the only
+    // difference is baked colour, so placement geometry is bit-identical.
+    ctx.drawImage(edgePropPaintable(inst.key), dx, dy, d.canvas.w * s, d.canvas.h * s);
     ctx.restore();
     if (cfg.debug) drawEdgePropDebug(p, inst);
   }
@@ -1508,6 +2019,28 @@ function newEdgeState() {
 // edgePlacement() envelope the renderer draws with, so a claim can never drift
 // from what is on screen. The claim uses MEASURED VISUAL BOUNDS, never the
 // original transparent canvas — the canvas is 1582 px tall for a 625 px cart.
+// The composer-facing role of one registered master. Session 60: this used to be
+// hardcoded `anchor: true, weight: 3` for EVERY production claim, which meant a
+// small authored prop could not be registered at all — it would have consumed
+// one of the edge's 3 anchor slots and 3 of its 13 weight, budgeting a crate as
+// if it were a cart and thinning the procedural deck around it accordingly.
+// Reading it off the def instead is what makes the attachment role expressible.
+// Defaults reproduce the pre-Session-60 values EXACTLY, so every already-
+// registered def behaves bit-identically without being edited.
+function propRole(d) {
+  const role = d.role || "anchor";
+  const isAnchor = role === "anchor";
+  return {
+    role,
+    anchor: d.anchor !== undefined ? d.anchor : isAnchor,
+    weight: d.weight !== undefined ? d.weight : (isAnchor ? 3 : 2),
+    // Production still claims ahead of every procedural candidate (priority 2),
+    // attachments included — an attachment is authored content that has already
+    // been de-conflicted against its own anchor, so it must not lose its space
+    // to a procedural filler that happens to be tested first.
+    priority: 2,
+  };
+}
 function productionClaims(idx) {
   const cfg = CONFIG.edgeProps;
   const th = CONFIG.corridor.tileH;
@@ -1516,16 +2049,21 @@ function productionClaims(idx) {
   for (const inst of edgePropInstances()) {
     const p = edgePlacement(inst.key);
     if (!p) continue;
+    const d = EDGE_PROP_DEFS[inst.key];
+    const r = propRole(d);
     const vis = p.bounds.visual;
     const y0 = inst.y + vis.y0, y1 = inst.y + vis.y1;
     // Breathing space: a share of the prop's own visual height, floored so small
     // props still get a real gap. This is what keeps decoration off the canopy.
+    // Because it scales with the prop's OWN height, an attachment automatically
+    // reserves a proportionally smaller gap than the anchor it accompanies —
+    // no separate attachment tuning needed.
     const gap = Math.max(cfg.budget.minGap, (y1 - y0) * cfg.budget.gapMul);
     if (y1 + gap < segY0 || y0 - gap > segY1) continue;
     out.push({
       id: inst.key, kind: inst.key, source: "production", edge: p.edge,
-      y0, y1, minGapBefore: gap, minGapAfter: gap, priority: 2,
-      anchor: true, weight: 3,
+      y0, y1, minGapBefore: gap, minGapAfter: gap, priority: r.priority,
+      anchor: r.anchor, weight: r.weight, role: r.role,
     });
   }
   return out;
@@ -1581,8 +2119,23 @@ function segCompositionSig(idx) {
   const claims = productionClaims(idx)
     .map((c) => c.edge[0] + c.id + "_" + Math.round(c.y0) + "_" + Math.round(c.y1))
     .sort().join(",");
+  // Session 60: the frontage band is drawn INTO the tile, so every input that
+  // changes its geometry has to invalidate the tile too — otherwise a live
+  // config change serves art composed under the old settings, the exact class of
+  // bug Session 54 hit with claim ids. The per-city STYLE is folded in via the
+  // city key + its kind list, so switching city or retuning the bay vocabulary
+  // rebuilds. Palette is NOT included: zoneNight is already in segCacheKey and
+  // colour alone never moves geometry.
+  const f = CONFIG.frontage, st = frontageStyle();
+  const fr = !f || !f.on || !st ? "-"
+    : [curCity().key, (st.kinds || []).join(""), f.bayMin, f.bayMax,
+       f.depthMin, f.depthMax, f.gapChance].join(",");
+  // Road overlays are drawn into the tile too, so they invalidate it as well.
+  const o = CONFIG.roadOverlays;
+  const ov = !o || !o.on || !st ? "-" : [o.count, o.alpha, o.spread].join(",");
   return (claims || "-") + "|" + b.maxAnchors + "," + b.maxElements + "," +
-    b.maxWeight + "," + b.maxOccupancy + "," + b.gapMul + "," + b.minGap;
+    b.maxWeight + "," + b.maxOccupancy + "," + b.gapMul + "," + b.minGap +
+    "|fr:" + fr + "|ov:" + ov;
 }
 
 // Composer diagnostics. Dev-only (CONFIG.edgeProps.debug, default false) and
@@ -2080,6 +2633,35 @@ const CONFIG = {
   // gates (you set the pace by pushing forward); bosses lock the camera into a
   // one-screen duel so all arena boss tuning survives verbatim. on:false restores
   // the classic arena game wholesale (also live: __mr.setCorridor(false)).
+  // FRONTAGE BAND — the base architectural layer down each non-playable edge
+  // (Session 60). Global switches live here; the per-city STYLE lives on the
+  // city (CITIES[].frontage), so a city that declares no style simply has no
+  // band and is completely unaffected. That separation is deliberate: it is
+  // what stops Mumbai's architecture leaking into Jaisalmer, which was half of
+  // why the two cities read as the same street with a different palette.
+  frontage: {
+    on: true,
+    bayMin: 54,      // shortest bay, design px. Below ~50 the slat/grille detail
+    bayMax: 132,     // stops resolving at mobile scale.
+    // Bay depth as a fraction of the edge-wall band (mw = 8% of W = 38.4 px).
+    // Never ≥ 1: the band cannot reach the road boundary, so the protected lane
+    // is safe by construction rather than by a runtime check.
+    depthMin: 0.55,
+    depthMax: 0.92,
+    gapChance: 0.26, // share of bays that are breathing breaks, not mass —
+                     // the guard against a continuous wall / tunnel effect.
+  },
+  // SAFE ROAD OVERLAYS — Pillar 2's runtime foundation (Session 60). Inert
+  // surface variation only; see drawRoadOverlays for the hazard-separation rule
+  // that keeps these from ever reading as a puddle. Deliberately restrained:
+  // this is a foundation for later Mumbai surface work, not a road-art pass.
+  roadOverlays: {
+    on: true,
+    count: 5,        // patches per 800 px segment tile
+    alpha: 0.14,     // low-contrast by mandate — the road centre reads first
+    spread: 0.55,    // how far in from the kerb they may sit, as a share of the
+                     // half-road. < 1 keeps them out of the centre lane.
+  },
   corridor: {
     on: true,
     screens: 6,     // route length in screen-heights (H at stage build)
@@ -2147,6 +2729,23 @@ const CONFIG = {
       minGapSegments: 1, // consecutive segments a production hit forces to breathe
                          // before the next one is even rolled. 1 = never back-to-back.
     },
+    // Session 60 — authored micro-clusters. An eligible segment may now resolve
+    // `anchor` or `anchor + attachments`, which is the frozen production grammar
+    // the composer previously could not express (one instance per segment, no
+    // adjacency model). Attachments are ordinary claims: same edgeAdmits() gate,
+    // same overlap test, same edge budget. `max` is intentionally small — the
+    // kit calls for deliberate breathing gaps, not prop spam.
+    attachments: {
+      on: true,
+      chance: 0.55,    // per-slot roll, so `max: 1` means ~55% of anchors get one
+      max: 1,
+      // Lets the two Session 60 attachment-probe defs into the pool. OFF by
+      // default: with no real attachment family registered yet the production
+      // attachment pool is empty, so shipped behaviour is unchanged and this
+      // whole block is inert until Session 61 registers real art.
+      // Live: __mr.config.edgeProps.attachments.testKeys = true
+      testKeys: false,
+    },
     debug: false,      // dev-only overlay (road/buffer boundaries, bounds, pivot).
                        // Live: __mr.config.edgeProps.debug = true
     safetyBuffer: 3,   // design px OUTWARD from the road boundary that no
@@ -2157,6 +2756,34 @@ const CONFIG = {
     alpha: 1,          // the "quieter than gameplay" lever if a prop ever competes
                        // with entities. Draw order (behind everything) does the
                        // work today, so this stays at 1.
+    // Session 60 — night treatment for AUTHORED masters. Baked once per master
+    // per signature into an offscreen canvas (edgePropNightCanvas), never a
+    // per-frame filter. Values are tuned against the measured day/night gap:
+    // pre-fix the prop:road luminance ratio went 0.318 (day) -> 1.268 (night);
+    // the target is to land the night ratio back near the day ratio so the prop
+    // sits in the world instead of on top of it. All live-tunable:
+    // __mr.config.edgeProps.night.* — the bake keys off these, so a change
+    // rebuilds on the next frame.
+    // Chosen off a live 36-point sweep of (brightness × saturate × tintAlpha),
+    // measured on the left cart in Mumbai zone 4 against the zone-3 day
+    // reference (prop:road luminance ratio 0.318, mean per-pixel saturation
+    // 0.313). This combination gives the darkest available seating — night
+    // ratio 0.610, down from 1.268 untreated — while holding saturation at
+    // 0.207, about two thirds of daylight. That is a restrained desaturation,
+    // deliberately NOT greyscale: the City Kit rejects full industrial
+    // greyscale as hard as it rejects neon, so buying more darkness through
+    // tintAlpha would have traded one prohibited look for the other. The ratio
+    // floors near 0.61 because passes 2-3 add light back; going below it costs
+    // the readable practical-light character the kit asks for.
+    night: {
+      on: true,
+      brightness: 0.34, // darken toward the night road
+      saturate: 0.80,   // keep daylight-level colour (kit: restrained, not grey)
+      tint: "#2b2733",  // matches Mumbai's night `ground` — cool ambient cast
+      tintAlpha: 0.22,
+      warm: "#ffcb87",  // practical shop-light warmth, INSIDE the silhouette only
+      warmAlpha: 0.13,  // deliberately small: the kit prohibits glow pools/neon
+    },
     // Per-segment, per-edge density ceiling for the segment composer. Production
     // props spend from the SAME budget as procedural elements — that is the whole
     // mechanism by which decoration thins out around an authored prop.
@@ -2190,6 +2817,13 @@ const ZONES_PER_CITY = 5;
 const CITIES = [
   {
     key: "mumbai", name: "MUMBAI",
+    // Frontage style — Mumbai is the only city with one today (Session 60).
+    // The bay vocabulary IS the Pillar-3 "Mixed-Age Practical Architecture"
+    // representation: shutters and awnings carry Pillar 1's street commerce,
+    // grilles and balconies the mixed-age architecture, pipes the Pillar-2
+    // monsoon/repair material language. Reorder or trim this list to retune the
+    // city's architectural mix without touching any drawing code.
+    frontage: { kinds: ["shutter", "grille", "awning", "pipe", "balcony", "shutter"] },
     // palette: keep the warm urban day look (base), nudge a touch greyer/wetter.
     pal: {
       ground: "#c4b48d", path: "#bcab82", curb: "#ad9468",
@@ -2219,6 +2853,15 @@ const CITIES = [
       leaf: "#5f7a45", leafDk: "#46603a", orange: "#d68a3c", terra: "#9a5836",
       hazard: "rgba(90,140,170,0.32)", hazardEdge: "rgba(40,80,120,0.55)",
       lamp: "rgba(255, 200, 120, 0.16)",
+      // Frontage at night: the SAME geometry, only the palette moves — which is
+      // the engine's whole day/night model (Technical Asset Contract §5) and the
+      // City Kit's requirement that night must not redesign the cluster. Warm
+      // practical accents (awnings) stay slightly warmer than the walls so the
+      // shopfront beat is still readable; everything else goes cool and quiet.
+      frWall: "#3a3446", frWallAlt: "#332e3f", frWallDk: "#282433",
+      frPlinth: "#241f2e", frShutter: "#464152", frShutterDk: "#332f3d",
+      frGrille: "#2b2735", frAwningA: "#6b3a34", frAwningB: "#2f4a52",
+      frPipe: "#3f394a", frPatch: "#443c50",
     },
   },
   {
@@ -2566,7 +3209,7 @@ function cityUnlockedZones(c) {
 // Manually bumped each session that ships — shown small in the settings panel
 // so the PM (or anyone) can confirm they're on the latest deploy rather than
 // a stale PWA/cache copy. "session.phase · date", matching CHANGELOG.md.
-const BUILD_TAG = "59.0 · 2026-08-13";
+const BUILD_TAG = "60.0 · 2026-08-13";
 const SETTINGS_KEY = "mr_settings";
 const OPTIONS = {
   difficulty: ["easy", "normal", "hard"],
@@ -5804,11 +6447,32 @@ window.__mr = {
     }
     return o;
   },
+  // The raw def + the decoded Image for one key. Session 60: a verification
+  // harness needs these to rebuild drawEdgeProps()' exact transform offscreen
+  // and derive an alpha mask of the sprite's own pixels — the only way to
+  // measure what the AUTHORED ART is drawn as, separately from the road showing
+  // through its transparent regions (a naive visualBounds sample is mostly road).
+  edgePropDef(k) { return EDGE_PROP_DEFS[k] || null; },
+  edgePropImg(k) { return EDGE_PROP_IMGS[k] || null; },
+  // Is the CURRENT zone a night zone? Drives the authored-prop night treatment.
+  get zoneNight() { return zoneNight; },
   // Session 57: the raw multi-segment distribution decision — every segment in
   // the current level, eligible or breathing, with the edge/asset/y it picked
   // (or the reason it didn't). Pre-admission: cross-reference with
   // edgeComposer for what the composer actually accepted.
   get productionDistribution() { return productionDistributionPlan(); },
+  // Session 60: the frontage band's resolved LAYOUT for one segment — every bay
+  // with its kind, y-span, depth and `reach` (how far it extends toward the
+  // road). Because layout is split from painting, the road-protection invariant
+  // is checkable on these numbers directly: every bay's reach must stay under
+  // `mw`. Returns null when the current city declares no frontage style.
+  frontagePlan(idx) { return frontagePlan(idx === undefined ? 0 : idx); },
+  // Is the authored-prop night treatment active, and with what parameters?
+  get nightTreatment() {
+    return { zoneNight, applies: zoneNight && CONFIG.edgeProps.night.on,
+             params: { ...CONFIG.edgeProps.night }, sig: nightTreatSig(),
+             baked: Object.keys(EDGE_PROP_NIGHT) };
+  },
   // Segment composer: the resolved edge claims for every segment currently on
   // screen — production props, accepted procedural elements, rejected candidates
   // and budget usage. This is the ground truth the tile was actually drawn from,
