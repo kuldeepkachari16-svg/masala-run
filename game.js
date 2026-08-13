@@ -1035,6 +1035,7 @@ const EDGE_PROP_DEFS = {
   // where a naive bottom-N% slice clips the nearest wheel).
   mumbai_vadapav_cart_vertical_left_test: {
     src: "assets/props/session54_vadapav_cart_vertical_left_test.png",
+    test: true, // experiment-only — kept off the wire until test54.on (loadEdgeProps)
     city: "mumbai",
     edge: "left",
     canvas: { w: 727, h: 1301 },
@@ -1061,6 +1062,7 @@ const EDGE_PROP_DEFS = {
   },
   mumbai_vadapav_cart_vertical_right_test: {
     src: "assets/props/session54_vadapav_cart_vertical_right_test.png",
+    test: true, // experiment-only — kept off the wire until test54.on (loadEdgeProps)
     city: "mumbai",
     edge: "right",
     canvas: { w: 606, h: 700 },
@@ -1117,6 +1119,7 @@ const EDGE_PROP_DEFS = {
   // that floats well above ground everywhere else in the silhouette.
   mumbai_vadapav_cart_vertical_right_test_v2: {
     src: "assets/props/session55_vadapav_cart_vertical_right_test_v2.png",
+    test: true, // experiment-only — kept off the wire until test54.on (loadEdgeProps)
     city: "mumbai",
     edge: "right",
     canvas: { w: 1024, h: 1536 },
@@ -1134,14 +1137,27 @@ const EDGE_PROP_DEFS = {
   },
 };
 const EDGE_PROP_IMGS = {};
+// Start ONE def's image download, once. Idempotent, so the per-frame callers in
+// edgePropInstances() can call it freely — the second call is a no-op.
+function ensureEdgeProp(k) {
+  if (EDGE_PROP_IMGS[k]) return;
+  const d = EDGE_PROP_DEFS[k];
+  if (!d) return;
+  const im = new Image();
+  im.src = d.src;
+  EDGE_PROP_IMGS[k] = im;
+}
 function loadEdgeProps() {
   // Same convention as loadSprites/loadThemeImages: a missing file simply never
   // completes, the prop never draws, and nothing else breaks.
-  for (const k in EDGE_PROP_DEFS) {
-    const im = new Image();
-    im.src = EDGE_PROP_DEFS[k].src;
-    EDGE_PROP_IMGS[k] = im;
-  }
+  // Only PRODUCTION defs preload. `test: true` defs are switched-off experiments
+  // (test54) whose masters are the biggest files in the repo — preloading them
+  // cost every player ~5 MB for pixels that can never draw. They now load on
+  // demand the frame their flag turns on (ensureEdgeProp in edgePropInstances),
+  // so __mr.config.edgeProps.test54.on = true still works live: the prop simply
+  // appears a beat later, which is the same missing-asset contract as everything
+  // else here.
+  for (const k in EDGE_PROP_DEFS) if (!EDGE_PROP_DEFS[k].test) ensureEdgeProp(k);
 }
 loadEdgeProps();
 function edgePropReady(k) {
@@ -1342,6 +1358,10 @@ function edgePropInstances() {
     // same world y since left/right are separate composer state.
     const left = EDGE_PROP_DEFS.mumbai_vadapav_cart_vertical_left_test;
     const right = EDGE_PROP_DEFS.mumbai_vadapav_cart_vertical_right_test;
+    // These masters are NOT preloaded (see loadEdgeProps) — kick their download
+    // off here, the first frame the pilot is actually on.
+    ensureEdgeProp("mumbai_vadapav_cart_vertical_left_test");
+    ensureEdgeProp("mumbai_vadapav_cart_vertical_right_test");
     const mode = cfg.test54.mode;
     if (mode === "A") return left ? [{ key: "mumbai_vadapav_cart_vertical_left_test", y: baseY }] : [];
     if (mode === "B") return right ? [{ key: "mumbai_vadapav_cart_vertical_right_test", y: baseY }] : [];
@@ -2546,7 +2566,7 @@ function cityUnlockedZones(c) {
 // Manually bumped each session that ships — shown small in the settings panel
 // so the PM (or anyone) can confirm they're on the latest deploy rather than
 // a stale PWA/cache copy. "session.phase · date", matching CHANGELOG.md.
-const BUILD_TAG = "58.3 · 2026-08-13";
+const BUILD_TAG = "59.0 · 2026-08-13";
 const SETTINGS_KEY = "mr_settings";
 const OPTIONS = {
   difficulty: ["easy", "normal", "hard"],

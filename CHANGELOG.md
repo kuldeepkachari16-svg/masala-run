@@ -1,5 +1,71 @@
 # Masala Run — Changelog
 
+## 2026-08-13 — Session 59: asset payload pass (first load 10.5 MB → ~0.35 MB)
+
+Audit of what the shipped build actually puts on the wire. `ACTIVE_THEME` is
+`"retro-day"` (procedural road), so the three production edge-prop masters are
+the *only* images the game draws — but a cold first load was fetching **10.5 MB**
+of them plus dead weight. Three independent causes, all fixed. No gameplay,
+balance, or layout change; no prop geometry moved.
+
+**1. Test-only masters were preloaded (5.0 MB).** `loadEdgeProps()` walked every
+`EDGE_PROP_DEFS` entry unconditionally, including the Session 54/55 vertical-
+geometry pilot masters (2.0 + 0.9 + 2.1 MB) that only draw behind
+`CONFIG.edgeProps.test54.on`, which is `false`. Every player paid for pixels
+that could not appear. Those three defs are now marked `test: true` and skipped
+at preload; a new idempotent `ensureEdgeProp(k)` starts a single download on
+demand, called from the `test54` branch of `edgePropInstances()`. Flipping
+`__mr.config.edgeProps.test54.on = true` live still works — the prop appears a
+beat later, the same missing-asset contract every other asset here follows.
+
+**2. `sw.js` precached the wrong theme (4.3 MB).** The install list named the
+four `city-<day|night>.png` strips. Those belong to the `city-art` theme, which
+`retro-day` never loads (`loadThemeImages()` returns early on `theme().draw`),
+so `addAll` fetched 4.3 MB no shipped code path requests — while the three props
+that *do* draw went unprecached, leaving offline play on the bare procedural
+road. List now names exactly the three production masters.
+
+**3. The three live masters were unoptimized (994 KB).** Recompressed with a
+mask-preserving pass: palette-quantize RGBA where it survives, else quantize RGB
+and re-attach the original alpha byte-for-byte. 1349 KB → 354 KB (73.7% off).
+
+| master | before | after | |
+|---|---|---|---|
+| `..._fixed_canopy_right_..._v002.png` | 470 KB | 68 KB | −85.6% |
+| `..._fixed_canopy_left_..._v003.png` | 534 KB | 244 KB | −54.4% |
+| `..._chai_counter_..._v001.png` | 377 KB | 51 KB | −86.4% |
+
+**Why the bounds still hold.** Every `EDGE_PROP_DEFS` bound (`visualBounds`,
+`footprint`, `cropSafe`, `pivot`) is derived from the alpha ≥ 32 mask, so the
+acceptance test was not "looks the same" — it was that the *binarized alpha mask
+is bit-identical* before and after. That one check covers every bound in the def
+including the per-column bottom-opaque scans, not just the bbox. Candidate
+encodings that moved a single mask bit were rejected outright; the winners are
+identical-mask by measurement (right/chai) or by construction (left, whose alpha
+channel is the untouched original). Max RGB delta on visible pixels: 28 / 41 / 23
+per channel, mean 4.35 / 3.34 / 4.53 — invisible at the 70 px drawn height, and
+visually indistinguishable at full master size.
+
+**Validation.** Headless CDP driver (`docs/verification.md` fallback recipe)
+against a real render: the three `session54/55` masters are **never requested**
+(network log), all three production masters are, zero exceptions, zero
+`console.error`. Service worker reaches `activated` with `masala-run-v31` as the
+only cache, holding exactly the three production props. Screenshot with the
+camera parked on a placed instance confirms the recompressed left cart draws
+correctly.
+
+**Known, not fixed (flagged for the PM).** `mumbai_vadapav_cart_vertical_right_test_v2`
+(Session 55) is registered in `EDGE_PROP_DEFS` but no code path ever instantiates
+it — `test54` mode `"B"`/`"C"` still point at the Session 54 right master. If v2
+was meant to supersede that, the instance wiring was never updated. Left as-is
+rather than silently rewired: it changes which asset a review gate is looking at.
+
+Also unrelated but visible in the SW cache: the six `assets/sprites/*.png`
+sprite-first probes 404 (by design — SVG/procedural fallback) and the
+network-first handler caches those 404 responses. Harmless, not touched.
+
+`BUILD_TAG` 58.3 → 59.0 · `sw.js` `CACHE` v30 → v31.
+
 ## 2026-08-13 — Session 58 Phase 3: early-game balance pass + recipe-toast fix
 
 Targeted follow-up to Session 58's diagnostic playtest (bot + PM manual

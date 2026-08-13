@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v30";
+const CACHE = "masala-run-v31";
 const ASSETS = [
   "./",
   "index.html",
@@ -12,13 +12,20 @@ const ASSETS = [
   // Character sprites (see docs/sprites.md).
   "assets/sprites/courier.svg",
   "assets/sprites/bland.svg",
-  // Active theme (city-art): procedural road + these transparent edge-prop strips
-  // (tools/import_art.py). Network-first means a theme swap just needs this list
-  // updated; un-listed images still cache on first fetch.
-  "assets/props/mumbai-day.png",
-  "assets/props/mumbai-night.png",
-  "assets/props/jaisalmer-day.png",
-  "assets/props/jaisalmer-night.png",
+  // Active theme is "retro-day" (procedural road, game.js ACTIVE_THEME) plus the
+  // production edge-prop masters the composer actually draws — these three and
+  // only these (EDGE_PROP_DEFS entries without `test: true`).
+  //
+  // This list used to name the four city-<day|night> strips. Those belong to the
+  // "city-art" theme, which retro-day never loads (loadThemeImages returns early
+  // on theme().draw), so the install step was fetching 4.2 MB that no shipped
+  // code path requests — while the props that DO draw went unprecached, leaving
+  // offline play on the bare procedural road. If ACTIVE_THEME ever moves to
+  // city-art, swap this block back. Network-first means un-listed images still
+  // cache on first fetch; this list only decides what survives going offline.
+  "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002.png",
+  "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.png",
+  "assets/props/mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.png",
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",
