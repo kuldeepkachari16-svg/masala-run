@@ -1,5 +1,50 @@
 # Masala Run — Changelog
 
+## 2026-08-14 — Session 61 Phase 2: storage/utility attachment brief (no art, no runtime change)
+
+Scoped to what this session could actually do. The Phase 2 spec asked for real
+`attachment`-role small-prop art to replace the Session 60 probes
+(`mumbai_attachment_probe_left_test`/`_right_test`, `game.js:1474-1519`, both
+re-pointing at already-shipped anchor masters purely to prove plumbing) and
+run the full integration/regression/day-night/cache matrix on it. This session
+has no image-generation tool — every prior prop family's binaries came from
+the external PM/ChatGPT/Codex pipeline, and that pattern holds here too. Asked
+the PM up front rather than guessing; confirmed: draft the brief + generation
+prompt now, pick up measurement/integration once PNGs land externally.
+
+**What shipped this session:** a new Production Asset Brief —
+`PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`
+(`docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §16) — for a two-master
+`attachment`/Secondary family (Crate Cluster, Storage Vessel), `Ready for
+Generation`, plus two copy-pasteable generation prompts (delivered to the PM
+directly, not just filed) and two disabled-draft metadata templates
+(`assets/metadata/mumbai_prop_storage_{crate_cluster_compact,matka_vessel_single}_neutral_1x_v001.json`,
+`status: "draft"`, dimensions/anchor are 0/0.5 placeholders, `placementWeight:
+0`). No existing brief covered this — Section 14's chai-counter "attachment
+pool" (kettle, crate, jars…) is baked onto the counter master image itself,
+never a separately runtime-composed prop, so it doesn't satisfy the Session 60
+attachment-role grammar.
+
+**What did NOT happen, and why:** no PNG was generated (no tool access), no
+`EDGE_PROP_DEFS` entry was added or removed, the Session 60 probes were left
+in place (removing them now would leave the attachment path unprovable with
+no replacement), `CONFIG.edgeProps.attachments.testKeys` stays `false`, and
+`sw.js`/`BUILD_TAG` were not touched (nothing player-visible changed).
+Runtime integration, measurement, the Session 50/51/56/57/60/61-Phase-1
+regression suite, and day/night validation are all still pending — none of
+them are possible without real binaries, so none are claimed done.
+
+**Validation run:** `node --check game.js` (unchanged, sanity check only),
+`python3 tools/validate_asset_metadata.py` (13/13 OK, including both new
+drafts), `python3 tools/validate_asset_names.py --strict --name … --name …`
+(both planned filenames pass the naming regex before any binary exists),
+`git diff --check` (clean).
+
+**Next task** (recorded in the brief and in `ROADMAP.md`): PM/ChatGPT run the
+two Section M prompts externally, review 8 candidates against Section O/P,
+select one per master, hand back for the real measurement-and-registration
+pass this session couldn't do.
+
 ## 2026-08-13 — Session 61: umbrella-cart pair promoted to production
 
 Closes the gap Session 60 flagged ("Umbrella-cart pair inspected, not

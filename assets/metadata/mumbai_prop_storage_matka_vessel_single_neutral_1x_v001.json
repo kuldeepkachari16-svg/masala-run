@@ -1,0 +1,48 @@
+{
+  "id": "mumbai_prop_storage_matka_vessel_single_neutral_1x_v001",
+  "city": "mumbai",
+  "category": "prop",
+  "dimensions": {
+    "width": 0,
+    "height": 0,
+    "unit": "px"
+  },
+  "collision": {
+    "type": "none",
+    "solid": false
+  },
+  "placementWeight": 0,
+  "placementRules": {
+    "allowedZones": [
+      "non_playable_edge_left",
+      "non_playable_edge_right"
+    ],
+    "blockedZones": [
+      "safety_buffer",
+      "playable_road"
+    ],
+    "minSpacing": 0,
+    "notes": "Disabled draft ahead of binaries (Session 61 Phase 2, PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1). placementWeight/minSpacing stay 0 for the same reason as every other master in this repo: no procedural pool reads this field directly — runtime weight/spacing comes from EDGE_PROP_DEFS/productionClaims()/attachmentY() in game.js, not from this record. dimensions/anchor are 0/0.5 placeholders pending a real export and alpha-column measurement pass; do not treat as measured values."
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.5,
+    "origin": "center"
+  },
+  "lightingCompatibility": [],
+  "biomeCompatibility": [
+    "mumbai"
+  ],
+  "tags": [
+    "source_brief_pab_mumbai_envprop_storage_attachment_v1",
+    "subcategory_street_commerce_storage_utility",
+    "gameplay_tier_4",
+    "role_attachment_secondary",
+    "variant_matka_vessel",
+    "orientation_neutral_candidate",
+    "runtime_mirroring_prohibited",
+    "no_binary_yet"
+  ],
+  "status": "draft",
+  "notes": "PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1, Storage Vessel master. Draft template only — no image exists yet; generation is external (PM/ChatGPT), this session has no image-generation tool. Fields above are schema-valid placeholders, not measurements. Replace dimensions/anchor with real alpha-column measurements once a candidate is selected, then advance status to 'review' (never 'approved' before PM visual sign-off). Intended to replace game.js's mumbai_attachment_probe_left_test / _right_test once registered."
+}

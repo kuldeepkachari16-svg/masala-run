@@ -60,6 +60,15 @@ used, `status: "review"` in metadata, not an explicit PM creative pass. Full
 measurement trail in `CHANGELOG.md`. **Owed next:** add the two new masters to
 `sw.js`'s offline precache list and bump `BUILD_TAG`/`CACHE` together (flagged,
 not done — outside that session's file ownership).
+**Session 61 Phase 2 (2026-08-14):** wrote `PAB-MUMBAI-ENVPROP-STORAGE-
+ATTACHMENT-V1` (`docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §16) — a
+two-master `attachment`-role family (Crate Cluster, Storage Vessel) meant to
+replace the Session 60 attachment-probe defs. No art generated (no
+image-generation tool this session, same external-pipeline pattern as every
+prior prop family) and no runtime change made. **Owed next:** PM/ChatGPT run
+the brief's two generation prompts externally; once candidates land, measure,
+register in `EDGE_PROP_DEFS` on both edges, remove the Session 60 probes, and
+run the full regression suite — all still pending.
 **Owed next:** corridor retune only if further play demands it.
 
 ---

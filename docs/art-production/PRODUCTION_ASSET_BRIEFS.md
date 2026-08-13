@@ -6,7 +6,9 @@ Freeze Date: 2026-08-04
 Last Revised Date: 2026-08-12
 Validation Status: Validated
 Validation Date: 2026-08-12
-Next Production Task: Prepare accepted Mumbai vada-pav cart assets for repository export and controlled integration
+Next Production Task: Generate and review the Session 61 Phase 2 storage/utility
+attachment family (`PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`, Section 16) via
+the external art pipeline, then measure and integrate
 
 ## 1. Purpose
 
@@ -2275,3 +2277,479 @@ runtime integration.**
 The 13-step immediate roadmap in Section 12 governs progression. Prepared work
 must not be reported as completed, and runtime integration remains pending until
 valid binaries and controlled placement evidence exist.
+
+## 16. Mumbai Environmental Props — Storage/Utility Attachment Family (Session 61 Phase 2)
+
+This brief defines the first Production Asset Brief for the `attachment` runtime
+role introduced by Session 60 (`game.js`'s `anchor + optional attachment`
+composition grammar) and exercised only by disposable probe defs
+(`mumbai_attachment_probe_left_test` / `_right_test`, both re-pointing at
+already-shipped anchor masters at attachment scale) pending real art. No
+appropriate existing brief covers a standalone small-prop attachment family —
+Section 14's chai-counter "attachment pool" (kettle, crate, jars, cloth, vessel)
+is baked onto the counter master image itself, not separately composed at
+runtime. This is a new, narrowly-scoped brief, not a competing one.
+
+This brief creates no image, candidate, final export, metadata record, or
+runtime integration. It is `Ready for Generation` for two masters only.
+
+### A. Brief Identity
+
+* Brief ID: `PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`
+* Title: Mumbai Environmental Props — Storage/Utility Attachment Family
+* Version: `1.0 / V1`
+* Status: `Ready for Generation`
+* Category: `Environmental Prop`
+* Subcategory/Archetype: `Street-Commerce / Attachment-Secondary`
+* City Scope: Mumbai
+* City-skin Treatment Strength: Restrained
+* Gameplay Tier: `Tier 4 — Passive Environmental Asset, Attachment/Secondary sub-role`
+* Owner/Workflow Stage: brief approved; external candidate generation pending
+* Creation Date: `2026-08-14`
+* Last Revised Date: `2026-08-14`
+* Source Authority References: Art Bible 1.0 Frozen; Prompt Bible 1.0 Frozen;
+  Mumbai City Kit 1.0 Frozen (Pillar 1 primary, Pillar 2 restrained-optional);
+  Technical Asset Contract §4/§4.1/§5/§7; Production Asset Brief Framework 1.2
+  Frozen; `NAMING_CONVENTIONS.md`; `ASSET_METADATA.md` /
+  `assets/metadata/asset.schema.json`
+
+### B. Authority References
+
+* Art Bible: Version 1.0, Frozen — Environmental Props, Gameplay Hierarchy,
+  Modularity, Camera & Composition, Style & Shape Language, Colour & Contrast
+* Prompt Bible: Version 1.0, Frozen — Environmental Props module, Modular
+  Micro-Clusters module, Mumbai city-skin, day/night, isolation, negatives
+* City Kit: Mumbai Kit 1.0 Frozen — Pillar 1 Dense Layered Street Commerce
+  (primary), with an optional restrained material-response cue from Pillar 2
+  Monsoon-Worn Urban Surfaces; no permanent wet/rain treatment
+* Technical Asset Contract: current repository contract — §4 hero-scale law (no
+  edge/environment prop exceeds the courier's 70 px drawn height unless flagged
+  `tall`; this family is never `tall`), §4.1 tall edge-prop geometry contract
+  (the 8 px hard / 5.6 px preferred road-intrusion discipline applies to any
+  edge-placed prop that can approach the road, including attachments — Section
+  H below states this explicitly), §5 day/night (palette-neutral authoring, no
+  baked shadow/glow), §7 delivery format
+* Production Asset Brief Framework: Version 1.2, Frozen — this family follows
+  the small-prop carve-out in the Runtime Edge Placement Standard ("small
+  ambient props and asset categories outside the tall edge-placement system are
+  not automatically subject to" the tall-landmark authoring envelope), but the
+  8 px hard road-intrusion cap itself is not a landmark-only rule and still
+  applies wherever the placement system can put a footprint near the road
+* High-risk Rules Restated: Tier 4 passive role; non-interactive; protected
+  road; isolated real alpha; no baked shadow/glow halo; no text/logo/brand; no
+  people; no baked micro-scene; subordinate to the anchor it attaches to
+* Conflict/Escalation Notes: none. This brief does not touch the Session 56/57
+  geometry contract, the composer, or budget/spacing rules — attachments are
+  ordinary claims through the existing `edgeAdmits()`/overlap/spacing path, per
+  `game.js` Session 60 comments at the `attachments:` config block.
+
+### C. Asset Purpose
+
+* Asset Definition: two independently selectable, orientation-neutral small
+  environmental props — a compact stacked-crate cluster and a single large
+  storage vessel — usable as optional runtime `attachment`-role claims beside
+  an approved anchor (chai counter, fixed-canopy cart, or umbrella cart)
+* Production Reason: replace the Session 60 attachment-role probes (which
+  reuse anchor art at reduced scale purely to prove plumbing) with genuine
+  small-prop art, and prove the `Anchor + Optional Attachment` grammar with
+  real authored content rather than borrowed pixels
+* Environmental or Gameplay Function: quiet secondary evidence of stored goods
+  beside street commerce — supports Pillar 1 without adding a second anchor-
+  scale silhouette to the edge
+* Reuse Classification: shared, city-skinned family; not city-exclusive in
+  structure (crates and storage vessels are not Mumbai-specific forms), Mumbai
+  in material/palette treatment only
+* Intended Production Outcome: two isolated, orientation-neutral attachment
+  masters, each usable on either edge without a runtime mirror transform
+* Explicit Non-goals: a small-prop catalogue, additional attachment types
+  beyond the two masters below, frontage art, road-surface art, a baked
+  anchor+attachment scene, permanent wet/monsoon treatment, or any anchor-scale
+  asset
+
+### D. Gameplay Role & Safety
+
+* Gameplay Relevance: decorative, secondary-to-anchor environmental support
+* Gameplay Tier: `Tier 4 — Passive Environmental Asset`, and within Tier 4,
+  visually subordinate to every registered anchor master (chai counter,
+  fixed-canopy cart, umbrella cart) — smaller silhouette, smaller runtime
+  height, lighter visual weight
+* Placement Zone: same shallow non-playable Mumbai edge zones as anchors,
+  reached only through the existing `attachment` role and `attachmentY()`
+  placement (immediately above or below an anchor along the route axis); never
+  placed independently of an anchor claim
+* Interaction State: non-interactive, non-collectible, non-destructible, never
+  a hazard, enemy, attack, pickup, interactable station, or objective
+* Category Recognition Requirements: a compact crate stack must read as
+  practical stored goods, not merchandise-for-sale or a pickup; a storage
+  vessel must read as a single practical container, not a hazard urn or a
+  gameplay collectible jar
+* Prohibited Category Resemblance: pickup, reward, hazard, enemy, attack,
+  projectile, spawn marker, interactable machine/station, objective marker, UI
+  icon, or gameplay instruction
+* Readability Priority: first, that the object reads as passive background
+  clutter at a glance; second, plain vs. vessel silhouette distinction; the
+  anchor it sits beside must always remain the dominant object in the cluster
+* Protected Gameplay Characteristics: passive meaning, Tier 4 priority,
+  subordinate visual weight relative to its anchor, non-road placement, small
+  compact footprint, optional (never guaranteed) presence, and no colour-only
+  critical communication
+
+### E. Asset-family Scope
+
+* Base Asset: none shared — this is two independent single-object masters, not
+  a base-plus-variant structure. Each is its own complete, self-contained prop.
+* Included Variants:
+  1. **Crate Cluster** — a compact stack of 2–3 practical plastic or wooden
+     crates, broad simple rectangular forms, low height, no directional
+     handle, spout, or service opening
+  2. **Storage Vessel** — one large practical clay or metal storage vessel
+     (matka-style), rounded form, centred/symmetric silhouette, no handle or
+     spout breaking symmetry
+* Excluded Variants: any third master, colour-only palette swaps sold as
+  variants, a combined crate+vessel composition, a person, a cart, or any
+  anchor-scale structure
+* Shared Structure: none required between the two — the family boundary is
+  role (attachment), tier, scale ceiling, and orientation-neutrality, not a
+  shared silhouette grammar
+* City Material/Detail Layer: restrained Mumbai practical materials —
+  faded teal/muted green/dusty red plastics for the crate cluster; clay or
+  worn painted metal for the storage vessel; mild wear, no heavy grime
+* Time-of-day Treatment: one structural asset reused for day and night,
+  consumed through the existing Session 60 `EDGE_PROP_NIGHT` bake — no
+  separate night art, no baked light source (these are unlit ambient objects,
+  unlike the chai-counter family's optional practical bulb)
+* Runtime Instance Logic: each master is genuinely orientation-neutral by
+  authored symmetry (see Section H), so it is registered under two
+  `EDGE_PROP_DEFS` keys (one `edge: "left"`, one `edge: "right"`) pointing at
+  the **same PNG file** with the **same measured bounds/pivot numbers** — no
+  runtime mirror transform, no second export. This is not a Class A "mirror at
+  runtime" exception; it is honest reuse of symmetric geometry, consistent
+  with this family's explicit no-fake-mirroring policy in Section H.
+* Family Boundary Rationale: both masters share role (`attachment`), gameplay
+  tier, scale ceiling, orientation-neutral authoring requirement, and
+  production/technical output contract; they do not need to share silhouette
+  grammar because attachments are independently selected, not a structural kit
+
+### F. City Identity
+
+* Applicable City: Mumbai
+* Supported Identity Pillar: Pillar 1, Dense Layered Street Commerce (primary);
+  optional restrained material cue toward Pillar 2, Monsoon-Worn Urban
+  Surfaces (mild wear only — no wet/rain treatment)
+* Approved City Cues: practical stacking, restrained plastic/wood/clay/metal
+  materials, mild handling wear, quiet container variation
+* Treatment Strength: Restrained — city identity carried through material and
+  wear cues only, never through ornament or a printed/painted motif
+* Material Cues: faded teal, muted green, dusty red plastics (crates); clay,
+  restrained painted metal (vessel)
+* Architecture/Object-language Cues: none — these are freestanding objects,
+  not architectural attachments
+* Prohibited Stereotypes/Misuse: no poverty coding, no market-clutter pile, no
+  literal readable branding on crates, no stereotype vessel iconography
+* Mixed-city Contamination Exclusions: no Jaisalmer sandstone/desert cues, no
+  foreign material language
+
+### G. Visual Specification
+
+* Silhouette Intent: Crate Cluster — a stable stacked rectangular mass, broad
+  and low; Storage Vessel — one clear rounded mass, centred and symmetric
+* Primary Shape Grammar: global rounded-corner rectangular/rounded-vessel forms
+  consistent with the frozen style language; no sharp unrounded edges
+* Secondary Shape Rhythm: crate slat/rim rhythm on the cluster; a simple neck/
+  rim band on the vessel — restrained, not decorative
+* Proportions: compact and low — both read clearly smaller than any anchor
+* Intended Runtime Height: `26 px`
+* Declared Maximum Runtime Height: `36 px` (never approaches the courier's
+  70 px floor; "avoid very tall attachments" per production scope)
+* Intended Visible Width/Depth: not governed by the tall-edge-prop 0.5–0.6
+  heuristic (Section 4.1's carve-out for small ambient props applies); expect
+  a compact, roughly-square-to-slightly-wide silhouette (~0.8–1.3 W:H) typical
+  of stacked/rounded small forms — non-binding, visually reviewed
+* Edge-envelope Fit: must sit comfortably inside the shallow edge-prop zone at
+  26–36 px without visually competing with its anchor for space
+* Orientation: front-facing, high bird's-eye camera, slight recognition tilt —
+  same camera grammar as every other production master
+* Visual Weight: lighter than every registered anchor; must not read as a
+  second anchor
+* Detail Budget: minimal — silhouette plus one or two material/wear cues; no
+  individual small objects legible inside crates, no readable vessel pattern
+* Outline Treatment: same restrained outline strength as the anchor family
+* Flat-fill/Shading Rules: flat fills, maximum shade layers matching the
+  approved anchor masters — no gradients beyond the frozen style budget
+* Material Hierarchy: primary structural material (plastic/wood or clay/metal)
+  dominant; wear/accent secondary; no tertiary decoration
+* Palette Role: environment role — quiet, desaturated relative to gameplay
+  colours (pickups, enemies, attacks)
+* Accent-colour Limits: at most one restrained accent colour per master (e.g.
+  one crate-lid colour, or one vessel rim tone)
+* Lighting Behaviour: no baked directional light or shadow; flat, palette-
+  driven, matching §5 of the Technical Asset Contract
+* Day/Night Behaviour: same structure; consumed through the Session 60
+  `EDGE_PROP_NIGHT` bake, no separate art
+* Mobile Gameplay-scale Readability: silhouette must remain legible as
+  "stored goods, not gameplay object" at 26–36 px on a mid-tier Android screen
+* High Bird's-eye Camera Compatibility: consistent with every approved master
+
+### H. Camera, Runtime Placement Geometry & Modularity
+
+* Camera Orientation: Masala Run high bird's-eye camera, slight tilt — matches
+  every existing production master
+* Runtime Orientation: freestanding, no inherent facing — see orientation
+  classification below
+* Edge Orientation Class: **provisionally Class A — Fully Mirrorable**, but
+  under this brief's stricter policy no runtime mirror transform is ever
+  applied (see Section E's Runtime Instance Logic). Classification is
+  confirmed, not assumed, at review: if a candidate shows any semantic
+  handedness (directional handle, spout, wear pattern, or lighting asymmetry),
+  it is reclassified Class C and this brief is revised to require dedicated
+  left/right masters before integration — forcing symmetry onto an asymmetric
+  candidate is prohibited.
+* Road-facing Edge / City-facing Edge: not applicable in the anchor sense —
+  attachments do not carry an independent service direction; they inherit
+  their position from `attachmentY()`, which places them along the route axis
+  immediately outside their anchor, at the anchor's own edge distance from the
+  road. Each master must therefore still present a coherent silhouette from
+  the same camera angle regardless of which edge (`left`/`right`) it is
+  registered under.
+* Runtime Depth Direction: not applicable — attachments do not extend an
+  independent depth envelope into the city; their footprint is bounded and
+  shallow at 26–36 px
+* Maximum Playable Intrusion: the Session 56/4.1 hard road-intrusion discipline
+  still applies wherever a footprint can approach the road: declared maximum
+  runtime height `36 px` must pass `ρ × 36 px ≤ 8 px` (ρ ≤ 22.2%) hard, with
+  preferred guidance `ρ × 36 px ≤ 5.6 px` (ρ ≤ 15.6%) — both measured post-
+  generation, per master, following the same alpha-column footprint scan used
+  on every prior master
+* Outward Screen-space Budget: small relative to any anchor; no meaningful
+  outer-bleed risk expected at this scale, confirmed visually at review rather
+  than assumed
+* Stored Visible Bounds: `visualBounds` (alpha ≥ 32 convention, matching every
+  existing def), `footprint`, `cropSafe`, `pivot` — measured per master,
+  identical convention to the vada-pav/chai-counter/umbrella-cart families
+* Placement Footprint: compact, wholly contained in the existing edge-prop
+  zone; must not extend deeper toward the city than its anchor's own footprint
+* Recommended Pivot Edge: honest ground-contact footprint edge/centre — for a
+  symmetric object with no service side, this is the visual base-centre, not
+  an artificially chosen left/right edge
+* Left/Right Applicability: both edges, same binary, same measured numbers
+  (see Section E) — contingent on the Class A confirmation above
+* Pivot Expectations: same honesty rule as every other master — never moved to
+  force a numeric pass
+* Road-facing Visible Depth / ρ / Projected Intrusion / Hard-Preferred Result:
+  pending — measured post-generation; declared targets above are the authoring
+  ceiling, not the expected result (a compact 26–36 px object with a base-
+  centred pivot should land well inside preferred guidance in practice)
+* City-facing Visible Depth / cityFrac / Outer Bleed: pending measurement; not
+  expected to be meaningful at this scale
+* Acceptable On-screen Visibility: full silhouette visible at target height;
+  no edge-of-canvas clipping of the object itself
+* Human-review Notes: confirm footprint honesty, orientation-neutrality
+  (no hidden handedness), readability as passive clutter, and that the object
+  never reads as visually competing with its anchor
+* Cropping Tolerance: same convention as prior masters — generous canvas
+  margin around the visible silhouette, crop-safe region ≥ 48 px beyond
+  `visualBounds` on all sides where canvas size allows
+* Placement Zone: non-playable edge-prop zone, attachment sub-slot only
+* Edge Depth: shallow — bounded by the anchor's own edge depth, never deeper
+* Crop-safe Region: `visualBounds` ± 48 px, clamped to canvas
+* Overlap Allowance: none required — attachments pass the same
+  `edgeAdmits()`/overlap test as every other claim, no special exemption
+* Procedural Spacing: inherits the existing attachment spacing model
+  (`attachmentY()` pad-clearance logic in `game.js`); this brief does not
+  change spacing, budget, or the `attachments.chance`/`max` config
+* Attachment Points: not applicable — these masters are themselves
+  attachments, not anchors with their own attachment points
+* Rotation Permission: none
+* Mirroring Permission: prohibited as a runtime transform for both masters
+  regardless of final orientation class (matches the repo-wide "environmental
+  edge-prop path... never mirrored at runtime" rule in the Technical Asset
+  Contract §6) — orientation-neutral masters achieve both-edge use through
+  identical authored symmetry, not a flip
+* Baked-composition Restrictions: no baked anchor, no baked ground, no baked
+  neighbouring prop, no scene
+
+Functional placement diagram (both edges; attachments sit along the route axis
+outside their anchor, at the same road-distance band):
+
+```text
+Building Zone
+↓
+Edge Decoration Zone
+↓
+Interactive Edge Prop Zone  ← ANCHOR (chai counter / cart)
+                              ← ATTACHMENT (this brief), offset along route
+↓
+Safety Buffer
+↓
+Playable Road
+```
+
+### I. Permitted Variants
+
+* Structural Variation: none within a master — each is a single fixed
+  composition (no "2–4 attachments on the crate" sub-system; that pattern
+  belongs to the chai-counter family, not this one)
+* Material Variation: restrained plastic/wood colour choice on the Crate
+  Cluster (approved: faded teal, muted green, dusty red — pick one per
+  candidate, not a rainbow); vessel clay/metal choice on the Storage Vessel
+* Controlled Wear: mild handling wear only, both masters
+* City Skin: Mumbai, restrained strength, both masters
+* Day/Night Treatment: single structural asset, consumed via the existing
+  `EDGE_PROP_NIGHT` bake — no separate night art
+* Orientation: orientation-neutral (pending Class A confirmation at review)
+* Approved State Change: none
+* Accessibility Treatment: none required beyond the existing multi-cue silhouette
+  rule (shape + material, not colour alone)
+* Gameplay State: none — always the same passive state
+* Invariants Across Variants: Tier 4 passive role, subordinate visual weight,
+  26–36 px scale ceiling, no baked light/shadow, no text/brand, no person
+
+### J. Technical Output
+
+* Technical Asset Contract Reference: current repository contract, §4/§4.1/§5/§7
+* File Type/Colour Space: PNG, real alpha (thresholded trim, no matte fringe), sRGB
+* Transparency/Alpha: isolated subject, transparent background, no baked ground
+* Dimensions/Resolution: generous canvas with wide margin around the visible
+  silhouette (matching the existing family's generous-crop pattern); exact
+  pixel canvas measured post-generation; single image ≤ 1024×1024 per the
+  memory-budget ceiling
+* Padding/Bounds: crop-safe region ≥ 48 px beyond `visualBounds`
+* Pivot: base-centre ground-contact point, honest per Section H
+* Orientation/Side Variants: none — one export per master, registered under
+  both `edge: "left"` and `edge: "right"` `EDGE_PROP_DEFS` keys
+* Naming: per `NAMING_CONVENTIONS.md`
+  (`<city>_<category>_<subject>_<variant>_<lighting>_<size>_v###.<ext>`):
+  * `mumbai_prop_storage_crate_cluster_compact_neutral_1x_v001.png`
+  * `mumbai_prop_storage_matka_vessel_single_neutral_1x_v001.png`
+* Metadata: `assets/metadata/asset.schema.json` — one record per filename,
+  `category: "prop"`, `status: "draft"` until measured, then `"review"`
+  pending PM visual sign-off (never `"approved"` before that pass); draft
+  templates prepared this session:
+  `assets/metadata/mumbai_prop_storage_crate_cluster_compact_neutral_1x_v001.json`,
+  `assets/metadata/mumbai_prop_storage_matka_vessel_single_neutral_1x_v001.json`
+* Export Destination/Manifest: `assets/props/`; `assets/art_manifest.json`
+  updated at import time, not by this brief
+* Collision/Footprint Data: `collision.type: "none"`, `solid: false` — matches
+  every other Tier 4 environmental prop; runtime footprint lives in
+  `EDGE_PROP_DEFS`, not in `collision`
+* Animation/Frame Requirements: none — static image
+* Edge-envelope Compatibility Review: pending post-generation measurement
+* Asset-specific Override: none
+
+### K. Negative Constraints
+
+1. Global Negatives: no realism/photorealism/painterly rendering or
+   unsupported 3D appearance; no readable text, logo, trademark, or brand; no
+   baked shadow or glow halo
+2. Category Negatives: no complete scene, baked ground, or baked neighbouring
+   prop; no decorative clutter that overrides readability; no gameplay-category
+   confusion (pickup, hazard, enemy, interactable)
+3. City-specific Negatives: no stereotype, caricature, poverty coding, or
+   tourist-poster treatment; no mixed-city contamination; no permanent wet/
+   monsoon treatment
+4. Asset-specific Negatives: no directional handle/spout/lighting that breaks
+   orientation-neutrality; no person; no third master; no anchor-scale mass or
+   visual weight; no individually-readable small objects inside the crate
+   stack; no vessel surface pattern that reads as text or branding
+
+### L. Reference-image Usage
+
+| Reference ID | Reason for inclusion | May borrow | Must not copy | Reference type |
+|---|---|---|---|---|
+| `REF-STORAGE-1` | Approved chai-counter v001 master — style/material/palette continuity for the shared Mumbai environmental-prop family | flat-fill style, outline strength, restrained-accent palette logic | structure, counter silhouette, attachment layout | Structural/Material/Palette |
+| `REF-STORAGE-2` | Approved umbrella-cart v002 masters — confirms the family's isolation/alpha/crop-margin convention | isolation and crop-margin convention, camera angle | cart structure, wheel/umbrella forms | Structural/Palette/Mood |
+
+References are supporting evidence only; they do not override this brief.
+
+### M. Derived Generation Prompt
+
+* Prompt Version/ID: `PROMPT-STORAGE-ATTACHMENT-V1`
+* Source Brief ID/Version: `PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1 / 1.0`
+* Model/Pipeline Target: external image-generation tool (PM/ChatGPT), matching
+  the pipeline used for the chai-counter, vada-pav-cart, and umbrella-cart
+  families — this session has no image-generation tool available
+* Final Model-facing Prompts: see the two copy-pasteable prompt blocks
+  delivered alongside this brief (Crate Cluster, Storage Vessel)
+
+### N. Candidate-generation Plan
+
+* Candidate Count: `4` per master (framework default), `8` total
+* Count Override and Justification: none
+* Generation Model/Pipeline: external (PM-run, ChatGPT image generation or
+  equivalent) — outside this session's tool access
+* Seed Strategy: not supported by the target pipeline; record whatever seed/
+  reference the tool reports per candidate for traceability
+* Controlled Prompt Fields: gameplay role, tier, isolation, technical output,
+  negatives, orientation-neutrality requirement — held constant across all 4
+  candidates per master
+* Variable Prompt Fields: none authorized beyond ordinary generation variance;
+  do not vary structure, material family, or accent count across candidates
+* Output Destination: PM delivers candidate images to
+  `~/Documents/Working images/` (the accessible drop path this session already
+  uses); Claude imports the accepted candidate into `assets/props/` at
+  measurement time
+* Candidate Naming: `PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1_<master>_c<1-4>`
+
+### O. Acceptance Criteria
+
+1. **Gameplay and category safety:** does not read as a pickup, hazard,
+   enemy, or interactable station at 26–36 px
+2. **Silhouette and recognition:** Crate Cluster reads as stacked stored
+   goods; Storage Vessel reads as one practical container; both read as
+   subordinate to whatever anchor they sit beside
+3. **Technical compliance:** real alpha, no matte fringe, generous crop
+   margin, filename/metadata pass `tools/validate_asset_names.py` and
+   `tools/validate_asset_metadata.py`
+4. **Modularity and procedural usability:** clean isolation, no baked ground/
+   neighbour, honest measurable footprint/pivot, passes `edgeAdmits()` in a
+   controlled runtime test on both edges
+5. **City identity:** restrained Pillar 1 material cue present without
+   ornament or stereotype
+6. **Global style consistency:** flat-fill/outline/camera grammar matches the
+   existing production family
+7. **Charm and polish:** only after all above pass
+
+Additionally, per this brief's small-prop carve-out from the tall-landmark
+envelope: the family must still pass `ρ × 36 px ≤ 8 px` hard and record the
+`ρ × 36 px ≤ 5.6 px` preferred result, measured the same way as every other
+edge-placed master.
+
+### P. Rejection Triggers
+
+* category confusion or poor gameplay readability at attachment scale
+* visual weight competing with or exceeding the anchor it sits beside
+* hidden semantic handedness in a candidate claimed orientation-neutral
+* baked shadow, glow, ground, or neighbouring object
+* Technical Asset Contract failure, broken transparency, or invalid export
+* unusable or dishonest pivot/bounds/footprint
+* city stereotype or mixed-city contamination
+* `ρ × 36 px > 8 px` (hard road-intrusion failure)
+* uncontrolled/undocumented variant (a third master, a combined composition,
+  or a directional cue not in this brief)
+
+### Q. Review Record
+
+* Reviewer: pending — no candidates generated yet
+* Review Date: n/a
+* Candidate Identifiers: n/a
+* Result: n/a
+* Failure Classification: n/a
+* Evidence: n/a
+* Required Corrections: n/a
+* Brief Revision Needed: n/a
+* Prompt-only Revision Allowed: n/a
+* Selected Candidate: n/a
+* Final Approval Note: not started — this brief authorizes generation only
+
+### R. Revision History
+
+| Version | Date | Changed section | Reason | Evidence/failure addressed | Approver |
+|---|---|---|---|---|---|
+| `1.0 / V1` | `2026-08-14` | Full A–R initial brief | Session 61 Phase 2: define the first standalone `attachment`-role small-prop family to replace the Session 60 attachment probes; no existing brief covered a runtime-composable secondary prop | No image generation is part of this session (no tool access); replaces borrowed-pixel probes with a real, narrowly-scoped brief per the framework's "if no appropriate brief exists, create the minimum required" rule | Masala Run Production Review |
+
+Next task: **Run the two Section M generation prompts externally (PM/ChatGPT),
+review the 8 candidates against Section O/P, select one per master, then hand
+back for measurement (visualBounds/footprint/pivot/ρ), metadata completion,
+`EDGE_PROP_DEFS` registration on both edges, Session 60 probe removal, and the
+Session 50/51/56/57/60/61-Phase-1 regression suite — no runtime change is made
+until real binaries exist.**
