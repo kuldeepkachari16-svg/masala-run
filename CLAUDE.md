@@ -64,6 +64,17 @@ your first non-trivial change.
   shown small in the settings panel — lets anyone confirm which deploy is
   live) and `sw.js`'s `CACHE` version (forces a clean refresh past the
   service worker). Same convention, same commit.
+- **New art master → two checks (Session 59).** (1) Any experimental /
+  geometry-prototype master MUST carry `test: true` in its `EDGE_PROP_DEFS`
+  entry — `loadEdgeProps()` only preloads production defs, and a missing flag
+  means every player downloads a master that can never draw. Flag-gated defs
+  load on demand via `ensureEdgeProp(k)`. (2) Every master ships
+  payload-checked: run `tools/optimize_prop_master.py`. The acceptance test for
+  any recompression is a **bit-identical alpha ≥ 32 mask**, never visual
+  similarity — all `EDGE_PROP_DEFS` bounds (`visualBounds`, `footprint`,
+  `cropSafe`, `pivot`) are measured off that mask, so one flipped bit can
+  silently move a pivot. Also keep `sw.js`'s precache list pointed at the
+  masters `ACTIVE_THEME` actually draws.
 
 ## Context hygiene (token burn)
 Sessions here have hit 385K ctx; every tool call replays the whole context.
