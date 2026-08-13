@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v32";
+const CACHE = "masala-run-v33";
 const ASSETS = [
   "./",
   "index.html",
@@ -13,8 +13,9 @@ const ASSETS = [
   "assets/sprites/courier.svg",
   "assets/sprites/bland.svg",
   // Active theme is "retro-day" (procedural road, game.js ACTIVE_THEME) plus the
-  // production edge-prop masters the composer actually draws — these three and
-  // only these (EDGE_PROP_DEFS entries without `test: true`).
+  // production edge-prop masters the composer actually draws — these five and
+  // only these (EDGE_PROP_DEFS entries without `test: true`, i.e. keys in
+  // PRODUCTION_CATALOGUE_KEYS).
   //
   // This list used to name the four city-<day|night> strips. Those belong to the
   // "city-art" theme, which retro-day never loads (loadThemeImages returns early
@@ -26,6 +27,9 @@ const ASSETS = [
   "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_right_neutral_1x_v002.png",
   "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.png",
   "assets/props/mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.png",
+  // Session 61: umbrella/open-cart pair, promoted into PRODUCTION_CATALOGUE_KEYS.
+  "assets/props/mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v002.png",
+  "assets/props/mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v002.png",
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",

@@ -3313,7 +3313,7 @@ function cityUnlockedZones(c) {
 // Manually bumped each session that ships — shown small in the settings panel
 // so the PM (or anyone) can confirm they're on the latest deploy rather than
 // a stale PWA/cache copy. "session.phase · date", matching CHANGELOG.md.
-const BUILD_TAG = "60.0 · 2026-08-13";
+const BUILD_TAG = "61.1 · 2026-08-13";
 const SETTINGS_KEY = "mr_settings";
 const OPTIONS = {
   difficulty: ["easy", "normal", "hard"],
