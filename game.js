@@ -2001,7 +2001,12 @@ const CONFIG = {
   },
   // Chance a spawn event is a swarmer pack, indexed by wave (last repeats).
   // Waves 6 & 7 (indexes 5,6) softened — first level shouldn't spike here.
-  swarmerShare: [0, 0, 0.18, 0.25, 0.3, 0.22, 0.28, 0],
+  // Session 58 Phase 3 (2026-08-13): wave-3 share cut 0.18→0.10 — swarmers
+  // went from 0 to the single biggest jump in the array in one wave, right
+  // as the base spawn rate is also ramping. Wave 4 (0.25) untouched — it's
+  // the escalation beat, and the resulting 3→4 step (0.10→0.25) is now
+  // bigger, not smaller, so wave 4 still reads as a real wall.
+  swarmerShare: [0, 0, 0.10, 0.25, 0.3, 0.22, 0.28, 0],
   // Mini-boss (wave 5): arrives alone; regular spawns + wave timer pause.
   boss: {
     wave: 5,
@@ -3459,6 +3464,7 @@ function tryOpenPick() {
   pendingLevels--;
   pickKind = "levelup";
   boonChoices = availableBoons().slice(0, 3);
+  floaters.length = 0; // a frozen recipe/eat toast must never sit behind the card text
   sfx.bossDown();
   if (navigator.vibrate) navigator.vibrate(8);
 }
@@ -3628,7 +3634,7 @@ function killEnemy(j) {
     shake = 0.45; hitStop = 0.12; fusionFlash = 0.2;
     sfx.bossDown();
     if (buildMaxed()) { noteFullyStocked(); }
-    else { pickKind = "boss"; boonChoices = availableBoons().slice(0, 3); }
+    else { pickKind = "boss"; boonChoices = availableBoons().slice(0, 3); floaters.length = 0; }
     return;
   }
   sfx.kill();

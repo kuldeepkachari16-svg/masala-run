@@ -56,7 +56,7 @@ monetization are now **first-class**, gated on proof.
 
 **What decides success, in order (everything else is downstream):**
 1. **Core-loop retention** — a stranger *involuntarily* replays. Casual benchmark: D1 ≥ ~35%, avg session ≥ ~4 min. **Unvalidated today.**
-2. **Build depth** — the flavor hook becomes a real run-build (see `docs/build-system.md`). Our differentiator; currently thin (5 boons, bosses only).
+2. **Build depth** — the flavor hook becomes a real run-build (see `docs/build-system.md`). Frequent XP-driven level-up picks are shipped (build-system step 1); the pool feeding them is still only ~5 cards, so card/build variety remains thin. Broader pool + fusion evolutions + meta-progression are still future work.
 3. **Meta-progression** — permanent unlocks/currency between runs = the retention engine. **Absent today.**
 4. **Distribution** — solo + no UA budget ⇒ the realistic path to a *hit* is a casual-games **publisher who funds user acquisition**. They sign only on proven CPI/retention. So the real gate is an *instrumented, retentive* build — no shortcut around the metrics.
 

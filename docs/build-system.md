@@ -5,8 +5,9 @@ differentiator and the deepest gap on the path to a commercial launch (see
 `ROADMAP.md` → Commercial north-star, item 2).
 
 **Builds on today's mechanics:** auto-fire at the nearest Bland (you only move);
-your weapon = the **last-eaten flavor**; flavor fades in 15s; upgrades = 5 boons,
-*only at bosses*; fusions = *one-shot bursts*; no meta between runs.
+your weapon = the **last-eaten flavor**; flavor fades in 15s; upgrades = frequent
+XP-driven level-up picks (1-of-3, plus a stronger pick at bosses) drawn from a
+pool of ~5 cards; fusions = *one-shot bursts*; no meta between runs.
 
 ## The core insight to protect
 Your weapon is **food, and it's transient.** Keep that. A "build" = the flavor
@@ -51,7 +52,10 @@ Between runs:
 - Both outcomes reward → "one more run."
 
 ## Build order (prototype in JS, validate, then port — never before)
-1. **XP + level-up 1-of-3 pick** with a starter pool of ~6–8 cards. *Spike: does the pick loop feel good?* ← start here
+1. ~~**XP + level-up 1-of-3 pick.**~~ ✅ shipped 2026-06-20 (`ca9fb82`/`8f611e3`)
+   — XP from kills, level-ups pick 1-of-3, boss picks are the stronger variant.
+   Pool is still the original ~5 boons (`CONFIG.boons`), not yet the ~24-card
+   target below — that's still open.
 2. Give **savory** its identity; differentiate the three flavors mechanically.
 3. **Persistent fusion evolutions.**
 4. **Minimal meta:** Masala currency + 3–4 permanent unlocks + results screen.
