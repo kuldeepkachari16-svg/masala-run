@@ -257,6 +257,21 @@ fusion evolutions / meta-progression remain future work).
 powers (Session 58 P2 finding, parked); the real human Gate-1 playtest
 (still the standing P0, unaffected by this session).
 
+> **⬆ CLARIFICATION — final Session 58 outcome (recorded 2026-08-13, Session 60).**
+> Everything above is preserved as written and is an **intermediate-state
+> record**: it was authored *before* the tuned build was played by a human, so
+> its "the real human Gate-1 playtest (still the standing P0)" line describes
+> the state at that moment, not how the session ended.
+>
+> What happened after: the tuned build was pushed, **the PM manually played it
+> and accepted it**. That manual play — not the scripted 10-run validation
+> above — is the deciding evidence for Gate 1. The automated pass confirmed the
+> wave-3 spike mechanism was removed and correctly declined to claim more than
+> that.
+>
+> **Session 58 closed with a final PASS. Gate 1 is CLOSED.** Current status
+> lives in `ROADMAP.md` under Phase 1 item 5.
+
 ## 2026-08-12 — Session 57: multi-segment production distribution
 
 Replaced the single-fixed-instance production harness with a deterministic

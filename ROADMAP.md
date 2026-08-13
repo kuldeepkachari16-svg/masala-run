@@ -68,7 +68,7 @@ monetization are now **first-class**, gated on proof.
 4. **Distribution** — solo + no UA budget ⇒ the realistic path to a *hit* is a casual-games **publisher who funds user acquisition**. They sign only on proven CPI/retention. So the real gate is an *instrumented, retentive* build — no shortcut around the metrics.
 
 **Critical path:**
-- **P0 — Validate fun:** (a) Gate-1 playtest — **PM states (2026-08-13) that Session 58 completed and passed the Fresh-Player Fun & Retention Gate** after the wave-3 tuning change, and that the Production-Integration Gate passed in Session 52. Recorded on the PM's authority. ⚠️ *Evidence gap, flagged not silently reconciled:* the repo carries no record of that playtest — the Session 58 Phase 3 `CHANGELOG.md` entry, written at the time, says the opposite twice ("the real human Gate-1 playtest (still the standing P0)"), and explicitly notes the bot data "doesn't independently prove reachability gains." If the playtest happened, its findings should be written up; if the PM means the bot-driven diagnostic satisfied the gate, that reading should be stated so the two records stop contradicting each other. **Downstream work is no longer blocked on this either way.** (b) Build the flavor **build system** + a minimal **meta loop**, then re-test for "one more run."
+- **P0 — Validate fun:** (a) Gate-1 playtest — **PASSED.** ✅ Both gates are now closed: the Production-Integration Gate at Session 52, and the fresh-player fun/retention Gate-1 at Session 58. See the Gate-1 status note under Phase 1 item 5 below for the evidence order — the deciding evidence is the PM's manual play of the tuned build, not the automated pass. (b) Build the flavor **build system** + a minimal **meta loop**, then re-test for "one more run."
 - **P1 — Productionize (only if P0 passes):** analytics first (measure retention for real) → port/wrap for stores (Unity/Godot, or Capacitor as a cheap first test) → ads + IAP → ASO.
 - **P2 — Soft-launch + publisher:** small-geo test, measure CPI/D1/D7, pitch a publisher or self-fund UA.
 
@@ -92,13 +92,29 @@ GitHub + Pages deploy, mobile viewport/joystick/speed fixes.
    - ~~Level-select hub + unlock progression + persistence + fresh-setup-per-level + per-level difficulty (enemies/barriers, config-driven)~~ ✅ 2026-06-13. **FOCUS: Level 1 is the complete, testable level for playtest round 1.** Levels 2-6 exist as provision (same content, marginally harder). New distinct-level *content* design is still TBD (Phase 2 item 8)
 3. ~~Second enemy type (fast swarmer) — forces flavor switching~~ ✅ 2026-06-12 (+ CONFIG block: all tuning centralized, scaling capped at wave 5)
 4. ~~PWA manifest + icon — home-screen install, offline play~~ ✅ 2026-06-12
-5. Playtest round 1: 3–5 friends. Questions: figured out eat-to-attack
-   unaided? found a recipe unaided? when did retrying stop, and why?
+5. ~~Playtest round 1. Questions: figured out eat-to-attack unaided? found a
+   recipe unaided? when did retrying stop, and why?~~ ✅ Session 58
 
 **⛔ Gate 1:** no voluntary retries → fix the loop before building more.
-Feedback orders Phase 2. **Status (2026-08-13):** PM states this gate passed at
-Session 58; see the P0 line under the commercial north-star above for the
-evidence gap that should be closed in the record.
+Feedback orders Phase 2.
+
+**✅ GATE 1 STATUS — CLOSED, PASS (Session 58, recorded 2026-08-13).**
+The evidence order matters, because the intermediate records in `CHANGELOG.md`
+read differently and are deliberately left intact:
+
+1. Session 58 Phase 3 shipped a narrow wave-3 tuning change
+   (`CONFIG.swarmerShare[2]` `0.18 → 0.10`).
+2. The **automated** validation for that change (10-run scripted playtest)
+   confirmed the wave-3 spike mechanism was removed, but did **not**
+   independently prove the human outcome — it says so itself.
+3. After the tuned build was pushed, **the PM manually played it and accepted
+   it.** That manual play is the deciding evidence for this gate.
+4. Session 58 therefore closed with a final **PASS**.
+
+Any earlier "the real human Gate-1 playtest is still the standing P0" wording —
+including inside the Session 58 Phase 3 changelog entry — is an
+**intermediate-state record written before step 3**, not the final session
+status. It is preserved as history; this note is the current status.
 
 ## Phase 2 — v0.75 retention
 6. Pre-run loadout draft (choose which foods can drop)

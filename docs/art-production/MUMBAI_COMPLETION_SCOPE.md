@@ -613,7 +613,13 @@ player-visible changed. `git status` clean before and after apart from this file
 2. **Frontage delivery model is an open fork** — see below. It is the one
    genuine blocker to freezing this scope.
 3. **Brief throughput** — 13 proposed families vs. 2 existing production briefs.
-4. **Gate-1 sequencing** — see below.
+   *(Still open — the binding constraint on the Session 61+ batch plan.)*
+4. **Gate-1 sequencing** — this audit questioned running Mumbai art work ahead
+   of an apparently-outstanding Gate 1. **Resolved, and the premise was wrong:**
+   both gates are closed — Production-Integration at Session 52, fresh-player
+   fun/retention at Session 58, the latter decided by the PM's manual play of
+   the tuned build. See `ROADMAP.md` Phase 1 item 5. There is no sequencing
+   objection to Mumbai environment work.
 
 ### The fork blocking a scope freeze
 
