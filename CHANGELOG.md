@@ -1,5 +1,56 @@
 # Masala Run — Changelog
 
+## 2026-08-13 — Session 58 Phase 3: early-game balance pass + recipe-toast fix
+
+Targeted follow-up to Session 58's diagnostic playtest (bot + PM manual
+play both flagged a wave 3-4 death wall). PM's manual test of VADA PAV
+RAIN confirmed powers help but only partially resolve it — sufficient to
+proceed with a small tuning pass, not a redesign.
+
+**Change.** `CONFIG.swarmerShare[2]` (wave 3) `0.18 → 0.10` — `game.js`
+only value touched. It was the single biggest jump in the array (0 in
+waves 1-2 to 0.18 in one step), landing right as `spawnBase`'s ramp is
+also increasing base spawn frequency — the mechanism-level explanation
+for the diagnosed wall. Wave 4 (`0.25`) deliberately untouched so the
+escalation beat still lands; no changes to enemy hp/speed/damage, power
+strength, or player HP.
+
+**Validation.** Scripted playwright-core (`channel: "chrome"`, headless)
+before/after playtest, 10 runs total (5 at `swarmerShare[2]=0.18`, 5 at
+the shipped `0.10`), driven via `__mr.tick()` with a real movement/dodge
+heuristic (food-seeking + enemy-repulsion) and `__mr.triggerRush()` /
+`__mr.triggerSlam()` power usage — not a stationary walk. Result: wave-3
+swarmer presence went from 2-3 concurrent in every BEFORE run to 0 in
+every AFTER run; wave-4 max concurrent enemies stayed in the same 8-18
+range across both conditions. Waves 1-2 unchanged in either condition
+(max 2-4 enemies), not flattened. Neither condition produced a death in
+this specific 10-run sample (bot dodge quality got "stuck" at the wave
+5/8 boss encounter in all runs, a scripted-bot limitation, not the
+question under test) — this data confirms the wave-3 spike mechanism was
+removed as designed, but doesn't independently prove reachability gains;
+that's still the pending real human Gate-1 playtest's job.
+
+**Recipe-toast fix.** A "NEW RECIPE" toast could freeze in place (behind
+a translucent overlay, still near-full alpha) right where the POWER
+UP/BOSS DOWN choice modal renders its cards, if a fusion landed right
+before a level-up/boss-kill opened the pick screen — `update()` returns
+early while `boonChoices` is set, so any in-flight floater stops
+decaying/moving but keeps rendering. Fix: `floaters.length = 0` at both
+sites that open a choice modal (`tryOpenPick()` for level-ups, the
+mini-boss-kill branch for boss picks) — the modal always opens onto a
+clean floater layer. Confirmed via screenshot: no toast bleed-through.
+
+**Docs.** `ROADMAP.md` and `docs/build-system.md` both said "5 boons,
+bosses only" / "upgrades ... only at bosses" — stale since `ca9fb82`/
+`8f611e3` (2026-06-20) shipped XP-driven 1-of-3 level-up picks the same
+day the docs were written. Corrected both to reflect frequent level-ups
+already shipped, pool still ~5 cards (unchanged scope — broader pool /
+fusion evolutions / meta-progression remain future work).
+
+**Not in scope this pass (by design):** onboarding for Rush/Slam manual
+powers (Session 58 P2 finding, parked); the real human Gate-1 playtest
+(still the standing P0, unaffected by this session).
+
 ## 2026-08-12 — Session 57: multi-segment production distribution
 
 Replaced the single-fixed-instance production harness with a deterministic

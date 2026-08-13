@@ -2543,6 +2543,10 @@ function cityUnlockedZones(c) {
 }
 
 // ---------- Settings ----------
+// Manually bumped each session that ships — shown small in the settings panel
+// so the PM (or anyone) can confirm they're on the latest deploy rather than
+// a stale PWA/cache copy. "session.phase · date", matching CHANGELOG.md.
+const BUILD_TAG = "58.3 · 2026-08-13";
 const SETTINGS_KEY = "mr_settings";
 const OPTIONS = {
   difficulty: ["easy", "normal", "hard"],
@@ -5176,6 +5180,11 @@ function drawSettings() {
   }
 
   drawSettingsStickPreview(fx);
+
+  ctx.textAlign = "left";
+  ctx.font = "10px sans-serif";
+  ctx.fillStyle = "#4d5261";
+  ctx.fillText("v" + BUILD_TAG, 10, H - 8);
 }
 
 // Live joystick preview inside the panel: side/size/mode changes are
