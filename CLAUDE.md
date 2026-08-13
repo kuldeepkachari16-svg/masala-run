@@ -60,6 +60,10 @@ your first non-trivial change.
   are the durable session record (resume context from them, not from chat).
 - Commit + push only on meaningful, verified work; show the git **sync box**
   after every push (parent rule).
+- **Player-visible ship → bump two things together:** `BUILD_TAG` (`game.js`,
+  shown small in the settings panel — lets anyone confirm which deploy is
+  live) and `sw.js`'s `CACHE` version (forces a clean refresh past the
+  service worker). Same convention, same commit.
 
 ## Context hygiene (token burn)
 Sessions here have hit 385K ctx; every tool call replays the whole context.
