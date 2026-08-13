@@ -89,6 +89,50 @@ can ignore. For a screenshot, crank `CONFIG.corridor.camLerp` (e.g. to `400`)
 instead so the camera converges in ~10 ticks rather than ~90 — far fewer
 gates get crossed in the same real time, and the shot stays clean.
 
+**A ready-made harness lives in `tools/verify/`.** `cdp.js` is the driver
+(connect / boot / tick / crop) and `regression.js` runs the Sessions
+50/51/56/57 guarantees plus cache and night-treatment checks. Start there
+instead of rebuilding a driver — Sessions 46-60 each rebuilt one.
+
+**Bot movement can silently stop while everything else keeps running.**
+`Input.dispatchKeyEvent` returns success while the page stops responding to it;
+enemies and spawns carry on, only the player's position freezes. Cost ~40 min in
+Session 58 Phase 2. Only visible by comparing `player.x/y` across ticks, never by
+trusting the CDP call's own return. Build a stuck-detector into any movement
+heuristic, and check system load before a long run — every occurrence so far was
+under heavy load (500+ processes, load avg 5.0, near-zero free memory); a fresh
+page on the same Chrome moved correctly in isolation, so load correlation is the
+leading theory rather than a confirmed root cause.
+
+**Track accumulated path length, not net displacement.** A stuck-detector built
+on start-vs-current position false-triggers during boss-lock dodging, where the
+player legitimately oscillates around a stable point while very much alive.
+
+**Don't pipe a long batch driver through `tail`.** It buffers everything until
+the process exits, so a slow-but-alive run looks exactly like a hang. Log
+incrementally (`fs.appendFileSync`) with a periodic heartbeat — tick count,
+state, position.
+
+**`__mr.tick(0)` advances state but does NOT repaint.** The paint happens on
+rAF, so two back-to-back `getImageData` grabs around a config toggle read the
+SAME stale frame. Any before/after pixel comparison must `await` a real frame
+between grabs. Session 60 lost a cycle to a road-safety test that reported "0
+pixels changed → PASS", which was vacuous.
+
+**The rAF loop keeps simulating between grabs.** Even with the await above, a
+frame-to-frame diff picks up moving entities — Session 60's second attempt
+reported the "frontage band" intruding to screen centre, which was just enemies
+moving. If you need to measure a *layer*, don't diff live frames: expose the
+layer's layout as data and assert on the geometry (`__mr.frontagePlan` exists
+for exactly this reason).
+
+**Two measurement traps when sampling a sprite's own pixels.** (1) Sampling a
+prop's `visualBounds` rect measures mostly road — the rect is largely
+transparent PNG. Rebuild the draw transform offscreen and mask to alpha 255.
+(2) Saturation *of the mean colour* is not mean saturation: averaging many hues
+converges to grey however saturated the pixels are, so it reads as pure noise.
+Accumulate per-pixel saturation instead.
+
 ## `__mr` debug API
 
 Actions:

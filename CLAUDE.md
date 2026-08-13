@@ -56,6 +56,18 @@ your first non-trivial change.
   device via `__mr.config`. Per-level tuning in `CONFIG.levels`.
 - **Verify changes in the browser preview before claiming done** — never ask the
   PM to check manually; share proof (screenshot / state read).
+- **Browser verification runs over raw CDP, not the Claude-in-Chrome bridge.**
+  The extension returns `Cannot access a chrome-extension:// URL of different
+  extension` on every call in this profile — hit in Sessions 46/47 and again in
+  59. Don't burn a cycle retrying it. The harness is `tools/verify/` (driver +
+  regression suite); traps are listed in `docs/verification.md`, and they are
+  listed because each one has already cost a debug cycle.
+- **Anything drawn INTO a segment tile must be folded into
+  `segCompositionSig()`.** The tile cache is keyed on it, so a layer that paints
+  into the tile without contributing to the signature serves art composed under
+  stale config after any live change. Session 54 hit this with claim ids;
+  Session 60 added the frontage band and road overlays and had to fold in both.
+  New tile-painting layer ⇒ new signature term, same commit.
 - Keep `README.md`, `CHANGELOG.md`, `ROADMAP.md` current as work lands — these
   are the durable session record (resume context from them, not from chat).
 - Commit + push only on meaningful, verified work; show the git **sync box**
@@ -101,6 +113,16 @@ git archaeology:
   source of truth. Its live job is "last meaningfully reviewed."
 - When a doc dies, don't delete silently — flip Status to `Superseded by …`.
 - Full cross-AI rule in `docs/project/AI_COLLABORATION.md`.
+
+**CHANGELOG entries are point-in-time, and stale status wording spreads.** An
+entry records what was true when it was written. If a session's outcome changes
+after the entry lands — a gate closes, a decision reverses — **append a marked
+clarification block; never edit the original sentences.** Session 58's entry
+said the human Gate-1 playtest was "still the standing P0"; the PM then played
+and accepted the tuned build, but the entry was never annotated, so that line
+was read as current status for two sessions and drove a wrong-premise objection
+in the Session 59 audit. Current status belongs in `ROADMAP.md`; `CHANGELOG.md`
+is history plus, where needed, a dated pointer to the final state.
 
 ## Tone
 - In-GAME copy is playful and comic — that's the product. My **responses to the
