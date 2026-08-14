@@ -1471,50 +1471,117 @@ const EDGE_PROP_DEFS = {
     pivot: { x: 261, y: 1499 },
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
-  // ---- Session 60 ATTACHMENT-ROLE HARNESS — NOT production art ----
-  // The attachment role needs SOMETHING registered to prove the path end to end
-  // (selection -> attachmentY -> productionClaims -> edgeAdmits -> draw), and
-  // this session is explicitly barred from generating art. These two defs
-  // therefore re-point at ALREADY-VALIDATED production masters at attachment
-  // scale: same PNG, same measured bounds, same pivot — only `heightPx`, `role`
-  // and `weight` differ. They are honest about being the same artwork shrunk;
-  // they exist to exercise plumbing, not to look like a real attachment family.
+  // ---- Session 61 Phase 2 — REAL attachment production masters ----
+  // Replaces the Session 60 harness (mumbai_attachment_probe_{left,right}_test,
+  // which re-pointed at shrunk anchor art purely to exercise the plumbing).
+  // These two are genuine small-prop art: PAB-MUMBAI-ENVPROP-STORAGE-
+  // ATTACHMENT-V1, Crate Cluster + Storage Vessel. Both PM-selected candidates
+  // arrived genuinely isolated (verified, not assumed): real RGBA alpha, single
+  // connected component at alpha>=32 (no stray dust), no baked shadow/glow, no
+  // baked background. Repo copies are byte-identical in ALPHA MASK to the
+  // originals — tools/optimize_prop_master.py recompressed RGB/palette only,
+  // its own mask-bit-identity check passed (crate 685854->281673B, strategy
+  // C/128, maxDelta 58/mean 2.82; vessel 764176->65688B, strategy D/256 —
+  // written as an indexed-palette PNG with tRNS alpha, maxDelta 28/mean 2.26).
+  // Neither original in ~/Documents/Working images/ was modified.
   //
-  // `test: true` keeps them off the preload path (they add ZERO bytes — both
-  // masters are already downloaded for their production role) and out of
-  // PRODUCTION_CATALOGUE_KEYS. They reach the attachment pool only when
-  // CONFIG.edgeProps.attachments.testKeys is on. Session 61's real small-prop
-  // family replaces them; delete these two defs at that point.
-  mumbai_attachment_probe_right_test: {
-    src: "assets/props/mumbai_prop_chai_counter_shallow_awning_right_neutral_1x_v001.png",
-    test: true,
+  // Orientation-neutral, verified from pixels, not assumed from the brief:
+  // measuring left-right mirror difference of each canvas's alpha>=32 crop
+  // gives a mean ALPHA diff <1/255 for both (silhouette itself is essentially
+  // exact-symmetric) and the horizontal centre of every scanned row — including
+  // every row in the footprint band — lands at x=626.5-627.0 out of a 1254-wide
+  // canvas (dead centre) for BOTH images, at every height sampled top to
+  // bottom. The only asymmetry found is a subtle painterly specular highlight
+  // (mean RGB diff ~8/255 where both sides are opaque, max ~130-150/255 in a
+  // small streak) — a lighting embellishment, not a functional handedness cue
+  // (no handle/spout/opening/service-side breaks the silhouette). Policy
+  // followed per the brief: ONE binary, registered under two EDGE_PROP_DEFS
+  // keys (edge:"left" / edge:"right") with geometry derived from the SAME
+  // measured bounds via the edge-appropriate side — never a runtime mirror
+  // transform (repo-wide prohibition; see edgePlacement()'s sx() comment).
+  //
+  // Geometry measured by alpha-column scan at the repo's alpha>=32 convention,
+  // own pixels, not copied from any other def:
+  //  - Crate Cluster: canvas 1254x1254; visualBounds (alpha>=32, single
+  //    component) = (323,196)-(930,973); footprint = bottom 4px ground-contact
+  //    band = (356,969)-(897,973) (the object is boxy — footprint width tracks
+  //    visual width closely all the way down, no wheel-vs-counter split).
+  //    roadIntrusion @ heightPx 26 = 1.10px, comfortably inside both the 8px
+  //    hard cap and the 5.6px preferred band — safe up to ~188px before the
+  //    hard cap would even engage. Shipped at the brief's target: 26px.
+  //  - Storage Vessel: canvas 1254x1254; visualBounds = (295,91)-(958,1132);
+  //    footprint (same 4px-band method) = (566,1128)-(686,1132) — this object
+  //    is a rounded vessel photographed/rendered from a steep bird's-eye tilt,
+  //    so its silhouette bulges wide at the belly (visualBounds) then tapers to
+  //    a narrow base (footprint) — a real geometric fact, not a measurement
+  //    artifact (confirmed stable across footprint-band widths 2-12px: 5.9-
+  //    7.2px @ 26px in every case). roadIntrusion @ heightPx 26 = 6.77-6.79px —
+  //    PASSES the 8px hard cap but sits ABOVE the 5.6px preferred band, closer
+  //    to the ceiling than any other registered master. The brief's originally
+  //    declared 36px maximum runtime height is NOT achievable: @36px intrusion
+  //    is 9.37-9.41px, over the hard cap. Solving for the cap gives a true safe
+  //    ceiling of ~30.7px — barely above the 26px target itself, essentially no
+  //    headroom. Reported honestly rather than silently kept at 36px or forced
+  //    to pass by moving the pivot. Shipped at 26px only; do not scale this
+  //    master up without remeasuring.
+  mumbai_storage_crate_cluster_right: {
+    src: "assets/props/mumbai_prop_storage_crate_cluster_compact_neutral_1x_v001.png",
     role: "attachment",
     weight: 2,
     city: "mumbai",
     edge: "right",
-    canvas: { w: 699, h: 709 },
-    heightPx: 30,          // attachment scale — well under the 70 px courier floor
+    canvas: { w: 1254, h: 1254 },
+    heightPx: 26,          // attachment scale — well under the 70px courier floor
     tall: false,
-    visualBounds: { x0: 48, y0: 48, x1: 650, y1: 658 },
-    footprint: { x0: 83, y0: 580, x1: 606, y1: 658 },
-    cropSafe: { x0: 0, y0: 0, x1: 698, y1: 706 },
-    pivot: { x: 83, y: 658 },
+    visualBounds: { x0: 323, y0: 196, x1: 930, y1: 973 },
+    footprint: { x0: 356, y0: 969, x1: 897, y1: 973 },
+    cropSafe: { x0: 275, y0: 148, x1: 978, y1: 1021 },
+    pivot: { x: 356, y: 973 },
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
-  mumbai_attachment_probe_left_test: {
-    src: "assets/props/mumbai_prop_vadapav_cart_fixed_canopy_left_neutral_1x_v003.png",
-    test: true,
+  mumbai_storage_crate_cluster_left: {
+    src: "assets/props/mumbai_prop_storage_crate_cluster_compact_neutral_1x_v001.png",
     role: "attachment",
     weight: 2,
     city: "mumbai",
     edge: "left",
-    canvas: { w: 729, h: 640 },
-    heightPx: 30,
+    canvas: { w: 1254, h: 1254 },
+    heightPx: 26,
     tall: false,
-    visualBounds: { x0: 48, y0: 48, x1: 680, y1: 591 },
-    footprint: { x0: 146, y0: 498, x1: 642, y1: 591 },
-    cropSafe: { x0: 0, y0: 0, x1: 728, y1: 639 },
-    pivot: { x: 642, y: 591 },
+    visualBounds: { x0: 323, y0: 196, x1: 930, y1: 973 },
+    footprint: { x0: 356, y0: 969, x1: 897, y1: 973 },
+    cropSafe: { x0: 275, y0: 148, x1: 978, y1: 1021 },
+    pivot: { x: 897, y: 973 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
+  mumbai_storage_matka_vessel_right: {
+    src: "assets/props/mumbai_prop_storage_matka_vessel_single_neutral_1x_v001.png",
+    role: "attachment",
+    weight: 2,
+    city: "mumbai",
+    edge: "right",
+    canvas: { w: 1254, h: 1254 },
+    heightPx: 26,
+    tall: false,
+    visualBounds: { x0: 295, y0: 91, x1: 958, y1: 1132 },
+    footprint: { x0: 566, y0: 1128, x1: 686, y1: 1132 },
+    cropSafe: { x0: 247, y0: 43, x1: 1006, y1: 1180 },
+    pivot: { x: 566, y: 1132 },
+    spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
+  },
+  mumbai_storage_matka_vessel_left: {
+    src: "assets/props/mumbai_prop_storage_matka_vessel_single_neutral_1x_v001.png",
+    role: "attachment",
+    weight: 2,
+    city: "mumbai",
+    edge: "left",
+    canvas: { w: 1254, h: 1254 },
+    heightPx: 26,
+    tall: false,
+    visualBounds: { x0: 295, y0: 91, x1: 958, y1: 1132 },
+    footprint: { x0: 566, y0: 1128, x1: 686, y1: 1132 },
+    cropSafe: { x0: 247, y0: 43, x1: 1006, y1: 1180 },
+    pivot: { x: 686, y: 1132 },
     spacing: { minMul: 1.15, recMul: 1.9, overlapAllowMul: 0.08 },
   },
 };
@@ -1753,6 +1820,14 @@ const PRODUCTION_CATALOGUE_KEYS = [
   // pass the Session 56 geometry contract inside the preferred-guidance band.
   "mumbai_vadapav_cart_umbrella_open_cart_right",
   "mumbai_vadapav_cart_umbrella_open_cart_left",
+  // Session 61 Phase 2: real attachment-role masters (PAB-MUMBAI-ENVPROP-
+  // STORAGE-ATTACHMENT-V1), replacing the Session 60 probe harness. Role-aware
+  // productionCatalogue() only returns these for role:"attachment" queries —
+  // they never compete with the anchors above.
+  "mumbai_storage_crate_cluster_right",
+  "mumbai_storage_crate_cluster_left",
+  "mumbai_storage_matka_vessel_right",
+  "mumbai_storage_matka_vessel_left",
 ];
 // Session 60: the catalogue is now role-aware. `role` defaults to "anchor" so
 // every pre-existing key keeps its exact meaning.
@@ -2843,10 +2918,12 @@ const CONFIG = {
       on: true,
       chance: 0.55,    // per-slot roll, so `max: 1` means ~55% of anchors get one
       max: 1,
-      // Lets the two Session 60 attachment-probe defs into the pool. OFF by
-      // default: with no real attachment family registered yet the production
-      // attachment pool is empty, so shipped behaviour is unchanged and this
-      // whole block is inert until Session 61 registers real art.
+      // Session 60 harness door for `test:true` attachment defs — dead weight
+      // now that Session 61 Phase 2 registered real production attachment
+      // masters directly in PRODUCTION_CATALOGUE_KEYS (they need no test flag
+      // to reach the pool). Left in place, OFF, only as a reusable path for a
+      // future opt-in geometry pilot; nothing currently in EDGE_PROP_DEFS sets
+      // `test: true` + role:"attachment", so this is inert either way.
       // Live: __mr.config.edgeProps.attachments.testKeys = true
       testKeys: false,
     },
@@ -3313,7 +3390,7 @@ function cityUnlockedZones(c) {
 // Manually bumped each session that ships — shown small in the settings panel
 // so the PM (or anyone) can confirm they're on the latest deploy rather than
 // a stale PWA/cache copy. "session.phase · date", matching CHANGELOG.md.
-const BUILD_TAG = "61.1 · 2026-08-13";
+const BUILD_TAG = "61.2 · 2026-08-14";
 const SETTINGS_KEY = "mr_settings";
 const OPTIONS = {
   difficulty: ["easy", "normal", "hard"],

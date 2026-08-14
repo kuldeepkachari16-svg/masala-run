@@ -6,9 +6,10 @@ Freeze Date: 2026-08-04
 Last Revised Date: 2026-08-12
 Validation Status: Validated
 Validation Date: 2026-08-12
-Next Production Task: Generate and review the Session 61 Phase 2 storage/utility
-attachment family (`PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`, Section 16) via
-the external art pipeline, then measure and integrate
+Next Production Task: PM runtime/visual sign-off on the Session 61 Phase 2
+storage/utility attachment family (`PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`,
+Section 16) — generated, measured, and integrated; sign-off is the one
+remaining gate before its metadata advances `review → approved`
 
 ## 1. Purpose
 
@@ -2297,8 +2298,15 @@ runtime integration. It is `Ready for Generation` for two masters only.
 
 * Brief ID: `PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`
 * Title: Mumbai Environmental Props — Storage/Utility Attachment Family
-* Version: `1.0 / V1`
-* Status: `Ready for Generation`
+* Version: `1.1 / V1` (see Revision History §R — integration pass corrected the
+  Storage Vessel's declared maximum runtime height; original targets in
+  Sections F/H/K below are left as originally written, not edited in place,
+  per this repo's doc-provenance convention — see the clarification note after
+  Section H)
+* Status: `Integrated` — both masters selected, measured, registered in
+  `EDGE_PROP_DEFS`/`PRODUCTION_CATALOGUE_KEYS`, shipped (`sw.js`/`BUILD_TAG`
+  bumped), regression-clean. PM runtime/visual sign-off on the integration
+  screenshots is the one open item (see Section Q).
 * Category: `Environmental Prop`
 * Subcategory/Archetype: `Street-Commerce / Attachment-Secondary`
 * City Scope: Mumbai
@@ -2535,6 +2543,28 @@ runtime integration. It is `Ready for Generation` for two masters only.
   (see Section E) — contingent on the Class A confirmation above
 * Pivot Expectations: same honesty rule as every other master — never moved to
   force a numeric pass
+
+> **Integration clarification (Session 61 Phase 2, 2026-08-14) — added, not
+> edited into the passages above, per this repo's doc-provenance convention:**
+> two things written above didn't survive contact with real measurement.
+> (1) **Recommended Pivot Edge**: "visual base-centre" turns out to be
+> incompatible with how `edgePlacement()` actually places props — pivot is the
+> point pinned to the road-edge safety-buffer line
+> (`pivotX = roadEdgeX + dir*safetyBuffer`), so a centre pivot would seat the
+> object straddling that line, guaranteeing a `footprintClear` failure (half
+> the footprint lands on the protected road). Both masters were registered
+> using the SAME road-facing-footprint-edge convention as every anchor in this
+> repo (`pivot.x = footprint.x0` for the right-edge def, `footprint.x1` for
+> left) — the only convention that is physically valid here, not a deviation
+> chosen for convenience. (2) **Maximum Playable Intrusion**: the declared
+> `36 px` ceiling does not hold for the Storage Vessel — real footprint-vs-
+> visualBounds geometry (the vessel's belly bulges past its narrow tapered
+> base, a genuine shape fact from the steep bird's-eye camera angle) puts
+> `ρ × 36px` at 9.37-9.41px, over the 8px hard cap. True safe ceiling is
+> ~30.7px. Shipped at the 26px target only (6.77-6.79px, passes the hard cap,
+> sits above the 5.6px preferred band). Crate Cluster has no such problem
+> (1.10-1.53px across the full 26-36px range, safe to ~188px). Full trail in
+> `CHANGELOG.md`'s Session 61 Phase 2 integration entry.
 * Road-facing Visible Depth / ρ / Projected Intrusion / Hard-Preferred Result:
   pending — measured post-generation; declared targets above are the authoring
   ceiling, not the expected result (a compact 26–36 px object with a base-
@@ -2729,27 +2759,57 @@ edge-placed master.
 
 ### Q. Review Record
 
-* Reviewer: pending — no candidates generated yet
-* Review Date: n/a
-* Candidate Identifiers: n/a
-* Result: n/a
-* Failure Classification: n/a
-* Evidence: n/a
-* Required Corrections: n/a
-* Brief Revision Needed: n/a
-* Prompt-only Revision Allowed: n/a
-* Selected Candidate: n/a
-* Final Approval Note: not started — this brief authorizes generation only
+* Reviewer: Claude (engine), Masala Run Session 61 Phase 2 — technical
+  integration review; PM performed source-candidate selection separately
+  (see Selected Candidate below), runtime/visual sign-off still open
+* Review Date: `2026-08-14`
+* Candidate Identifiers: `masala_run_crate_cluster_candidate1.png`,
+  `masala_run_storage_vessel_candidate2.png` (both in `~/Documents/Working
+  images/`, PM-selected from 4-candidate batches per master, per this brief's
+  Section N)
+* Result: **PASS** (technical) — both isolated correctly, both
+  orientation-neutral verified from pixels, both pass the 8px hard
+  road-intrusion cap at their shipped heightPx (26px). Storage Vessel passes
+  with less margin than any other registered master (6.77-6.79px, above the
+  5.6px preferred band) — see the Section H clarification note above.
+* Failure Classification: none (no rejection) — one specification correction
+  required (Storage Vessel's declared 36px maximum runtime height is not
+  achievable; shipped at 26px only)
+* Evidence: full pixel-level measurement trail (alpha/isolation verification,
+  connected-component dust check, mirror-symmetry diff, footprint/visualBounds/
+  pivot scans, live `__mr.edgeProps.placements` cross-check) recorded in
+  `CHANGELOG.md`'s Session 61 Phase 2 integration entry and in both masters'
+  `assets/metadata/*.json` `notes` fields
+* Required Corrections: none to the art itself; brief-text correction only
+  (Section H clarification note, this version)
+* Brief Revision Needed: yes — `1.0 → 1.1`, clarification-only (see Section R)
+* Prompt-only Revision Allowed: n/a — no re-generation needed
+* Selected Candidate: Crate Cluster candidate 1; Storage Vessel candidate 2
+  (PM's own selection, made before this technical review)
+* Final Approval Note: technical integration PASS. Registered in
+  `EDGE_PROP_DEFS`/`PRODUCTION_CATALOGUE_KEYS`, shipped
+  (`sw.js`/`BUILD_TAG` bumped), regression-clean. Metadata held at
+  `status: "review"` — PM runtime/visual sign-off on the integration
+  screenshots is the one remaining gate before `"approved"`.
 
 ### R. Revision History
 
 | Version | Date | Changed section | Reason | Evidence/failure addressed | Approver |
 |---|---|---|---|---|---|
 | `1.0 / V1` | `2026-08-14` | Full A–R initial brief | Session 61 Phase 2: define the first standalone `attachment`-role small-prop family to replace the Session 60 attachment probes; no existing brief covered a runtime-composable secondary prop | No image generation is part of this session (no tool access); replaces borrowed-pixel probes with a real, narrowly-scoped brief per the framework's "if no appropriate brief exists, create the minimum required" rule | Masala Run Production Review |
+| `1.1 / V1` | `2026-08-14` | Status; Section H (clarification note appended); Section Q; Section R | Session 61 Phase 2 integration pass: PM-selected candidates measured and registered. Real geometry corrected two assumptions in the original brief text (pivot convention, Storage Vessel's max-height ceiling) — corrected via an appended clarification note, not by editing the original passages, per this repo's doc-provenance convention | Real alpha-column measurement of both PM-selected candidates; live `__mr.edgeProps.placements` cross-check; `tools/verify/regression.js` full pass | Masala Run Production Review |
 
-Next task: **Run the two Section M generation prompts externally (PM/ChatGPT),
-review the 8 candidates against Section O/P, select one per master, then hand
-back for measurement (visualBounds/footprint/pivot/ρ), metadata completion,
-`EDGE_PROP_DEFS` registration on both edges, Session 60 probe removal, and the
+Next task: **PM runtime/visual sign-off on the integration screenshots
+(`CHANGELOG.md`'s Session 61 Phase 2 integration entry lists the four
+day/night × edge × anchor-type combinations captured). On sign-off, advance
+both metadata records from `"review"` to `"approved"`. No further brief work is
+required — this family is otherwise closed.**
+
+Superseded (`1.0`'s original next-task text, kept for the trail per this
+repo's doc-provenance convention, not a currently-open task): "Run the two
+Section M generation prompts externally (PM/ChatGPT), review the 8 candidates
+against Section O/P, select one per master, then hand back for measurement
+(visualBounds/footprint/pivot/ρ), metadata completion, `EDGE_PROP_DEFS`
+registration on both edges, Session 60 probe removal, and the
 Session 50/51/56/57/60/61-Phase-1 regression suite — no runtime change is made
-until real binaries exist.**
+until real binaries exist."

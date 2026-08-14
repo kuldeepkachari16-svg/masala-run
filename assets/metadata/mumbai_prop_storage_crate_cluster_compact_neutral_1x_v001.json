@@ -3,8 +3,8 @@
   "city": "mumbai",
   "category": "prop",
   "dimensions": {
-    "width": 0,
-    "height": 0,
+    "width": 1254,
+    "height": 1254,
     "unit": "px"
   },
   "collision": {
@@ -22,12 +22,12 @@
       "playable_road"
     ],
     "minSpacing": 0,
-    "notes": "Disabled draft ahead of binaries (Session 61 Phase 2, PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1). placementWeight/minSpacing stay 0 for the same reason as every other master in this repo: no procedural pool reads this field directly — runtime weight/spacing comes from EDGE_PROP_DEFS/productionClaims()/attachmentY() in game.js, not from this record. dimensions/anchor are 0/0.5 placeholders pending a real export and alpha-column measurement pass; do not treat as measured values."
+    "notes": "Session 61 Phase 2: real geometry, no longer a disabled draft. placementWeight/minSpacing stay 0 for the same reason as every other master in this repo: no procedural pool reads this field directly — runtime weight/spacing comes from EDGE_PROP_DEFS (mumbai_storage_crate_cluster_right/left)/productionClaims()/attachmentY() in game.js, not from this record."
   },
   "anchor": {
-    "x": 0.5,
-    "y": 0.5,
-    "origin": "center"
+    "x": 356,
+    "y": 973,
+    "origin": "custom"
   },
   "lightingCompatibility": [],
   "biomeCompatibility": [
@@ -39,10 +39,16 @@
     "gameplay_tier_4",
     "role_attachment_secondary",
     "variant_crate_cluster",
-    "orientation_neutral_candidate",
+    "orientation_neutral_verified",
+    "orientation_class_a_same_binary_both_edges",
     "runtime_mirroring_prohibited",
-    "no_binary_yet"
+    "geometry_measured_session_61_phase_2",
+    "footprint_pivot_measured",
+    "session_56_geometry_contract_passed",
+    "preferred_guidance_passed",
+    "payload_optimized_session_61_phase_2",
+    "pending_pm_runtime_review"
   ],
-  "status": "draft",
-  "notes": "PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1, Crate Cluster master. Draft template only — no image exists yet; generation is external (PM/ChatGPT), this session has no image-generation tool. Fields above are schema-valid placeholders, not measurements. Replace dimensions/anchor with real alpha-column measurements once a candidate is selected, then advance status to 'review' (never 'approved' before PM visual sign-off). Intended to replace game.js's mumbai_attachment_probe_left_test / _right_test once registered."
+  "status": "review",
+  "notes": "PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1, Crate Cluster master. PM-selected Candidate 1 (masala_run_crate_cluster_candidate1.png in ~/Documents/Working images/, left untouched). Source verified before integration: real RGBA alpha (extrema 0/255), single connected component at alpha>=32 (427,713px, zero stray islands), no baked shadow/glow/background found on visual inspection. No creative cleanup was needed or performed. Repo copy assets/props/mumbai_prop_storage_crate_cluster_compact_neutral_1x_v001.png is the untouched-pixel-content source recompressed by tools/optimize_prop_master.py (685854B -> 281673B, strategy C/128, maxDelta 58/mean 2.82) — that tool's own alpha>=32 mask-bit-identity check passed, so all bounds below (measured pre-recompression) remain valid. Own-pixel measurements: canvas 1254x1254; visualBounds (alpha>=32, main connected component) = (323,196)-(930,973); footprint = bottom 4px ground-contact band = (356,969)-(897,973), stable across footprint-band widths 2-12px (intrusion swings only 0.80-1.27px) — this object is boxy, so footprint width tracks visual width closely all the way to the ground, unlike a wheeled cart's separate counter/wheel bands. cropSafe = visualBounds +/-48px clamped to canvas = (275,148)-(978,1021); real canvas margins (275/148/276/281px L/T/R/B) run well past the 48px minimum on every side. Orientation-neutral VERIFIED from pixels, not assumed: mirroring the alpha>=32 crop gives mean alpha diff 0.91/255 (silhouette itself is essentially exact-symmetric) and mean RGB diff 7.84/255 where both sides are opaque (a subtle painterly highlight only, not a directional handle/spout/service-side). Horizontal silhouette centre measured at 626.5 out of the 1254-wide canvas (dead centre) at every sampled row. Per the brief's Class-A-neutral policy, this ONE binary is registered under TWO EDGE_PROP_DEFS keys (mumbai_storage_crate_cluster_right, pivot=(356,973); mumbai_storage_crate_cluster_left, pivot=(897,973), the mirror-image boundary of the SAME measured footprint) — no runtime mirror transform, matching the repo-wide prohibition. `anchor` above records the right-edge canonical pivot; the left-edge def's pivot is the symmetric counterpart (897 = 1254-356 within 1px, confirming the measured symmetry). Geometry contract (Session 56): scale s = 26/(973-196) = 0.03346; roadFacingVisX (right edge) = visualBounds.x0 = 323; roadIntrusion = |356-323|*0.03346 = 1.10px against the 8px hard cap and the 5.6px preferred band — PASS, comfortably inside preferred guidance, with headroom up to a solved safe ceiling of ~188px before the hard cap would even engage. Shipped at the brief's target heightPx 26; tall:false (attachment scale, well under the 70px courier floor). Registered in game.js as EDGE_PROP_DEFS.mumbai_storage_crate_cluster_right / _left and added to PRODUCTION_CATALOGUE_KEYS, role:\"attachment\", replacing the Session 60 mumbai_attachment_probe_right_test/left_test harness (deleted). Runtime day/night render, composer admission/rejection proof, and regression suite are recorded in CHANGELOG.md's Session 61 Phase 2 entry, not duplicated here. PM visually approved this candidate pre-integration; runtime/integration visual sign-off is a separate, still-open step, so status is held at 'review', not 'approved', consistent with every other master in this repo's gate convention."
 }

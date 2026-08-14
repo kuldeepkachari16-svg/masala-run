@@ -1,5 +1,99 @@
 # Masala Run — Changelog
 
+## 2026-08-14 — Session 61 Phase 2 (integration): real attachment masters replace the Session 60 probes
+
+Follows the docs-only Phase 2 entry directly below. The PM selected candidates
+externally (Crate Cluster candidate 1, Storage Vessel candidate 2, both from
+`~/Documents/Working images/`) and this session did the measurement,
+integration, and regression pass that entry could not.
+
+**Source verification (before any pixel was touched):** both PNGs are genuine
+RGBA (alpha extrema 0/255), single connected component at alpha>=32 (crate
+427,713px; vessel 555,843px — zero stray dust), no baked shadow/glow/
+background found on visual inspection. Neither original in `~/Documents/
+Working images/` was modified. Orientation-neutral verified from pixels, not
+assumed: mirroring each alpha>=32 crop gives mean alpha diff <1/255 (near-
+exact silhouette symmetry) and the horizontal silhouette centre lands within
+0.5px of dead-centre (626.5-627.0 of 1254) at every sampled row for both
+images, including the footprint band — the only asymmetry is a subtle
+painterly specular highlight (mean RGB diff ~8-9/255 where both sides are
+opaque), not a functional handedness cue.
+
+**Geometry — and one real finding, not a clean sweep.** Crate Cluster:
+visualBounds (323,196)-(930,973), footprint (356,969)-(897,973); roadIntrusion
+@ heightPx 26 = 1.10px, comfortably inside the 8px hard cap and the 5.6px
+preferred band, safe to ~188px before the cap would even engage. Storage
+Vessel: visualBounds (295,91)-(958,1132), footprint (566,1128)-(686,1132);
+because this object is a rounded vessel shot from a steep bird's-eye tilt, its
+silhouette bulges wide at the belly then tapers to a narrow base — a real
+geometric fact, confirmed stable across footprint-band widths 2-12px (6.24-
+7.17px). **The brief's declared 36px maximum runtime height is not
+achievable** — @36px intrusion is 9.37-9.41px, over the 8px hard cap; the true
+safe ceiling is ~30.7px, barely above the 26px target. Reported honestly per
+the spec's explicit instruction not to force a pass by moving the pivot or
+loosening geometry. Shipped at the target 26px only (6.77-6.79px, PASSES the
+hard cap, sits above the 5.6px preferred band — the tightest margin of any
+registered master in this repo). Every number reconfirmed live via
+`__mr.edgeProps.placements` post-registration, matching the offline
+measurement exactly.
+
+**Runtime registration.** One binary each, registered under two
+`EDGE_PROP_DEFS` keys per the brief's Class-A-neutral policy (no runtime
+mirror): `mumbai_storage_crate_cluster_{right,left}`,
+`mumbai_storage_matka_vessel_{right,left}` (`game.js`). All four added to
+`PRODUCTION_CATALOGUE_KEYS`, role `"attachment"` — they need no test flag to
+reach the pool, since `CONFIG.edgeProps.attachments.on` is already the shipped
+default (`true`). The Session 60 probes
+(`mumbai_attachment_probe_{left,right}_test`) were deleted outright, along with
+their now-stale `testKeys` rationale comment.
+
+**Payload:** `tools/optimize_prop_master.py` recompressed both repo copies
+in place (crate 685,854B → 281,673B, strategy C/128; vessel 764,176B →
+65,688B, strategy D/256, written as an indexed-palette PNG with tRNS alpha) —
+the tool's own alpha-mask bit-identity check passed for both, so every bound
+above (measured pre-recompression) stayed valid. Decoded-memory footprint for
+all non-test `EDGE_PROP_DEFS` combined is now ~28MB, under the Technical Asset
+Contract's ~32MB-per-city ceiling but with materially less headroom than
+before — worth watching before the next environmental-prop family.
+
+**Regression + composer proof.** `tools/verify/regression.js` — all checks
+PASS, zero console errors. One check needed a real fix, not a config change:
+its Session 60 cache-identity test toggled `attachments.testKeys`, which was
+only ever the door for the (now-deleted) probes; with real masters directly in
+`PRODUCTION_CATALOGUE_KEYS` that flag is inert, so the check now toggles
+`attachments.on` instead (`tools/verify/regression.js`). Admission proof: zone
+3/segment 0/left edge, `mumbai_storage_crate_cluster_left` admitted beside
+anchor `mumbai_vadapav_cart_fixed_canopy_left` at y0=283/y1=309 (anchor
+y0=334/y1=404), edge weight usage 12/13, occupancy 0.334/0.45 — default
+config, no cranking. Rejection proof: temporarily raised
+`attachments.max`/`chance` (an attachment-slot knob, not the shared
+`CONFIG.edgeProps.budget`) to force a second candidate onto the same slot —
+composer rejected `mumbai_storage_crate_cluster_left` with reason
+`"overlap:mumbai_storage_matka_vessel_left"`, a genuine `edgeAdmits()` overlap
+reject, then the diagnostic override was restored. An organic scan across
+levels 1-8 (default config) found all three anchor types (fixed-canopy,
+umbrella-cart, chai-counter) pairing with both new attachments on both edges,
+in both a day zone and a night zone (crate + fixed-canopy, zone 4/night) —
+screenshots confirm Tier-4 passive scale, muted palette, no pickup/hazard
+confusion, road stays dominant. Vessel's night render specifically was not
+independently screenshotted (no organic vessel+night pairing turned up across
+60 scanned levels) — inferred safe from the master-agnostic night-treatment
+mechanism (keyed only by asset signature, already regression-tested generic)
+plus the crate's confirmed night render; flagged here rather than silently
+assumed.
+
+**Shipping.** Player-visible by default (`attachments.on: true` was already
+live) — `sw.js` CACHE bumped `v33 → v34`, both new PNGs added to the precache
+list (each backs two catalogue keys, so 7 files now back 9 production
+catalogue keys), `BUILD_TAG` bumped `61.1 · 2026-08-13 → 61.2 · 2026-08-14`.
+
+**Metadata:** both records advanced `draft → review` (never `approved` — that
+gate is PM runtime/visual sign-off, still open) with full measured geometry
+and the honest vessel-headroom finding recorded in `notes`.
+
+**Verdict:** Session 61 Phase 2 technical PASS. Runtime visual PM sign-off on
+the screenshots is the remaining closure step.
+
 ## 2026-08-14 — Session 61 Phase 2: storage/utility attachment brief (no art, no runtime change)
 
 Scoped to what this session could actually do. The Phase 2 spec asked for real

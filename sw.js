@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback. Fresh code wins when online
 // (no stale-version traps during fast iteration); the last good copy serves
 // when offline.
-const CACHE = "masala-run-v33";
+const CACHE = "masala-run-v34";
 const ASSETS = [
   "./",
   "index.html",
@@ -13,9 +13,11 @@ const ASSETS = [
   "assets/sprites/courier.svg",
   "assets/sprites/bland.svg",
   // Active theme is "retro-day" (procedural road, game.js ACTIVE_THEME) plus the
-  // production edge-prop masters the composer actually draws — these five and
+  // production edge-prop masters the composer actually draws — these seven and
   // only these (EDGE_PROP_DEFS entries without `test: true`, i.e. keys in
-  // PRODUCTION_CATALOGUE_KEYS).
+  // PRODUCTION_CATALOGUE_KEYS; the two Session 61 Phase 2 attachment masters
+  // each back TWO catalogue keys — left+right edge defs share one binary — so
+  // seven catalogue-backing files cover nine catalogue keys).
   //
   // This list used to name the four city-<day|night> strips. Those belong to the
   // "city-art" theme, which retro-day never loads (loadThemeImages returns early
@@ -30,6 +32,11 @@ const ASSETS = [
   // Session 61: umbrella/open-cart pair, promoted into PRODUCTION_CATALOGUE_KEYS.
   "assets/props/mumbai_prop_vadapav_cart_umbrella_open_cart_left_neutral_1x_v002.png",
   "assets/props/mumbai_prop_vadapav_cart_umbrella_open_cart_right_neutral_1x_v002.png",
+  // Session 61 Phase 2: real attachment-role masters, replacing the Session 60
+  // probe harness. Each file backs both its left and right EDGE_PROP_DEFS key
+  // (orientation-neutral, same binary, no runtime mirror).
+  "assets/props/mumbai_prop_storage_crate_cluster_compact_neutral_1x_v001.png",
+  "assets/props/mumbai_prop_storage_matka_vessel_single_neutral_1x_v001.png",
   "icon-192.png",
   "icon-512.png",
   "apple-touch-icon.png",

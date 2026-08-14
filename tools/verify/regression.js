@@ -150,8 +150,15 @@ const R = (name, pass, detail) =>
     // Attachment check: pick a segment the PLAN places one on, then WALK THE
     // CAMERA THERE — edgeComposer only reports segments currently on screen, so
     // reading a distant idx returns nothing and proves nothing.
+    //
+    // Session 61 Phase 2: real attachment masters now live directly in
+    // PRODUCTION_CATALOGUE_KEYS, so the attachment pool is non-empty regardless
+    // of testKeys (that flag only ever gated the Session 60 harness probes,
+    // which this session deleted) — toggling it is now a no-op and the check
+    // must instead toggle the master 'on' switch, same as the frontage/overlay
+    // checks above toggle their own config.
     const a=__mr.config.edgeProps.attachments;
-    a.on=true; a.testKeys=true;
+    a.on=true;
     const tgt=__mr.productionDistribution.find(p=>p.eligible&&(p.attachments||[]).length);
     if(!tgt) return { base, restoredFrontage: base===frBack, restoredOverlay: base===ovBack,
                       noTarget:true };
@@ -162,9 +169,8 @@ const R = (name, pass, detail) =>
       const sg=__mr.edgeComposer.segments.find(x=>x.idx===tgt.idx);
       return sg?JSON.stringify(sg[tgt.edge].claims.filter(c=>c.source==="production").map(c=>c.id)):"none"; };
     const at=await read();
-    a.testKeys=false; const atOff=await read();
-    a.testKeys=true;  const atBack=await read();
-    a.testKeys=false; a.on=true;
+    a.on=false; const atOff=await read();
+    a.on=true;  const atBack=await read();
     return { base, restoredFrontage: base===frBack, restoredOverlay: base===ovBack,
              tgtIdx:tgt.idx, tgtEdge:tgt.edge, at, atOff,
              attachmentChanged: at!==atOff, restoredAttachment: atBack===at };

@@ -61,14 +61,27 @@ measurement trail in `CHANGELOG.md`. **Owed next:** add the two new masters to
 `sw.js`'s offline precache list and bump `BUILD_TAG`/`CACHE` together (flagged,
 not done — outside that session's file ownership).
 **Session 61 Phase 2 (2026-08-14):** wrote `PAB-MUMBAI-ENVPROP-STORAGE-
-ATTACHMENT-V1` (`docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §16) — a
-two-master `attachment`-role family (Crate Cluster, Storage Vessel) meant to
-replace the Session 60 attachment-probe defs. No art generated (no
-image-generation tool this session, same external-pipeline pattern as every
-prior prop family) and no runtime change made. **Owed next:** PM/ChatGPT run
-the brief's two generation prompts externally; once candidates land, measure,
-register in `EDGE_PROP_DEFS` on both edges, remove the Session 60 probes, and
-run the full regression suite — all still pending.
+ATTACHMENT-V1` (`docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §16), then —
+same day, once the PM selected candidates externally — measured, integrated
+and regression-tested the real Crate Cluster + Storage Vessel masters,
+replacing the Session 60 attachment-probe defs entirely. Both registered as
+orientation-neutral (one binary, two `EDGE_PROP_DEFS` keys, no runtime
+mirror), added to `PRODUCTION_CATALOGUE_KEYS`, role `"attachment"`; live by
+default since `attachments.on` was already shipped `true`. `sw.js`
+(`v33→v34`) and `BUILD_TAG` (`61.1→61.2`) bumped together — the Session 61
+Phase 1 omission is not repeated. Crate Cluster passes the Session 56
+geometry contract comfortably (1.10px intrusion, preferred band). **Storage
+Vessel does not have the headroom the brief assumed** — real measurement
+shows its declared 36px maximum runtime height fails the 8px hard cap (true
+safe ceiling ~30.7px); shipped at the 26px target only, which passes but sits
+above the 5.6px preferred band, the tightest margin of any master in this
+repo. Full measurement trail, admission/rejection composer proof, and
+regression results in `CHANGELOG.md`. **Owed next:** PM runtime/visual
+sign-off on the integration screenshots (metadata held at `status: "review"`
+pending it); vessel's night render was inferred from the shared night-
+treatment mechanism rather than independently screenshotted (no organic
+vessel+night pairing turned up in the levels scanned) — worth a direct check
+next time a night-zone route happens to carry one.
 **Owed next:** corridor retune only if further play demands it.
 
 ---
