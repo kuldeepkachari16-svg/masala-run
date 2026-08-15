@@ -1,5 +1,42 @@
 # Masala Run — Changelog
 
+## 2026-08-15 — Session 61 Phase 2 (brief correction): Storage Vessel's declared max height fixed in the brief itself
+
+Documentation/metadata-only follow-up to the integration entry directly below.
+That entry already reported the real finding (Storage Vessel fails the 8px
+hard cap at the brief's originally declared 36px maximum, true safe ceiling
+~30.7px, shipped at the 26px target only) via an appended clarification note
+in `docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §16 — the note was correct
+but the brief's own authoritative Section G/H fields still read `36 px` for
+both masters, a stale spec a future reader could act on.
+
+This pass revises `PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1` through the
+framework's normal versioned-revision path (`1.1 → 1.2`) instead: Section G's
+declared-maximum-runtime-height field and Section H's Maximum Playable
+Intrusion contract are now written per master — Crate Cluster unchanged at
+`36 px` (it passes comfortably, 1.10-1.53px against the 8px cap); Storage
+Vessel corrected to `26 px`, equal to its target, with no headroom above it.
+Sections I/O/P's shared "26–36px" language updated to match. `1.1`'s
+appended clarification note is trimmed to the still-relevant pivot-convention
+point only, since the height-ceiling correction it also carried now lives in
+the corrected field itself rather than as a caveat beside a wrong number.
+Section Q's Review Record and a new `1.2` Revision History row record the
+correction and its evidence (same measurement as `1.1` — `ρ × 36px` =
+9.37-9.41px for the vessel, over the 8px hard cap — this revision changes how
+the brief records that evidence, not the evidence itself).
+
+`assets/metadata/mumbai_prop_storage_matka_vessel_single_neutral_1x_v001.json`
+gets a short traceability addendum noting the brief version bump; no change to
+its geometry fields. No change to `game.js`, `sw.js`, runtime height, budgets,
+geometry logic, or either asset binary — the shipped build from the
+integration entry below is unaffected. `python3
+tools/validate_asset_metadata.py` and `git diff --check` both clean.
+
+**Verdict: Session 61 Phase 2 is now contract-clean at both the runtime level
+(unchanged — already passing) and the specification level (corrected) — the
+brief's own numbers no longer disagree with what was actually measured and
+shipped.**
+
 ## 2026-08-14 — Session 61 Phase 2 (integration): real attachment masters replace the Session 60 probes
 
 Follows the docs-only Phase 2 entry directly below. The PM selected candidates

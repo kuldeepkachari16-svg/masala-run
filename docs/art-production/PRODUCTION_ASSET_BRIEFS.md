@@ -2298,11 +2298,12 @@ runtime integration. It is `Ready for Generation` for two masters only.
 
 * Brief ID: `PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`
 * Title: Mumbai Environmental Props — Storage/Utility Attachment Family
-* Version: `1.1 / V1` (see Revision History §R — integration pass corrected the
-  Storage Vessel's declared maximum runtime height; original targets in
-  Sections F/H/K below are left as originally written, not edited in place,
-  per this repo's doc-provenance convention — see the clarification note after
-  Section H)
+* Version: `1.2 / V1` (see Revision History §R — `1.1` flagged the Storage
+  Vessel's declared-maximum-height problem via an appended clarification note
+  without editing the spec fields; `1.2` is the follow-up correction that
+  edits Sections G/H/I/K/O/P directly, through this framework's normal
+  versioned-revision path, so the authoritative numeric fields now match
+  measured reality per master rather than sharing one family-wide range)
 * Status: `Integrated` — both masters selected, measured, registered in
   `EDGE_PROP_DEFS`/`PRODUCTION_CATALOGUE_KEYS`, shipped (`sw.js`/`BUILD_TAG`
   bumped), regression-clean. PM runtime/visual sign-off on the integration
@@ -2466,15 +2467,26 @@ runtime integration. It is `Ready for Generation` for two masters only.
 * Secondary Shape Rhythm: crate slat/rim rhythm on the cluster; a simple neck/
   rim band on the vessel — restrained, not decorative
 * Proportions: compact and low — both read clearly smaller than any anchor
-* Intended Runtime Height: `26 px`
-* Declared Maximum Runtime Height: `36 px` (never approaches the courier's
-  70 px floor; "avoid very tall attachments" per production scope)
+* Intended Runtime Height: `26 px`, both masters
+* Declared Maximum Runtime Height (per master, `1.2` — corrected from a single
+  shared `36 px` figure once real geometry was measured; see Section H):
+  * **Crate Cluster**: `36 px` (measured 1.10-1.53px projected intrusion
+    across the full 26-36px range, comfortably inside the 8px hard cap —
+    genuine headroom, safe to ~188px)
+  * **Storage Vessel**: `26 px` — target and declared maximum are now the
+    same value. The originally specified `36 px` failed the frozen Session 56
+    hard geometry contract at measured ~9.4px projected intrusion (over the
+    8px cap); the vessel's belly-to-base taper (a real shape fact from the
+    steep bird's-eye camera, not a measurement artifact) leaves a true safe
+    ceiling of ~30.7px, barely above its own 26px target, so no usable
+    headroom exists above the target itself
 * Intended Visible Width/Depth: not governed by the tall-edge-prop 0.5–0.6
   heuristic (Section 4.1's carve-out for small ambient props applies); expect
   a compact, roughly-square-to-slightly-wide silhouette (~0.8–1.3 W:H) typical
   of stacked/rounded small forms — non-binding, visually reviewed
 * Edge-envelope Fit: must sit comfortably inside the shallow edge-prop zone at
-  26–36 px without visually competing with its anchor for space
+  up to each master's own declared maximum height (26px Storage Vessel /
+  36px Crate Cluster) without visually competing with its anchor for space
 * Orientation: front-facing, high bird's-eye camera, slight recognition tilt —
   same camera grammar as every other production master
 * Visual Weight: lighter than every registered anchor; must not read as a
@@ -2495,7 +2507,9 @@ runtime integration. It is `Ready for Generation` for two masters only.
 * Day/Night Behaviour: same structure; consumed through the Session 60
   `EDGE_PROP_NIGHT` bake, no separate art
 * Mobile Gameplay-scale Readability: silhouette must remain legible as
-  "stored goods, not gameplay object" at 26–36 px on a mid-tier Android screen
+  "stored goods, not gameplay object" from 26px up to each master's own
+  declared maximum height (26px Storage Vessel / 36px Crate Cluster) on a
+  mid-tier Android screen
 * High Bird's-eye Camera Compatibility: consistent with every approved master
 
 ### H. Camera, Runtime Placement Geometry & Modularity
@@ -2521,13 +2535,24 @@ runtime integration. It is `Ready for Generation` for two masters only.
   registered under.
 * Runtime Depth Direction: not applicable — attachments do not extend an
   independent depth envelope into the city; their footprint is bounded and
-  shallow at 26–36 px
+  shallow, at most 36px (Crate Cluster) / 26px (Storage Vessel) — see below
 * Maximum Playable Intrusion: the Session 56/4.1 hard road-intrusion discipline
-  still applies wherever a footprint can approach the road: declared maximum
-  runtime height `36 px` must pass `ρ × 36 px ≤ 8 px` (ρ ≤ 22.2%) hard, with
-  preferred guidance `ρ × 36 px ≤ 5.6 px` (ρ ≤ 15.6%) — both measured post-
-  generation, per master, following the same alpha-column footprint scan used
-  on every prior master
+  still applies wherever a footprint can approach the road, evaluated against
+  each master's OWN declared maximum height, not a shared family figure:
+  * **Crate Cluster** — declared maximum `36 px` must pass `ρ × 36 px ≤ 8 px`
+    (ρ ≤ 22.2%) hard, with preferred guidance `ρ × 36 px ≤ 5.6 px` (ρ ≤ 15.6%).
+    Measured (Session 61 Phase 2 integration): 1.10-1.53px across 26-36px —
+    PASS, comfortably inside preferred guidance.
+  * **Storage Vessel** — declared maximum is `26 px` (corrected `1.2`, was
+    `36 px`): `ρ × 26 px ≤ 8 px` (ρ ≤ 30.8%) hard, preferred guidance
+    `ρ × 26 px ≤ 5.6 px` (ρ ≤ 21.5%). Measured: 6.77-6.79px at the shipped
+    26px — PASSES the hard cap but sits above the 5.6px preferred band, the
+    tightest margin of any registered master in this repo. At the original
+    `36 px` figure this master measured 9.37-9.41px, failing the 8px hard cap
+    outright — that failure is exactly why the declared maximum was lowered
+    to match the target height, not the other way around.
+  Both measured post-generation, per master, following the same alpha-column
+  footprint scan used on every prior master.
 * Outward Screen-space Budget: small relative to any anchor; no meaningful
   outer-bleed risk expected at this scale, confirmed visually at review rather
   than assumed
@@ -2544,31 +2569,26 @@ runtime integration. It is `Ready for Generation` for two masters only.
 * Pivot Expectations: same honesty rule as every other master — never moved to
   force a numeric pass
 
-> **Integration clarification (Session 61 Phase 2, 2026-08-14) — added, not
-> edited into the passages above, per this repo's doc-provenance convention:**
-> two things written above didn't survive contact with real measurement.
-> (1) **Recommended Pivot Edge**: "visual base-centre" turns out to be
-> incompatible with how `edgePlacement()` actually places props — pivot is the
-> point pinned to the road-edge safety-buffer line
-> (`pivotX = roadEdgeX + dir*safetyBuffer`), so a centre pivot would seat the
-> object straddling that line, guaranteeing a `footprintClear` failure (half
-> the footprint lands on the protected road). Both masters were registered
-> using the SAME road-facing-footprint-edge convention as every anchor in this
-> repo (`pivot.x = footprint.x0` for the right-edge def, `footprint.x1` for
-> left) — the only convention that is physically valid here, not a deviation
-> chosen for convenience. (2) **Maximum Playable Intrusion**: the declared
-> `36 px` ceiling does not hold for the Storage Vessel — real footprint-vs-
-> visualBounds geometry (the vessel's belly bulges past its narrow tapered
-> base, a genuine shape fact from the steep bird's-eye camera angle) puts
-> `ρ × 36px` at 9.37-9.41px, over the 8px hard cap. True safe ceiling is
-> ~30.7px. Shipped at the 26px target only (6.77-6.79px, passes the hard cap,
-> sits above the 5.6px preferred band). Crate Cluster has no such problem
-> (1.10-1.53px across the full 26-36px range, safe to ~188px). Full trail in
-> `CHANGELOG.md`'s Session 61 Phase 2 integration entry.
+> **Integration clarification (Session 61 Phase 2, `2026-08-14`) — pivot
+> convention only; the maximum-height correction this note originally also
+> carried is now folded directly into the "Maximum Playable Intrusion" field
+> above as of `1.2` (see Revision History §R), not left as an appended aside:**
+> "visual base-centre" (the pivot language above) turns out to be incompatible
+> with how `edgePlacement()` actually places props — pivot is the point pinned
+> to the road-edge safety-buffer line (`pivotX = roadEdgeX + dir*safetyBuffer`),
+> so a centre pivot would seat the object straddling that line, guaranteeing a
+> `footprintClear` failure (half the footprint lands on the protected road).
+> Both masters were registered using the SAME road-facing-footprint-edge
+> convention as every anchor in this repo (`pivot.x = footprint.x0` for the
+> right-edge def, `footprint.x1` for left) — the only convention that is
+> physically valid here, not a deviation chosen for convenience.
 * Road-facing Visible Depth / ρ / Projected Intrusion / Hard-Preferred Result:
-  pending — measured post-generation; declared targets above are the authoring
-  ceiling, not the expected result (a compact 26–36 px object with a base-
-  centred pivot should land well inside preferred guidance in practice)
+  **measured** (Session 61 Phase 2 integration, `2026-08-14` — no longer
+  pending): see the per-master results in "Maximum Playable Intrusion" above.
+  Crate Cluster landed well inside preferred guidance as anticipated; Storage
+  Vessel did not — its base-centred-adjacent pivot does not fully compensate
+  for the belly-vs-base taper, landing above preferred guidance though still
+  inside the hard cap at its (now-corrected) 26px declared maximum
 * City-facing Visible Depth / cityFrac / Outer Bleed: pending measurement; not
   expected to be meaningful at this scale
 * Acceptable On-screen Visibility: full silhouette visible at target height;
@@ -2632,7 +2652,9 @@ Playable Road
   rule (shape + material, not colour alone)
 * Gameplay State: none — always the same passive state
 * Invariants Across Variants: Tier 4 passive role, subordinate visual weight,
-  26–36 px scale ceiling, no baked light/shadow, no text/brand, no person
+  26px target height with a per-master scale ceiling (36px Crate Cluster /
+  26px Storage Vessel — see Section H), no baked light/shadow, no text/brand,
+  no person
 
 ### J. Technical Output
 
@@ -2723,7 +2745,8 @@ References are supporting evidence only; they do not override this brief.
 ### O. Acceptance Criteria
 
 1. **Gameplay and category safety:** does not read as a pickup, hazard,
-   enemy, or interactable station at 26–36 px
+   enemy, or interactable station from 26px up to each master's own declared
+   maximum height (26px Storage Vessel / 36px Crate Cluster)
 2. **Silhouette and recognition:** Crate Cluster reads as stacked stored
    goods; Storage Vessel reads as one practical container; both read as
    subordinate to whatever anchor they sit beside
@@ -2740,9 +2763,12 @@ References are supporting evidence only; they do not override this brief.
 7. **Charm and polish:** only after all above pass
 
 Additionally, per this brief's small-prop carve-out from the tall-landmark
-envelope: the family must still pass `ρ × 36 px ≤ 8 px` hard and record the
-`ρ × 36 px ≤ 5.6 px` preferred result, measured the same way as every other
-edge-placed master.
+envelope: each master must pass `ρ × <its own declared maximum height> ≤ 8 px`
+hard (`36 px` for Crate Cluster, `26 px` for Storage Vessel per Section H's
+`1.2` correction) and record the `ρ × <declared max> ≤ 5.6 px` preferred
+result, measured the same way as every other edge-placed master. Crate
+Cluster met both hard and preferred; Storage Vessel met hard only — see
+Section Q for the review record.
 
 ### P. Rejection Triggers
 
@@ -2753,7 +2779,9 @@ edge-placed master.
 * Technical Asset Contract failure, broken transparency, or invalid export
 * unusable or dishonest pivot/bounds/footprint
 * city stereotype or mixed-city contamination
-* `ρ × 36 px > 8 px` (hard road-intrusion failure)
+* `ρ × <declared maximum height> > 8 px` (hard road-intrusion failure,
+  evaluated per master against its own ceiling — `36 px` Crate Cluster,
+  `26 px` Storage Vessel per Section H's `1.2` correction)
 * uncontrolled/undocumented variant (a third master, a combined composition,
   or a directional cue not in this brief)
 
@@ -2767,22 +2795,32 @@ edge-placed master.
   `masala_run_storage_vessel_candidate2.png` (both in `~/Documents/Working
   images/`, PM-selected from 4-candidate batches per master, per this brief's
   Section N)
-* Result: **PASS** (technical) — both isolated correctly, both
-  orientation-neutral verified from pixels, both pass the 8px hard
-  road-intrusion cap at their shipped heightPx (26px). Storage Vessel passes
-  with less margin than any other registered master (6.77-6.79px, above the
-  5.6px preferred band) — see the Section H clarification note above.
-* Failure Classification: none (no rejection) — one specification correction
-  required (Storage Vessel's declared 36px maximum runtime height is not
-  achievable; shipped at 26px only)
+* Result: **PASS** (technical), and now contract-clean at the spec level too
+  — both isolated correctly, both orientation-neutral verified from pixels,
+  both pass the 8px hard road-intrusion cap at their shipped heightPx (26px)
+  AND at their respective declared maximum heights (Section H, `1.2`).
+  Storage Vessel passes with less margin than any other registered master in
+  this repo (6.77-6.79px, above the 5.6px preferred band, though its declared
+  maximum is now 26px rather than 36px so there is no longer a documented
+  ceiling the shipped binary fails to meet).
+* Failure Classification: none against the art or the shipped runtime state.
+  One specification error was found and is now fully corrected: the brief's
+  originally declared 36px maximum runtime height for the Storage Vessel was
+  not achievable (measured ~9.4px projected intrusion against the frozen
+  Session 56 8px hard cap) — Section H's declared maximum for that master is
+  now `26 px`, matching its target height, as of `1.2`.
 * Evidence: full pixel-level measurement trail (alpha/isolation verification,
   connected-component dust check, mirror-symmetry diff, footprint/visualBounds/
   pivot scans, live `__mr.edgeProps.placements` cross-check) recorded in
   `CHANGELOG.md`'s Session 61 Phase 2 integration entry and in both masters'
   `assets/metadata/*.json` `notes` fields
-* Required Corrections: none to the art itself; brief-text correction only
-  (Section H clarification note, this version)
-* Brief Revision Needed: yes — `1.0 → 1.1`, clarification-only (see Section R)
+* Required Corrections: none to the art, geometry, runtime height, budgets, or
+  the binary itself — brief-text correction only, now applied directly to the
+  authoritative Section G/H/I/K/O/P fields (`1.2`), not left as a
+  clarification aside
+* Brief Revision Needed: yes — `1.0 → 1.1` (clarification note, appended-only)
+  `→ 1.2` (the actual field correction, edited in place, per the framework's
+  normal versioned-revision path) — see Section R
 * Prompt-only Revision Allowed: n/a — no re-generation needed
 * Selected Candidate: Crate Cluster candidate 1; Storage Vessel candidate 2
   (PM's own selection, made before this technical review)
@@ -2798,6 +2836,7 @@ edge-placed master.
 |---|---|---|---|---|---|
 | `1.0 / V1` | `2026-08-14` | Full A–R initial brief | Session 61 Phase 2: define the first standalone `attachment`-role small-prop family to replace the Session 60 attachment probes; no existing brief covered a runtime-composable secondary prop | No image generation is part of this session (no tool access); replaces borrowed-pixel probes with a real, narrowly-scoped brief per the framework's "if no appropriate brief exists, create the minimum required" rule | Masala Run Production Review |
 | `1.1 / V1` | `2026-08-14` | Status; Section H (clarification note appended); Section Q; Section R | Session 61 Phase 2 integration pass: PM-selected candidates measured and registered. Real geometry corrected two assumptions in the original brief text (pivot convention, Storage Vessel's max-height ceiling) — corrected via an appended clarification note, not by editing the original passages, per this repo's doc-provenance convention | Real alpha-column measurement of both PM-selected candidates; live `__mr.edgeProps.placements` cross-check; `tools/verify/regression.js` full pass | Masala Run Production Review |
+| `1.2 / V1` | `2026-08-15` | Section A (Version/Status); Section G (Intended/Declared height fields split per master); Section H (Maximum Playable Intrusion split per master, clarification note trimmed to pivot-only); Section I; Section O; Section P; Section Q; Section R | Follow-up correction, through the framework's normal versioned-revision path: `1.1`'s appended clarification note is superseded by editing the authoritative spec fields directly. Storage Vessel's declared maximum runtime height is changed from `36 px` to `26 px` (equal to its target — no headroom), explicitly recording that `36 px` failed the frozen Session 56 hard geometry contract at ~9.4px projected intrusion. Crate Cluster's `36 px` declared maximum is unchanged (it passes comfortably). No change to `game.js`, runtime height, budgets, geometry logic, or either asset binary — documentation and metadata only | Same measurement evidence as `1.1` (`ρ × 36px` = 9.37-9.41px for the Storage Vessel, over the 8px hard cap); this revision changes how the brief records that evidence, not the evidence itself | Masala Run Production Review |
 
 Next task: **PM runtime/visual sign-off on the integration screenshots
 (`CHANGELOG.md`'s Session 61 Phase 2 integration entry lists the four
