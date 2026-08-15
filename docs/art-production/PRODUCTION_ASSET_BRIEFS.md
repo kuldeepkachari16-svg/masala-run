@@ -6,10 +6,15 @@ Freeze Date: 2026-08-04
 Last Revised Date: 2026-08-12
 Validation Status: Validated
 Validation Date: 2026-08-12
-Next Production Task: PM runtime/visual sign-off on the Session 61 Phase 2
-storage/utility attachment family (`PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`,
-Section 16) — generated, measured, and integrated; sign-off is the one
-remaining gate before its metadata advances `review → approved`
+Next Production Task: two open items, independent of each other —
+(1) PM runtime/visual sign-off on the Session 61 Phase 2 storage/utility
+attachment family (`PAB-MUMBAI-ENVPROP-STORAGE-ATTACHMENT-V1`, Section 16) —
+generated, measured, and integrated; sign-off is the one remaining gate
+before its metadata advances `review → approved`; (2) run the Session 61
+Phase 3 Mumbai frontage generation prompts externally
+(`PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1`, Section 17) — brief complete, three
+production prompts delivered, no candidates generated yet (no
+image-generation tool available this session)
 
 ## 1. Purpose
 
@@ -2852,3 +2857,732 @@ against Section O/P, select one per master, then hand back for measurement
 registration on both edges, Session 60 probe removal, and the
 Session 50/51/56/57/60/61-Phase-1 regression suite — no runtime change is made
 until real binaries exist."
+
+## 17. Mumbai Frontage — Mixed-Age Shopfront Family (Session 61 Phase 3)
+
+This brief defines the first Production Asset Brief for **authored Layer-B
+frontage** — the continuous background architectural band shipped procedurally
+in Session 60 (`frontageStyle()`/`frontagePlan()`/`frontageBay()`,
+`game.js:583-818`, `CONFIG.frontage`). `MUMBAI_COMPLETION_SCOPE.md` §18
+recorded the PM's Session 60 decision to ship the procedural band as Option A
+of the P0-1 fork and deferred authored frontage masters to P2-5 ("only if the
+§18 fork chooses the asset route"). This brief does not reopen that fork or
+replace the procedural band — the band remains the layout/rhythm/gap owner.
+It defines the first controlled family of **authored art that the existing
+procedural system can select in place of a flat-primitive bay kind**, closing
+part of Pillar 3's zero-representation finding (`MUMBAI_COMPLETION_SCOPE.md`
+§4, §13 S1) with real material identity rather than more flat-fill rectangles.
+
+This brief creates no image, candidate, final export, metadata record, or
+runtime integration. **This session has no image-generation tool available**
+(confirmed before drafting — no image-generation capability is present in this
+toolset). Per this framework's own instruction for that condition, this brief
+stops at the generation handoff: brief + derived prompts only. Status is
+`Ready for Generation`, not `Generated`.
+
+### A. Brief Identity
+
+* Brief ID: `PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1`
+* Title: Mumbai Frontage — Mixed-Age Shopfront Family
+* Version: `1.0 / V1`
+* Status: `Ready for Generation` — all mandatory fields complete; no candidate
+  batch exists; external image generation is the next step, run by the PM
+* Category: `Frontage / Architectural Element` (Prompt Bible §7.3), stored
+  under asset-schema `category: "prop"` — the schema has no dedicated
+  `frontage` enum value (`assets/metadata/asset.schema.json`); every existing
+  master in this repo, including non-anchor roles, uses `"prop"`
+* Subcategory/Archetype: `Mixed-Age Practical Architecture / Shopfront Bay`
+* City Scope: Mumbai only — explicitly not Jaisalmer (guardrail; Jaisalmer's
+  frontage remains untouched, matching Session 60's "692 bays across Mumbai,
+  Jaisalmer untouched" precedent)
+* City-skin Treatment Strength: Strong for architecture/frontage, per
+  `CITY_KITS.md` Mumbai "Asset-category Treatment Strength" table
+* Gameplay Tier: `Tier 5 — Background Architectural Layer` (Prompt Bible §7.3:
+  "quieter than environmental props and modular micro-clusters"), explicitly
+  **not** Tier 4 and explicitly **not** a composer claim (see Section D)
+* Owner/Workflow Stage: brief drafted and self-approved against Section 9's
+  checklist this session; external candidate generation pending
+* Creation Date: `2026-08-15`
+* Last Revised Date: `2026-08-15`
+* Source Authority References: Art Bible 1.0 Frozen; Prompt Bible 1.0 Frozen
+  §7.3 Frontage & Architectural Elements Prompt Module; Mumbai City Kit 1.0
+  Frozen Pillar 3 (primary); Technical Asset Contract §4/§5/§6/§7;
+  `MUMBAI_COMPLETION_SCOPE.md` §5, §13 (S1), §18 (P0-1 fork, P2-5); Production
+  Asset Brief Framework 1.2 Frozen; `NAMING_CONVENTIONS.md`;
+  `ASSET_METADATA.md` / `assets/metadata/asset.schema.json`
+
+### B. Authority References
+
+* Art Bible: Version 1.0, Frozen — Environmental Props, Gameplay Hierarchy,
+  Modularity, Camera & Composition, Style & Shape Language, Colour & Contrast
+* Prompt Bible: Version 1.0, Frozen — §7.3 Frontage & Architectural Elements
+  Prompt Module in full (governing principle, asset definition, visual
+  priority, architectural depth/hierarchy, segment scale, selective
+  structural features, crop/offscreen continuation, architectural base,
+  relationship to props, camera/orientation, left/right awareness, shared
+  structure/city skins); global Prompt Bible positive/negative rules
+* City Kit: Mumbai Kit 1.0 Frozen — Pillar 3 Mixed-Age Practical Architecture
+  (primary; the identity statement, materials, silhouette characteristics,
+  palette, motifs, and prohibitions below are taken directly from this
+  section); Environmental Density; Mumbai-specific Prohibitions;
+  Asset-category Treatment Strength
+* Technical Asset Contract: current repository contract — §4 hero-scale law
+  does not bind this family the way it binds Tier 4 props (see Section D:
+  frontage is background architecture read behind objects, the same
+  structural exception the shipped procedural band already exercises at bay
+  heights up to 132px without a `tall` flag); §5 day/night (palette-neutral
+  authoring, no baked shadow/glow — this family is consumed through the
+  Session 60 night-palette mechanism the same way props are, see Section H);
+  §6 renderer capabilities (uniform scale only, no per-axis stretch — this is
+  why Section H below defines each master at one fixed authored aspect
+  ratio rather than a runtime-stretched rectangle); §7 delivery format
+* Production Asset Brief Framework: Version 1.2, Frozen — §6.1's own text
+  states "Small ambient props and asset categories outside the tall
+  edge-placement system are not automatically subject to it"; frontage is
+  such a category by explicit design (Session 60 header comment,
+  `game.js:591-602`: "this is a BACKGROUND ARCHITECTURAL LAYER, deliberately
+  NOT a composer claim"). Section H below therefore defines a **new**,
+  narrower containment model (the Frontage Depth Ratio, `φ`) scoped to the
+  Layer-B bay envelope, structurally analogous in form to the Session 56 `ρ`
+  model but bound to a different budget and a different failure mode — it
+  does not reuse or reopen the Session 56 8px road-intrusion contract, which
+  remains untouched and governs only `edgePlacement()`-placed Class A/B/C
+  edge props (see Guardrails, Section D)
+* High-risk Rules Restated: Tier 5 passive background role; never routed
+  through `EDGE_PROP_DEFS`/`edgeAdmits()`/anchor or attachment budgets; never
+  competes with gameplay objects for salience; protected road untouched; no
+  baked shadow/glow; no text/logo/brand; no people; no baked neighbouring
+  prop/scene; deliberate gap-bay rate preserved
+* Conflict/Escalation Notes: none. This brief does not touch
+  `frontagePlan()`'s layout algorithm, `CONFIG.frontage`'s existing bay-rhythm
+  constants, the segment composer, or the Session 56/57 edge-prop geometry
+  contract. It defines art content and a containment model for a **future**
+  extension point in `frontageBay()`; see Section H's explicit statement that
+  no runtime code changes this session.
+
+### C. Asset Purpose
+
+* Asset Definition: three related, single-architectural-idea frontage masters
+  — a weathered shutter bay, a grille-and-utility bay, and a compact
+  balcony/overhang bay — each a cropped modular architectural segment
+  authored to fit one procedural bay slot in the existing Layer-B band
+* Production Reason: Session 60 shipped the frontage *system* (rhythm, gap
+  bays, day/night palette-gate) using flat primitives on purpose, explicitly
+  as a placeholder ("Placeholder-grade on purpose... Authored frontage
+  masters later enrich it", `game.js:609-613`). This brief is that
+  enrichment: the first real material identity for Pillar 3, which
+  `MUMBAI_COMPLETION_SCOPE.md` §4/§13 found to have **zero** representation
+  anywhere in the game
+* Environmental or Gameplay Function: quiet, continuous background texture
+  down both non-playable edges — sets neighbourhood identity without
+  competing with anchors, attachments, or gameplay objects for attention
+* Reuse Classification: Mumbai-exclusive in material/motif per Pillar 3's
+  "Strong" frontage treatment strength; the underlying production-unit
+  concept (cropped architectural segment, Prompt Bible §7.3) is shared
+  grammar with any future city's frontage family
+* Intended Production Outcome: three isolated, single-bay-scale frontage
+  masters, each authored for the existing bay envelope, left/right
+  applicability resolved per master (see Section H)
+* Explicit Non-goals: a complete building, a complete street, a full edge
+  strip, a baked multi-bay composition, more than one architectural idea per
+  master, road/pavement art, gameplay-object attachments baked into the
+  wall (crates/vessels/carts — those are the separate Section 15/16
+  families), Jaisalmer treatment, any change to `frontagePlan()`'s layout
+  algorithm or the existing gap-bay rate, and any runtime code change this
+  session
+
+### D. Gameplay Role & Safety
+
+* Gameplay Relevance: purely decorative background architecture
+* Gameplay Tier: `Tier 5 — Background Architectural Layer`, quieter than every
+  registered Tier 4 anchor and attachment (Prompt Bible §7.3 visual-priority
+  ordering: player > enemies > hazards > attacks > pickups > environmental
+  props > micro-clusters > frontage)
+* Placement Zone: the existing Layer-B frontage band only, laid out by
+  `frontagePlan()`; **never** the `EDGE_PROP_DEFS`/`productionClaims()`/
+  `edgeAdmits()` path used by anchors and attachments. This is the single
+  most important safety property in this brief and mirrors the Session 60
+  ownership decision verbatim: frontage is continuous by definition, so
+  routing it through the composer would either blow `maxOccupancy` or require
+  a permanent exemption, "which is 'not using the composer' wearing a
+  costume" (`game.js:591-598`)
+* Interaction State: non-interactive, non-collectible, non-destructible,
+  never a hazard, enemy, attack, pickup, interactable station, or objective
+* Category Recognition Requirements: must read as inert background
+  architecture at a glance — never as a gameplay object, never as an anchor
+  or attachment silhouette competing at the same visual weight
+* Prohibited Category Resemblance: pickup, reward, hazard, enemy, attack,
+  projectile, spawn marker, interactable machine/station, objective marker,
+  UI icon, anchor prop, attachment prop, or gameplay instruction
+* Readability Priority: first, that the bay reads as passive architecture
+  behind the action, never in front of it; second, that the three masters are
+  visually distinguishable from one another (shutter vs. grille+pipe vs.
+  balcony/overhang) so the band does not read as one repeating texture;
+  anchors and attachments in front of the band always remain dominant
+* Protected Gameplay Characteristics: passive meaning, Tier 5 priority
+  (lowest of any authored asset family in this repo), non-road placement,
+  the existing deliberate gap-bay rate (22%–33%, `CONFIG.frontage.gapChance`
+  and Session 60's measured range), and no colour-only critical
+  communication
+
+### E. Asset-family Scope
+
+* Base Asset: none shared structurally — three independent single-bay
+  compositions, unified by role (Layer-B frontage), tier, camera, palette
+  family, and the Section H containment model, not by a shared silhouette
+* Included Variants:
+  1. **Master A — Weathered Shutter Frontage.** Broad plaster/concrete wall
+     mass with one closed or partly-closed metal shutter. The "identity
+     anchor" of the family — the single most recognisable Pillar 3 motif
+     (City Kit: "Shutters... the pillar's most recognisable motif" — echoing
+     the existing procedural `"shutter"` bay kind, `game.js:647-653`).
+  2. **Master B — Grille + Utility Frontage.** Simple practical wall face
+     with a grilled window/opening plus one restrained pipe/conduit run —
+     the pillar's material/utility language (exterior pipes, restrained
+     fixtures) in one bay.
+  3. **Master C — Compact Balcony / Overhang Frontage.** A shallow projecting
+     balcony or overhang element over a simple wall/shopfront mass — the
+     pillar's "compact balconies; shallow overhangs" silhouette
+     characteristic.
+* Excluded Variants: a fourth master, a combined shutter+grille+balcony
+  composition, colour-only palette swaps sold as structural variants, any
+  baked environmental prop (crate/vessel/cart/plant/person), any complete
+  building or multi-bay strip
+* Shared Structure: camera, palette family, flat-cartoon style budget, crop/
+  offscreen-continuation convention, and the Section H containment model;
+  no shared silhouette grammar is required between the three (Prompt Bible
+  §7.3: "one frontage segment = one readable architectural idea" — the
+  family's coherence comes from material/style/camera, not from one shape)
+* City Material/Detail Layer: painted plaster, concrete, corrugated/painted
+  metal, restrained wood, simple metal fixtures; moderate, mobile-readable
+  wear (faded paint, patched plaster, mild stains) — never heavy grime,
+  rust, or "abandoned" treatment (City Kit Pillar 3 + Pillar 2 restraint,
+  see Section F)
+* Time-of-day Treatment: one structural asset per master reused for day and
+  night, consumed through the existing night-palette mechanism (see Section
+  H) — no separate night art, no baked light source (matches the storage/
+  utility attachment family's precedent, Section 16 Section E)
+* Runtime Instance Logic: not finalized in this brief — orientation
+  classification (universal vs. left/right-dedicated) is assessed per master
+  at candidate review, per Section H and the Prompt Bible's explicit
+  guidance that frontage is not automatically mirrored
+* Family Boundary Rationale: all three share role (Layer-B frontage bay),
+  gameplay tier, camera, palette family, negative-constraint set, and the
+  Section H containment/authoring model; they do not share structure because
+  the production unit is "one architectural idea," not a structural kit
+  (same reasoning Section 16 used for Crate Cluster vs. Storage Vessel)
+
+### F. City Identity
+
+* Applicable City: Mumbai
+* Supported Identity Pillar: Pillar 3, Mixed-Age Practical Architecture
+  (primary — this is the first asset family to represent it at all); a
+  restrained, optional material-response cue toward Pillar 2, Monsoon-Worn
+  Urban Surfaces, is permitted (mild wear only, never wet/rain treatment),
+  matching Pillar 3's own "Monsoon-variant implications" note
+* Approved City Cues (`CITY_KITS.md` Pillar 3): older plaster/masonry beside
+  newer concrete; metal shutters and grilles; compact balconies; shallow
+  overhangs; exterior pipes and restrained fixtures; repaired edges; mixed
+  bay widths; irregular but functional rhythm
+* Treatment Strength: Strong for frontage/architecture (`CITY_KITS.md`
+  Asset-category Treatment Strength table and Prompt Bible §7.3: "Frontage
+  may carry moderate-to-strong environmental city identity")
+* Material Cues: warm concrete grey, dusty beige, faded teal or blue, muted
+  green, restrained red, small controlled yellow accents (Pillar 3's own
+  restrained palette contribution — see Section G for the full palette)
+* Architecture/Object-language Cues: layered rectangular masses; grille
+  rhythm; shallow balcony bands; pipe runs; repair rectangles; restrained
+  construction seams (Pillar 3 "Approved abstract motifs")
+* Prohibited Stereotypes/Misuse: no city identity based only on colonial or
+  heritage architecture; no literal monument facade; no palace-like
+  frontage; no deep cinematic street; no slum caricature; no hyper-detailed
+  decay (Pillar 3 verbatim); no tourist-poster treatment; no poverty coding
+* Mixed-city Contamination Exclusions: no Jaisalmer sandstone/desert/arch
+  cues; no foreign material language
+
+### G. Visual Specification
+
+* Silhouette Intent: each master reads as ONE readable architectural idea
+  (Prompt Bible §7.3) — Master A: a broad quiet wall plane punctuated by one
+  shutter; Master B: a wall face with one grilled opening and one pipe run;
+  Master C: a simple wall/shopfront mass with one shallow projecting ledge
+* Primary Shape Grammar: broad, simplified, mostly-rounded flat-cartoon
+  construction with selective architectural sharpness (shutter frame edges,
+  grille bars) — consistent with every other frozen production master
+* Secondary Shape Rhythm: shutter slat rhythm (Master A); grille bar rhythm
+  plus a single pipe line (Master B); a shallow balcony rail rhythm (Master
+  C) — restrained, matching the existing procedural primitives' own rhythm
+  language (`frontageBay()`'s shutter/grille/balcony branches,
+  `game.js:647-686`) rather than inventing a denser one
+* Proportions: **narrow and tall, not wide** — this is the single most
+  important, least obvious geometry fact in this brief (see the callout
+  below Section H's containment model). Each master must be composed as a
+  vertical architectural strip, not a horizontal shopfront panorama.
+* Intended Runtime Height (target = declared maximum, both equal — see the
+  Storage Vessel lesson referenced in Section H): Master A `100 px`; Master
+  B `84 px`; Master C `68 px`. All three sit inside the existing
+  `CONFIG.frontage` bay-height envelope (`bayMin 54 / bayMax 132`), each
+  provisional pending real measurement, deliberately not assuming headroom
+  the way the original Storage Vessel brief did
+* Intended Visible Depth: governed by the Section H Frontage Depth Ratio
+  (`φ`), not the tall-edge-prop `0.5–0.6` W:H heuristic, which does not apply
+  here (Section 4.1/6.1 carve-out) — expect a shallow, narrow-depth silhouette
+  at every target height, φ well under the hard cap (see Section H)
+* Edge-envelope Fit: must sit comfortably inside `CONFIG.frontage`'s existing
+  bay depth budget (`depthMin 0.55` – `depthMax 0.92` of `mw = 38.4 px`, i.e.
+  21.1–35.3 px) at its own target height, with margin — this is a background
+  layer, not a cart, and must never visually compete with anchors/attachments
+  drawn in front of it
+* Orientation: front-facing, high bird's-eye camera, slight recognition
+  tilt — same camera grammar as every other production master and the
+  procedural band itself
+* Visual Weight: the quietest of any authored family in this repo — flatter
+  fills, fewer accent colours, and less silhouette complexity than the
+  Tier 4 attachment family (Section 16), which is itself already the
+  quietest Tier 4 family
+* Detail Budget: minimal — one clear structural feature per master (the
+  shutter; the grille+pipe pair; the balcony/overhang) plus at most one
+  secondary wear cue; no individually-legible small objects, no dense
+  ornament, no tiny grillwork or carving (Prompt Bible §7.3 explicit)
+* Outline Treatment: minimal or soft outlines only (Prompt Bible §7.3),
+  restrained relative to the anchor/attachment families' outline strength
+* Flat-fill/Shading Rules: flat solid fills; at most one simple shade or
+  accent layer per master; no gradients beyond the frozen style budget
+* Material Hierarchy: primary wall material (plaster/concrete) dominant;
+  the single structural feature (shutter/grille+pipe/balcony) secondary; wear
+  cues tertiary and restrained
+* Palette Role: quietest environment role in the game — desaturated relative
+  to gameplay colours and even relative to anchor/attachment props
+* Accent-colour Limits: at most one restrained accent colour per master
+  (e.g. one shutter-slat tone, one pipe/grille tone, one balcony-rail tone),
+  drawn from Pillar 3's palette: warm concrete grey, dusty beige, faded teal/
+  blue, muted green, restrained red, small controlled yellow
+* Lighting Behaviour: no baked directional light or shadow — flat,
+  palette-driven, matching §5 of the Technical Asset Contract
+* Day/Night Behaviour: same structure; consumed through whatever night
+  mechanism Section H's runtime-integration note extends (no separate night
+  art authored)
+* Mobile Gameplay-scale Readability: the single structural feature must
+  stay legible as background architecture (not a gameplay object) from each
+  master's own target height on a mid-tier Android screen; below ~50 px
+  slat/grille/rail detail stops resolving at mobile scale (the existing
+  `CONFIG.frontage.bayMin` comment, `game.js:2816-2817`) — all three targets
+  (68/84/100 px) sit safely above that floor
+* High Bird's-eye Camera Compatibility: consistent with every approved
+  master and the procedural band
+
+### H. Camera, Runtime Placement Geometry & Modularity
+
+**Why this family cannot use the Section 6.1/4.1 tall edge-prop model.**
+That model measures `ρ = roadFacingVisibleDepth / storedVisibleHeight`
+against the engine's 8 px hard road-intrusion cap, because `edgePlacement()`
+pins a Class A/B/C prop's pivot to the road-edge safety-buffer line and scales
+it toward the road. Layer-B frontage is placed by a completely different
+function (`frontagePlan()`/`frontageBay()`) that never touches the road-edge
+pivot math and is capped by construction: bay depth is drawn as `mw *
+(depthMin..depthMax)`, always `< mw` (`game.js:697-732`), so the protected
+lane is "safe by construction rather than by a runtime check that could rot"
+(`game.js:600-602`, `2818-2820`). Reusing `ρ`/8 px here would import a
+gameplay-safety contract this layer already satisfies structurally, while
+failing to model the actual constraint this layer has: **fitting an authored
+raster image's fixed aspect ratio inside a bay rectangle without non-uniform
+stretch** (Technical Asset Contract §6: the renderer can uniform-scale, not
+stretch per axis). That is a new, genuinely different failure mode, so it
+gets a new, named model:
+
+```text
+Frontage Depth Ratio (φ) — new to this brief, Session 61 Phase 3
+
+masterVisibleHeight = visualBounds.y1 - visualBounds.y0   (source px)
+masterVisibleDepth  = visualBounds.x1 - visualBounds.x0   (source px)
+φ                   = masterVisibleDepth / masterVisibleHeight
+
+runtimeHeight        = the master's own declared target/max height (Section G)
+projectedDepth        = φ * runtimeHeight
+
+structuralDepthCap (hard)      = 0.92 * mw = 0.92 * 38.4 px = 35.3 px
+                                  (CONFIG.frontage.depthMax * CONFIG.edgeWalls.w * W,
+                                   the SAME structural ceiling the procedural
+                                   band already respects — game.js:2818-2822)
+preferred guidance              = 30% headroom below the hard cap, matching
+                                  the Session 56 ρ convention's own margin ratio
+                                  (5.6/8 = 70%): 0.70 * 35.3 px ≈ 24.7 px
+
+HARD:      projectedDepth <= 35.3 px   (φ <= 35.3 / runtimeHeight)
+PREFERRED: projectedDepth <= 24.7 px   (φ <= 24.7 / runtimeHeight)
+```
+
+`φ` is deliberately named differently from `ρ` and bound to a different
+numeric budget (35.3/24.7 px, not 8/5.6 px) so the two are never confused in
+review evidence or in a future grep. **This does not reopen, reuse, weaken, or
+extend the Session 56 8 px road-intrusion contract**, which continues to
+govern only `edgePlacement()`-placed Class A/B/C edge props and is untouched
+by this brief.
+
+> **The narrow-strip callout.** On screen, a frontage bay renders as a
+> rectangle `bw` (horizontal, screen-edge → inward, 21.1–35.3 px) wide by `bh`
+> (vertical, along the scroll axis, 54–132 px) tall
+> (`frontageBay(g, x0, dir, depth, y, bh, ...)`, `game.js:621-624`,
+> `g.fillRect(xa, y, bw, bh)` for the base wall mass). That is a **narrow,
+> tall vertical strip**, not a wide horizontal shopfront panorama — the
+> camera's steep bird's-eye angle compresses a shopfront's road-facing depth
+> into that ~21–35 px band while its along-street run reads as the taller
+> 54–132 px axis. Every existing procedural bay kind (`shutter`, `grille`,
+> `awning`, `pipe`, `balcony`) already draws inside that narrow-tall envelope
+> (`game.js:647-686`). An authored master with a wide, horizontal shopfront
+> composition would not fit this envelope at any uniform scale without either
+> failing the `φ` hard cap or shrinking until the structural feature is
+> illegible. **The three production prompts in Section M are written portrait/
+> narrow-strip first for exactly this reason** — this is the failure mode
+> most likely to waste an entire 4-candidate batch if missed, so it is
+> flagged here before generation, not discovered after.
+
+* Camera Orientation: Masala Run high bird's-eye camera, slight tilt —
+  matches every existing production master and the procedural band
+* Runtime Orientation Model: not `edgePlacement()`'s pivot-to-road-edge model
+  (Section 4.1) — a frontage master's placement is entirely determined by
+  `frontagePlan()`'s existing `x0`/`dir`/`depth`/`y`/`bh` bay geometry;
+  Section H's job is only to keep an authored master's own pixels inside
+  that geometry at its declared runtime height
+* Edge Orientation Class: **assessed per master at candidate review**,
+  using the same Class A/B/C framework as Section 6.1, applied to frontage's
+  own left/right question (does the SAME image read correctly mirrored
+  across the band, given the Prompt Bible §7.3 "Left/Right Awareness"
+  guidance that simple symmetrical frontage may remain universal while
+  shutter arrangement/pipe position/balcony-rail asymmetry may require
+  dedicated masters). Provisional expectation, not a claim: Master A
+  (shutter, likely near-symmetric) and Master B (grille, likely
+  near-symmetric) are plausible Class A candidates; Master C (balcony/
+  overhang) is the most likely to show a genuine directional cue (rail
+  shadow, ledge-support asymmetry) and may need dedicated left/right masters.
+  Forcing symmetry onto an asymmetric candidate is prohibited, matching every
+  other brief in this framework.
+* Runtime Depth Direction: horizontal, screen-edge → inward (toward the
+  road), matching `frontageBay()`'s existing `dir` convention; capped by `φ`
+  at Section H's declared runtime height, never by moving a pivot
+* Maximum Playable Intrusion: not applicable in the Section 4.1 sense (no
+  road-edge pivot, no `edgePlacement()` placement) — the analogous, binding
+  constraint is the `φ` hard/preferred cap above, evaluated per master
+  against its own declared runtime height once real geometry exists
+* Placement Footprint: wholly contained inside one procedural bay slot;
+  must never extend deeper toward the road than the existing
+  `depthMax * mw` structural ceiling (35.3 px) that already bounds every
+  procedural bay kind
+* Recommended Pivot/Anchor Edge: screen-edge-facing top corner of the
+  authored bay rectangle (matching `frontageBay()`'s own `x0`/`y` corner
+  convention for `g.fillRect`), not a centre or road-facing convention —
+  this is a background fill placed into a rectangle, not an object with a
+  ground-contact footprint
+* Left/Right Applicability: per-master, per the Class A/B/C assessment above;
+  no runtime mirror transform is used for a master classified anything other
+  than Class A confirmed symmetric, matching the repo-wide no-fake-mirroring
+  policy (Technical Asset Contract §6)
+* Overhang Allowance (Master C specifically): a balcony/overhang's total
+  visible depth — wall mass plus any projecting ledge — is still measured as
+  ONE `masterVisibleDepth` figure and must still satisfy the SAME `φ` cap as
+  the other two masters. The ledge is not a separate budget or an exemption
+  from the structural ceiling; it is simply part of what gets measured. This
+  guardrail exists so a generation prompt cannot "spend" extra depth budget
+  on a dramatic projecting balcony that would exceed 35.3 px at Master C's
+  own 68 px target.
+* Baked-composition Restrictions: no baked road, pavement, neighbouring bay,
+  people, or complete street; no baked anchor/attachment prop (crate, cart,
+  vessel, plant); a narrow structural base (doorstep/plinth/threshold) is
+  allowed only when inseparable from the architecture (Prompt Bible §7.3)
+
+**Runtime integration — design intent only, no code change this session.**
+The intended architecture, matching the spec's own framing and this repo's
+"do not create a second frontage renderer" guardrail:
+
+```text
+frontagePlan() rolls bay kind (existing rng stream, existing salt)
+  → an "authored" kind becomes selectable alongside shutter/grille/awning/
+    pipe/balcony/gap, at a conservative selection weight (recommend: low
+    enough that gap-bay rate and kind variety both stay intact — the
+    existing 22%-33% gap rate is a preserved invariant, not a budget to
+    consume)
+  → when a selected authored kind's own bh does not already match the
+    procedural bh range, the plan instead reserves a slot sized to the
+    chosen master's OWN declared runtime height (54-132px range already
+    covers all three targets), keeping "own stream, own salt" determinism
+  → frontageBay() gains a new branch that drawImage()s the selected master's
+    PNG at a uniform scale (never per-axis stretch, per Technical Asset
+    Contract §6) into that bay's rectangle, in place of the flat-primitive
+    branches
+  → day/night: consumed through whichever mechanism the existing
+    EDGE_PROP_NIGHT-style bake extends to cover frontage (this brief does
+    not assume the exact mechanism — that is next session's runtime work,
+    to be designed against real pixels, not invented here)
+  → cached into the segment tile exactly as today (segCompositionSig() must
+    fold in the frontage catalogue choice the same way it already folds in
+    other tile-painted layers, per this repo's CLAUDE.md rule)
+```
+
+This is forward guidance for whichever session integrates real binaries, not
+a commitment to exact function signatures — those should be designed against
+the actual measured masters, not against invented placeholder geometry.
+
+Functional placement diagram:
+
+```text
+Building Zone
+↓
+Edge Decoration Zone            ← THIS BRIEF (frontage band, all bays)
+↓
+Interactive Edge Prop Zone      ← anchors (Section 15) / attachments (Section 16)
+↓
+Safety Buffer
+↓
+Playable Road
+```
+
+### I. Permitted Variants
+
+* Structural Variation: none within a master — each is a single fixed
+  composition, matching Section 16's convention for this family shape
+* Material Variation: restrained plaster/paint colour choice within Pillar
+  3's palette (Master A); grille/pipe metal-tone choice (Master B);
+  wall/rail material choice (Master C) — one coherent choice per candidate,
+  not a rainbow
+* Controlled Wear: mild, mobile-readable wear only (faded paint, patched
+  plaster) — never heavy grime, rust, or "abandoned" treatment
+* City Skin: Mumbai, Strong treatment strength, all three masters
+* Day/Night Treatment: single structural asset per master, night consumed
+  through the runtime mechanism referenced in Section H — no separate night
+  art authored
+* Orientation: assessed per master at candidate review (Section H); not
+  assumed universal in advance
+* Approved State Change: none — frontage has no gameplay state
+* Accessibility Treatment: none required beyond the existing multi-cue
+  silhouette rule (shape + material, never colour alone)
+* Gameplay State: none — always the same passive background state
+* Invariants Across Variants: Tier 5 passive role, quietest visual weight of
+  any authored family in this repo, one readable architectural idea per
+  master, `φ` hard cap `35.3 px` / preferred `24.7 px` at each master's own
+  declared runtime height, no baked light/shadow, no text/brand, no person,
+  never routed through `EDGE_PROP_DEFS`/the composer
+
+### J. Technical Output
+
+* Technical Asset Contract Reference: current repository contract, §4/§5/§6/§7
+* File Type/Colour Space: PNG, real alpha (thresholded trim, no matte
+  fringe), sRGB
+* Transparency/Alpha: isolated architectural mass, transparent background —
+  no baked road, pavement, neighbouring bay, or ground scene beyond an
+  inseparable narrow structural base (Section H)
+* Dimensions/Resolution: canvas sized to keep the family well inside the
+  ~32 MB/city decoded-memory ceiling (`project-asset-payload-budget` memory,
+  non-test `EDGE_PROP_DEFS` already sum ~28 MB) — given target runtime
+  heights of 68-100 px, a source canvas in the ~600-800 px range on the long
+  (height) axis is a generous 6-9x supersample and should not be exceeded
+  without a specific readability reason; single image ≤ 1024×1024 per the
+  memory-budget ceiling regardless. **Do not deliver 1254×1254-class
+  canvases for this family** — that scale was appropriate for the Storage
+  Vessel/Crate Cluster's much larger detail budget, not for a quiet Tier 5
+  background strip (see the payload-budget memory's own explicit warning
+  after that family shipped)
+* Padding/Bounds: crop-safe region ≥ 32 px beyond `visualBounds` (a smaller
+  margin than the 48 px convention used by larger anchor/attachment masters
+  is appropriate at this family's smaller absolute pixel scale; exact figure
+  confirmed at measurement)
+* Pivot: screen-edge-facing top corner of the authored bay rectangle,
+  per Section H — not a ground-contact footprint edge
+* Orientation/Side Variants: per-master, per Section H's Class A/B/C
+  assessment at review; not fixed in advance
+* Naming: per `NAMING_CONVENTIONS.md`
+  (`<city>_<category>_<subject>_<variant>_<lighting>_<size>_v###.<ext>`),
+  validated syntactically this session via
+  `tools/validate_asset_names.py --name --strict` (all three: `OK`):
+  * `mumbai_prop_frontage_shutter_weathered_neutral_1x_v001.png`
+  * `mumbai_prop_frontage_grille_utility_neutral_1x_v001.png`
+  * `mumbai_prop_frontage_balcony_overhang_neutral_1x_v001.png`
+  (left-edge counterparts, if Section H's review finds a master is not
+  Class A, will use the same stem with `_left`/`_right` inserted before
+  `_neutral`, matching every existing handed master in this repo)
+* Metadata: `assets/metadata/asset.schema.json` — one record per filename,
+  `category: "prop"`, `status: "draft"` — **no metadata JSON is created by
+  this brief**, unlike Section 16's precedent, because the schema's
+  `dimensions`/`anchor` fields are numeric-required and cannot be honestly
+  populated before real pixels exist; inventing placeholder numbers there
+  would be exactly the "invented asset" this session's own instructions
+  prohibit. Metadata is created at measurement time, after generation.
+* Export Destination/Manifest: `assets/props/`; `assets/art_manifest.json`
+  updated at import time, not by this brief
+* Collision/Footprint Data: `collision.type: "none"`, `solid: false` when
+  metadata is eventually created — matches every other Tier 4/5
+  environmental asset in this repo
+* Animation/Frame Requirements: none — static image
+* Edge-envelope Compatibility Review: pending post-generation measurement
+* Asset-specific Override: none
+
+### K. Negative Constraints
+
+1. Global Negatives: no realism/photorealism/painterly rendering or
+   unsupported 3D appearance; no readable Hindi, Marathi, or English text; no
+   logo, trademark, or brand; no baked shadow or glow halo; no gradients
+   beyond the frozen flat-fill budget
+2. Category Negatives (frontage-specific, Prompt Bible §7.3): no complete
+   building, complete façade illustration, connected street, full-screen
+   background, or long baked edge strip; no deep alley, visible street depth,
+   detailed interior, complex perspective scene, or cinematic building
+   composition; no road, pavement scene, sand field, terrain, or full
+   footpath (a narrow inseparable structural base only, per Section H); no
+   baked freestanding prop (stall, cart, crate, basket, chair, table,
+   vessel, parked vehicle, plant, freestanding lamp) or complete
+   micro-cluster; no person, body part, silhouette, vendor, or customer
+3. City-specific Negatives: no colonial/heritage-only architecture as the
+   sole identity carrier; no literal monument facade; no palace-like
+   frontage; no deep cinematic street; no slum caricature; no hyper-detailed
+   decay; no tourist-poster treatment; no mixed-city (Jaisalmer) material
+   contamination; no permanent wet/monsoon treatment
+4. Asset-specific Negatives: no wide horizontal shopfront-panorama
+   composition (Section H callout — must be composed as a narrow vertical
+   strip); no more than one structural feature per master; no combined
+   shutter+grille+balcony composition; no fourth master; no dense/tiny
+   ornament (elaborate grillwork, realistic reflections, dense carvings,
+   individually rendered trim); no directional cue on a master intended as
+   orientation-neutral without flagging it for Class C review; on Master C,
+   no projecting overhang deep enough to threaten the shared `φ` cap
+   (Section H's Overhang Allowance note)
+
+### L. Reference-image Usage
+
+| Reference ID | Reason for inclusion | May borrow | Must not copy | Reference type |
+|---|---|---|---|---|
+| `REF-FRONTAGE-1` | Approved chai-counter v001 / vada-pav cart masters — style/material/palette continuity for the shared Mumbai environmental-art family | flat-fill style, outline strength, restrained-accent palette logic, camera angle | cart/counter structure, any freestanding-prop silhouette | Structural/Material/Palette |
+| `REF-FRONTAGE-2` | The shipped procedural frontage band itself (`frontageBay()`'s shutter/grille/balcony branches, `game.js:647-686`) — confirms the narrow-tall bay envelope and the existing motif vocabulary this family enriches | bay proportions (narrow/tall), motif choice (shutter slats, grille bars, balcony rail), restrained detail density | the flat-primitive rendering itself — the authored masters must exceed it in material richness, not merely restate it | Structural/Compositional |
+
+References are supporting evidence only; they do not override this brief.
+
+### M. Derived Generation Prompt
+
+* Prompt Version/ID: `PROMPT-FRONTAGE-SHOPFRONT-V1`
+* Source Brief ID/Version: `PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1 / 1.0`
+* Model/Pipeline Target: external image-generation tool (PM/ChatGPT or
+  equivalent), matching the pipeline used for every prior Mumbai family —
+  this session has no image-generation tool available
+* Final Model-facing Prompts: three copy-pasteable prompt blocks (Master A,
+  Master B, Master C), delivered alongside this brief in this session's
+  chat output, per this framework's own precedent (Section 16's Storage/
+  Utility Attachment brief delivered its prompts the same way)
+
+### N. Candidate-generation Plan
+
+* Candidate Count: `4` per master (framework default), `12` total
+* Count Override and Justification: none
+* Generation Model/Pipeline: external (PM-run, ChatGPT image generation or
+  equivalent) — outside this session's tool access
+* Seed Strategy: not supported by the target pipeline; record whatever seed/
+  reference the tool reports per candidate for traceability
+* Controlled Prompt Fields: gameplay role/tier, camera, narrow-strip
+  proportion requirement, isolation, technical output, negatives — held
+  constant across all 4 candidates per master
+* Variable Prompt Fields: none authorized beyond ordinary generation
+  variance; do not vary structural idea, material family, or accent count
+  across candidates of the same master
+* Output Destination: PM delivers candidate images to `~/Documents/Working
+  images/` (the accessible drop path this session already uses); Claude
+  imports the accepted candidate into `assets/props/` at measurement time
+* Candidate Naming: `PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1_<master>_c<1-4>`, where
+  `<master>` is `shutter` / `grille` / `balcony`
+
+### O. Acceptance Criteria
+
+1. **Gameplay and category safety:** reads as inert background architecture,
+   never as a pickup, hazard, enemy, interactable, anchor, or attachment
+2. **Silhouette and recognition:** Master A reads as a shuttered wall bay;
+   Master B reads as a grilled/piped utility wall bay; Master C reads as a
+   compact overhanging balcony bay; all three are distinguishable from one
+   another and from the existing procedural bay kinds
+3. **Proportion:** narrow vertical strip composition (Section H callout) —
+   a wide horizontal shopfront-panorama candidate fails this criterion
+   regardless of art quality
+4. **Technical compliance:** real alpha, no matte fringe, appropriate crop
+   margin, filename passes `tools/validate_asset_names.py`; metadata created
+   and validated at measurement time
+5. **Modularity and procedural usability:** clean isolation, no baked
+   ground/neighbour/road, honest measurable bounds, fits the existing bay
+   envelope at its declared runtime height without redesigning
+   `frontagePlan()`
+6. **City identity:** Pillar 3 material/motif cues present, Strong
+   treatment strength, no stereotype
+7. **Global style consistency:** flat-fill/outline/camera grammar matches
+   the existing production family, at Tier 5's quieter visual weight
+8. **Charm and polish:** only after all above pass
+
+Additionally, per Section H: each master must pass
+`φ * <its own declared runtime height> <= 35.3 px` hard, and record the
+`φ * <declared runtime height> <= 24.7 px` preferred result, measured the
+same alpha-column-scan way as every other master in this repo, once real
+pixels exist.
+
+### P. Rejection Triggers
+
+* category confusion, or a silhouette that reads as a gameplay object,
+  anchor, or attachment
+* wide horizontal shopfront-panorama composition instead of the required
+  narrow vertical strip
+* baked road, pavement, neighbouring bay, complete street, or freestanding
+  environmental prop (cart/crate/vessel/plant/person)
+* more than one structural idea combined into a single master
+* baked shadow, glow, or ground
+* Technical Asset Contract failure, broken transparency, or invalid export
+* unusable or dishonest bounds/crop
+* city stereotype, heritage-only framing, or mixed-city contamination
+* `φ * <declared runtime height> > 35.3 px` (hard depth-containment failure,
+  evaluated per master against its own declared runtime height)
+* on Master C, an overhang deep enough that total `masterVisibleDepth`
+  fails the `φ` cap (Section H's Overhang Allowance note)
+* uncontrolled/undocumented variant (a fourth master, a combined
+  composition, or a directional cue not flagged for Class C review)
+
+### Q. Review Record
+
+* Reviewer: Claude (engine), Masala Run Session 61 Phase 3 — brief-drafting
+  and generation-handoff review only; no candidates exist yet, so no
+  creative/technical candidate review has occurred
+* Review Date: `2026-08-15`
+* Candidate Identifiers: none — no candidates generated this session
+* Result: **not applicable — no generation has occurred.** This brief itself
+  passes the Section 9 approval checklist (all mandatory A–R fields
+  complete, authority references current, scope/non-goals unambiguous,
+  gameplay/placement/category safety defined, city treatment declared,
+  variants/invariants explicit, Technical Asset Contract requirements
+  complete by reference, four-layer negatives complete, acceptance/rejection
+  criteria observable, candidate plan and traceable naming defined, no
+  unresolved editorial marker or authority conflict) and is therefore
+  self-approved to `Ready for Generation` by the same convention Section 16
+  used at its own `1.0`
+* Failure Classification: none — nothing has been generated to fail
+* Evidence: none yet; this brief and its three derived prompts are the
+  complete evidence trail so far
+* Required Corrections: none to art (none exists); the brief itself is
+  believed complete but is explicitly open to a versioned revision once
+  real candidates expose an assumption this brief got wrong (matching the
+  pattern the Storage Vessel correction, Section 16 `1.1→1.2`, already set)
+* Brief Revision Needed: not yet — will be assessed once candidates return
+* Prompt-only Revision Allowed: yes, if a candidate batch is structurally
+  close but fails a controllable prompt field (e.g. proportion, accent
+  count) without touching the underlying spec
+* Selected Candidate: none — generation has not occurred
+* Final Approval Note: **generation handoff only.** This session prepared
+  the brief and the three production prompts and stopped there, per this
+  session's own explicit instruction for when no image-generation tool is
+  available. No runtime integration, measurement, or PM visual review can
+  occur until the PM runs the three prompts externally and returns
+  candidates.
+
+### R. Revision History
+
+| Version | Date | Changed section | Reason | Evidence/failure addressed | Approver |
+|---|---|---|---|---|---|
+| `1.0 / V1` | `2026-08-15` | Full A–R initial brief | Session 61 Phase 3: define the first Production Asset Brief for authored Layer-B frontage, enriching the Session 60 procedural band with real Pillar 3 material identity, per the framework's "if no appropriate brief exists, create the minimum required" rule | No appropriate existing brief covers Layer-B background architecture — Sections 14-16 all cover `EDGE_PROP_DEFS`-routed Tier 4 assets. No image-generation tool is available this session, so this brief stops at the generation handoff (brief + 3 prompts), matching this session's own explicit fallback instruction | Masala Run Production Review |
+
+Next task: **run the three Section M generation prompts externally (PM/
+ChatGPT or equivalent), review 12 candidates (4 per master) against Section
+O/P, select one per master, then hand back for measurement (visualBounds/
+`φ`/crop-safe region), metadata creation, the runtime-integration design
+sketched in Section H (a new `frontageBay()` branch — no `EDGE_PROP_DEFS`
+entry, no composer routing), and the Session 50/51/56/57/60/61-Phase-1/
+61-Phase-2 regression suite — no runtime change is made until real binaries
+exist.**

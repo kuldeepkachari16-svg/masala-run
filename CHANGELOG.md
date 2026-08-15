@@ -1,5 +1,121 @@
 # Masala Run — Changelog
 
+## 2026-08-15 — Session 61 Phase 3: first Mumbai frontage production brief + generation handoff (no code change)
+
+Session 60 shipped the Layer-B procedural frontage band deliberately
+placeholder-grade — flat primitives standing in for Pillar 3 (Mixed-Age
+Practical Architecture), which `MUMBAI_COMPLETION_SCOPE.md` found had **zero**
+representation anywhere in the game. This session was scoped to create the
+first authored frontage family to enrich that band. **No image-generation
+tool is available in this session's toolset** (confirmed before drafting —
+checked the full tool list, including the design-system tool, which is
+unrelated). Per this session's own explicit instruction for that condition,
+the work stops at the generation handoff: a complete versioned brief and
+three copy-pasteable production prompts, not integrated art.
+
+Wrote `PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1`
+(`docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §17), a three-master family
+— Weathered Shutter, Grille + Utility, Compact Balcony/Overhang — each one
+readable Pillar 3 architectural idea per the Prompt Bible's §7.3 Frontage
+module. The brief explicitly does **not** route this family through
+`EDGE_PROP_DEFS`/`productionClaims()`/`edgeAdmits()`: frontage stays Layer-B,
+owned by `frontagePlan()`/`frontageBay()`, exactly as Session 60 decided
+(`game.js:591-602`) and as `MUMBAI_COMPLETION_SCOPE.md` §18 recorded when the
+PM chose the procedural-band fork option. This brief does not reopen that
+fork; it defines art the existing system can select in place of a flat
+primitive, once a future session wires that selection in.
+
+**New containment model, not a reuse of the Session 56 contract.** The tall
+edge-prop `ρ`/8px road-intrusion model (`edgePlacement()`, pivot pinned to the
+road-edge safety buffer) does not apply here — frontage bays never touch that
+pivot math and are already capped by construction (`depth < mw`,
+`game.js:697-732`). The actual constraint this family has is different:
+fitting a fixed-aspect-ratio raster image into a bay rectangle without
+per-axis stretch (the renderer only uniform-scales, Technical Asset Contract
+§6). Defined a new, explicitly-differently-named model for that: **Frontage
+Depth Ratio (φ)** — `φ = masterVisibleDepth / masterVisibleHeight`, hard cap
+`φ × runtimeHeight ≤ 35.3px` (the SAME structural ceiling
+`CONFIG.frontage.depthMax × CONFIG.edgeWalls.w × W` the procedural band
+already respects), preferred `≤ 24.7px` (30% headroom, mirroring the Session
+56 convention's own margin ratio). `φ` is bound to a different budget than
+`ρ` on purpose, so review evidence for the two is never conflated.
+
+**Geometry finding that reshaped the brief before any art exists, not after
+(the Storage Vessel lesson applied proactively):** a frontage bay renders on
+screen as a **narrow, tall vertical strip** — `bw` (screen-edge → inward)
+21.1-35.3px wide by `bh` (along the scroll axis) 54-132px tall
+(`frontageBay()`, `game.js:621-624`) — not a wide horizontal shopfront
+panorama. Every existing procedural bay kind already draws inside that
+narrow-tall envelope. A candidate composed as a wide shopfront crop would not
+fit at any uniform scale without either failing `φ` or shrinking its
+structural feature to illegibility. Flagged explicitly in the brief (Section
+H callout) and built into all three production prompts as a "portrait,
+narrow architectural strip" requirement, specifically so an external
+generation batch does not get spent finding this out the hard way — unlike
+the Storage Vessel's declared-max-height assumption, which was corrected only
+after real pixels exposed it (Session 61 Phase 2).
+
+Target runtime heights (target = declared max, no assumed headroom, same
+discipline the Storage Vessel correction argued for): Master A (shutter)
+`100px`, Master B (grille+utility) `84px`, Master C (balcony/overhang)
+`68px` — all inside the existing `CONFIG.frontage` bay-height envelope
+(`bayMin 54 / bayMax 132`) and above the `~50px` floor where slat/grille
+detail stops resolving at mobile scale (`game.js:2816-2817`). Master C's
+balcony/overhang gets an explicit guardrail: its ledge is not a separate
+depth budget — total `masterVisibleDepth` (wall + ledge) still has to clear
+the same `φ` cap, closing a loophole a generation prompt could otherwise
+exploit.
+
+Left/right orientation classification is deliberately **not** assumed in
+advance — assessed per master at candidate review (Class A/B/C, same
+framework Section 6.1 already uses), per the Prompt Bible's own "do not
+automatically mirror all frontage" guidance. Provisional expectation only:
+Master A/B plausibly near-symmetric, Master C most likely to need dedicated
+handed masters.
+
+Filenames validated syntactically (`tools/validate_asset_names.py --name
+--strict`, all three `OK`):
+`mumbai_prop_frontage_shutter_weathered_neutral_1x_v001.png`,
+`mumbai_prop_frontage_grille_utility_neutral_1x_v001.png`,
+`mumbai_prop_frontage_balcony_overhang_neutral_1x_v001.png`. No metadata JSON
+created this session — the schema's `dimensions`/`anchor` fields are
+numeric-required and cannot be honestly populated before real pixels exist;
+that would be exactly the "invented asset" this session's instructions
+prohibited. Recommended source-canvas scale explicitly capped well below the
+Storage/Utility family's 1254×1254 (~600-800px on the long axis is a generous
+6-9x supersample at these targets) — the decoded-memory ceiling is already at
+~28MB/32MB per city and this family does not need that much source detail.
+
+Runtime integration is sketched as design intent only (Section H) — a future
+`frontageBay()` branch that `drawImage()`s a selected master at uniform scale
+into its bay rectangle, day/night consumed through whatever mechanism extends
+the existing night-palette bake, cache safety folded into
+`segCompositionSig()` per this repo's standing rule for any new
+tile-painting layer. None of this is implemented; it is guidance for whoever
+integrates the real binaries.
+
+**Files changed:** `docs/art-production/PRODUCTION_ASSET_BRIEFS.md` (new
+§17, top pointer updated), `ROADMAP.md`, `docs/art-production/
+MUMBAI_COMPLETION_SCOPE.md` (dated addendum), this entry. **No change** to
+`game.js`, `sw.js`, `CONFIG`, `EDGE_PROP_DEFS`, any asset binary, or any
+metadata file — nothing player-visible changed, so `BUILD_TAG`/`CACHE` are
+deliberately not bumped.
+
+**Validation:** `node --check game.js` (unchanged, still clean),
+`tools/validate_asset_names.py --name --strict` (3/3 `OK`), `git diff
+--check` (clean).
+
+**Verdict:** Session 61 Phase 3 delivers the brief and the generation
+handoff only — a versioned Production Asset Brief and three production-ready
+prompts for the first authored Mumbai Pillar 3 frontage family, with a new
+containment model (`φ`) and a geometry pitfall (narrow-strip proportion)
+identified and designed around before any generation round, not after. Full
+runtime integration, day/night validation, regression re-run, and PM visual
+sign-off all remain open and depend on the PM running the three prompts
+externally and returning candidates — no technical PASS is claimed this
+session, per this session's own explicit "do not claim full Phase 3 closure"
+instruction.
+
 ## 2026-08-15 — Session 61 Phase 2 (brief correction): Storage Vessel's declared max height fixed in the brief itself
 
 Documentation/metadata-only follow-up to the integration entry directly below.

@@ -82,6 +82,26 @@ pending it); vessel's night render was inferred from the shared night-
 treatment mechanism rather than independently screenshotted (no organic
 vessel+night pairing turned up in the levels scanned) — worth a direct check
 next time a night-zone route happens to carry one.
+**Session 61 Phase 3 (2026-08-15):** wrote `PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1`
+(`docs/art-production/PRODUCTION_ASSET_BRIEFS.md` §17) — the first brief for
+authored Layer-B frontage, three masters (shutter / grille+utility /
+balcony-overhang) enriching the Session 60 procedural band with real Pillar 3
+material identity. Explicitly stays out of `EDGE_PROP_DEFS`/the composer —
+frontage remains `frontagePlan()`/`frontageBay()`'s own layer, per the
+Session 60 ownership decision. Defined a new containment model (Frontage
+Depth Ratio `φ`, hard cap 35.3px / preferred 24.7px) scoped to the Layer-B
+bay envelope rather than reusing the Session 56 `ρ`/8px road-intrusion
+contract, which does not apply to this placement path. Caught, before any
+generation round, that a frontage bay renders as a narrow vertical strip
+(21-35px wide × 54-132px tall) rather than a wide shopfront panorama, and
+built that constraint into all three production prompts. **No
+image-generation tool is available this session**, so work stops at the
+generation handoff: brief + three copy-pasteable prompts, delivered in-chat.
+No `game.js`/`sw.js`/asset/metadata change; `BUILD_TAG`/`CACHE` not bumped.
+Full mechanism in `CHANGELOG.md`. **Owed next:** PM runs the three prompts
+externally; returning candidates need measurement, metadata, the Section H
+runtime-integration design turned into real code, and a full regression
+re-run before any technical-PASS claim.
 **Owed next:** corridor retune only if further play demands it.
 
 ---

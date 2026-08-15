@@ -4,6 +4,26 @@
 > **Status:** Living  ·  **Owner:** Claude (engine)
 > **Created:** 2026-08-13
 
+## Session 61 Phase 3 update (2026-08-15) — P2-5 moved from deferred to briefed
+
+§16/§18 recorded "continuous tiling frontage masters" as P2-5, deferred
+"only if the §18 fork chooses the asset route." That fork was resolved in
+favour of Option A (procedural band) and stays resolved — this update does
+not reopen it. What actually happened this session is narrower than either
+fork option: the first authored art for the *existing* procedural band, not
+a competing asset-only frontage system. `PAB-MUMBAI-FRONTAGE-SHOPFRONT-V1`
+(`PRODUCTION_ASSET_BRIEFS.md` §17) specs three masters — shutter,
+grille+utility, balcony/overhang — intended to plug into `frontageBay()` as
+a new selectable bay kind, still laid out by `frontagePlan()`, still
+respecting the existing gap-bay rate. Pillar 3 coverage (§4, §13 S1) remains
+**zero shipped** as of this update — a brief and three prompts exist,
+no image has been generated (no image-generation tool available this
+session), and no runtime selection code has been written. T2's "frontage
+layer exists" condition (§17 table) is unaffected: it was already met by the
+procedural band alone and does not require this family. Re-audit this
+section once candidates return and a `frontageBay()` authored-kind branch
+actually ships.
+
 ## Session 60 update (2026-08-13) — verdict converted B → A
 
 The three items blocking the freeze are resolved. Full mechanism and
